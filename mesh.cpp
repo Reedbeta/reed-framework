@@ -314,7 +314,7 @@ namespace Framework
 
 		DeduplicateVerts(pMeshOut);
 
-		LOG("Loaded %s - %d verts, %d indices\n",
+		LOG("Loaded %s - %d verts, %d indices",
 			path, pMeshOut->m_verts.size(), pMeshOut->m_indices.size());
 
 		// !!!UNDONE: vertex cache optimization?
@@ -322,6 +322,8 @@ namespace Framework
 #if VERTEX_TANGENT
 		CalculateTangents(pMeshOut);
 #endif
+
+		// Upload the mesh data to the GPU
 
 		D3D11_BUFFER_DESC vtxBufferDesc =
 		{
@@ -336,6 +338,7 @@ namespace Framework
 
 		if (FAILED(pDevice->CreateBuffer(&vtxBufferDesc, &vtxBufferData, &pMeshOut->m_pVtxBuffer)))
 		{
+			assert(false);
 			return false;
 		}
 
@@ -352,6 +355,7 @@ namespace Framework
 
 		if (FAILED(pDevice->CreateBuffer(&idxBufferDesc, &idxBufferData, &pMeshOut->m_pIdxBuffer)))
 		{
+			assert(false);
 			return false;
 		}
 

@@ -9,6 +9,7 @@
 #define WIN32_LEAN_AND_MEAN
 #include <d3d11.h>
 
+// Vertex tangents are disabled for now...but they can be turned back on here
 #define VERTEX_TANGENT 0
 
 namespace Framework

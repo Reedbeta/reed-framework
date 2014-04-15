@@ -14,10 +14,12 @@
     <ClInclude Include="comptr.h" />
     <ClInclude Include="d3d11-window.h" />
     <ClInclude Include="mesh.h" />
+    <ClInclude Include="texture.h" />
   </ItemGroup>
   <ItemGroup>
     <ClCompile Include="d3d11-window.cpp" />
     <ClCompile Include="mesh.cpp" />
+    <ClCompile Include="texture.cpp" />
   </ItemGroup>
   <PropertyGroup Label="Globals">
     <ProjectGuid>{6D779109-842E-4C23-A10D-2345FFCCEA60}</ProjectGuid>
