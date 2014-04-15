@@ -10,9 +10,11 @@ namespace Framework
 	D3D11Window::D3D11Window()
 	:	m_hInstance(nullptr),
 		m_hWnd(nullptr),
-		m_pSwapChain(nullptr),
-		m_pDevice(nullptr),
-		m_pCtx(nullptr),
+		m_pSwapChain(),
+		m_pDevice(),
+		m_pCtx(),
+		m_pRtvSRGB(),
+		m_pRtvRaw(),
 		m_width(0),
 		m_height(0)
 	{
@@ -104,11 +106,11 @@ namespace Framework
 		m_width = 0;
 		m_height = 0;
 
-		SafeRelease(m_pRtvSRGB);
-		SafeRelease(m_pRtvRaw);
-		SafeRelease(m_pCtx);
-		SafeRelease(m_pDevice);
-		SafeRelease(m_pSwapChain);
+		m_pRtvSRGB.release();
+		m_pRtvRaw.release();
+		m_pCtx.release();
+		m_pDevice.release();
+		m_pSwapChain.release();
 
 		if (m_hWnd)
 		{
@@ -209,9 +211,9 @@ namespace Framework
 		m_width = width;
 		m_height = height;
 
-		// Release old render target views
-		SafeRelease(m_pRtvSRGB);
-		SafeRelease(m_pRtvRaw);
+		// Have to release old render target views before swap chain can be resized
+		m_pRtvSRGB.release();
+		m_pRtvRaw.release();
 
 		// Resize the swap chain to fit the window again
 		if (!m_pSwapChain)
@@ -226,7 +228,7 @@ namespace Framework
 		}
 
 		// Retrieve the back buffer
-		ID3D11Texture2D * pTex;
+		comptr<ID3D11Texture2D> pTex;
 		if (FAILED(m_pSwapChain->GetBuffer(0, IID_ID3D11Texture2D, (void **)&pTex)))
 		{
 			assert(false);
@@ -248,7 +250,5 @@ namespace Framework
 		{
 			assert(false);
 		}
-
-		SafeRelease(pTex);
 	}
 }

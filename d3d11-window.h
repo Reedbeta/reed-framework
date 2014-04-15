@@ -1,5 +1,7 @@
 #pragma once
 
+#include "comptr.h"
+
 #define NOMINMAX
 #define WIN32_LEAN_AND_MEAN
 #include <windows.h>
@@ -7,10 +9,6 @@
 
 namespace Framework
 {
-	// Safely release a D3D11 object
-	template <typename T>
-	void SafeRelease(T * & p) { if (p) { p->Release(); p = nullptr; } }
-
 	class D3D11Window
 	{
 	public:
@@ -29,13 +27,13 @@ namespace Framework
 		virtual void		OnResize(int width, int height);
 		virtual void		OnRender() = 0;
 
-		HINSTANCE					m_hInstance;
-		HWND						m_hWnd;
-		IDXGISwapChain *			m_pSwapChain;
-		ID3D11Device *				m_pDevice;
-		ID3D11DeviceContext *		m_pCtx;
-		ID3D11RenderTargetView *	m_pRtvSRGB;
-		ID3D11RenderTargetView *	m_pRtvRaw;
-		int							m_width, m_height;
+		HINSTANCE						m_hInstance;
+		HWND							m_hWnd;
+		comptr<IDXGISwapChain>			m_pSwapChain;
+		comptr<ID3D11Device>			m_pDevice;
+		comptr<ID3D11DeviceContext>		m_pCtx;
+		comptr<ID3D11RenderTargetView>	m_pRtvSRGB;
+		comptr<ID3D11RenderTargetView>	m_pRtvRaw;
+		int								m_width, m_height;
 	};
 }
