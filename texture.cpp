@@ -1,5 +1,6 @@
 #include "texture.h"
 #include <cassert>
+#include <d3dx11.h>
 
 namespace Framework
 {
@@ -11,13 +12,6 @@ namespace Framework
 			ID3D11Device * pDevice,
 			int flags /*= LOADTEX_Mipmap | LOADTEX_SRGB*/)
 	{
-		(void)path;
-		(void)pDevice;
-		(void)flags;
-
-		return nullptr;
-
-#if 0
 		bool mipmap = (flags & LOADTEX_Mipmap) != 0;
 		bool SRGB = (flags & LOADTEX_SRGB) != 0;
 		bool HDR = (flags & LOADTEX_HDR) != 0;
@@ -88,7 +82,6 @@ namespace Framework
 #endif // ENABLE_LOGGING
 
 		return pSrv;
-#endif
 	}
 
 	ID3D11ShaderResourceView * Create1x1Texture(
