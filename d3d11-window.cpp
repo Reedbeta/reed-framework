@@ -94,6 +94,28 @@ namespace Framework
 			return false;
 		}
 
+#if defined(_DEBUG)
+		// Set up D3D11 debug layer settings
+		comptr<ID3D11InfoQueue> pInfoQueue;
+		if (SUCCEEDED(m_pDevice->QueryInterface(IID_ID3D11InfoQueue, (void **)&pInfoQueue)))
+		{
+			// Break in the debugger when an error or warning is issued
+			pInfoQueue->SetBreakOnSeverity(D3D11_MESSAGE_SEVERITY_CORRUPTION, true);
+			pInfoQueue->SetBreakOnSeverity(D3D11_MESSAGE_SEVERITY_ERROR, true);
+			pInfoQueue->SetBreakOnSeverity(D3D11_MESSAGE_SEVERITY_WARNING, true);
+
+			// Disable warning about setting private data (i.e. debug names of resources)
+			D3D11_MESSAGE_ID aMsgToFilter[] =
+			{
+				D3D11_MESSAGE_ID_SETPRIVATEDATA_CHANGINGPARAMS,
+			};
+			D3D11_INFO_QUEUE_FILTER filter = {};
+			filter.DenyList.NumIDs = dim(aMsgToFilter);
+			filter.DenyList.pIDList = aMsgToFilter;
+			pInfoQueue->AddStorageFilterEntries(&filter);
+		}
+#endif
+
 		// Show the window
 		ShowWindow(m_hWnd, nShowCmd);
 
