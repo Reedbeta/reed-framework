@@ -19,5 +19,6 @@
 *.exe
 *.out
 *.app
+*.user
 *.suo
 x64/
