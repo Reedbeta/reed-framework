@@ -104,6 +104,8 @@ namespace Framework
 		m_width = 0;
 		m_height = 0;
 
+		SafeRelease(m_pRtvSRGB);
+		SafeRelease(m_pRtvRaw);
 		SafeRelease(m_pCtx);
 		SafeRelease(m_pDevice);
 		SafeRelease(m_pSwapChain);
@@ -206,6 +208,47 @@ namespace Framework
 	{
 		m_width = width;
 		m_height = height;
-		LOG("OnResize(%d, %d)\n", width, height);
+
+		// Release old render target views
+		SafeRelease(m_pRtvSRGB);
+		SafeRelease(m_pRtvRaw);
+
+		// Resize the swap chain to fit the window again
+		if (!m_pSwapChain)
+		{
+			assert(false);
+			return;
+		}
+		if (FAILED(m_pSwapChain->ResizeBuffers(0, 0, 0, DXGI_FORMAT_UNKNOWN, 0)))
+		{
+			assert(false);
+			return;
+		}
+
+		// Retrieve the back buffer
+		ID3D11Texture2D * pTex;
+		if (FAILED(m_pSwapChain->GetBuffer(0, IID_ID3D11Texture2D, (void **)&pTex)))
+		{
+			assert(false);
+			return;
+		}
+
+		// Create render target views in sRGB and raw formats
+		D3D11_RENDER_TARGET_VIEW_DESC rtvDesc = 
+		{
+			DXGI_FORMAT_R8G8B8A8_UNORM_SRGB,
+			D3D11_RTV_DIMENSION_TEXTURE2D,
+		};
+		if (FAILED(m_pDevice->CreateRenderTargetView(pTex, &rtvDesc, &m_pRtvSRGB)))
+		{
+			assert(false);
+		}
+		rtvDesc.Format = DXGI_FORMAT_R8G8B8A8_UNORM;
+		if (FAILED(m_pDevice->CreateRenderTargetView(pTex, &rtvDesc, &m_pRtvRaw)))
+		{
+			assert(false);
+		}
+
+		SafeRelease(pTex);
 	}
 }

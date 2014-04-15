@@ -1,13 +1,31 @@
 #include <util.h>
 #include <d3d11-window.h>
 
+using namespace util;
+
 class TestWindow : public Framework::D3D11Window
 {
 public:
+	typedef Framework::D3D11Window super;
+
+	virtual LRESULT MsgProc(HWND hWnd, UINT message, WPARAM wParam, LPARAM lParam)
+	{
+		switch (message)
+		{
+		case WM_KEYUP:
+			if (wParam == VK_ESCAPE)
+				Shutdown();
+			return 0;
+
+		default:
+			return super::MsgProc(hWnd, message, wParam, lParam);
+		}
+	}
+
 	virtual void OnRender()
 	{
-		// Dummy load
-		Sleep(20);
+		m_pCtx->ClearRenderTargetView(m_pRtvRaw, makefloat4(0.286f, 0.600f, 0.871f, 1.0f));
+		m_pSwapChain->Present(1, 0);
 	}
 };
 
