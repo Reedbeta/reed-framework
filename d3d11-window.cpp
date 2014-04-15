@@ -1,5 +1,7 @@
 #include "d3d11-window.h"
-#include <cstdio>
+
+#include <util.h>
+#include <cassert>
 
 namespace Framework
 {
@@ -8,6 +10,7 @@ namespace Framework
 	D3D11Window::D3D11Window()
 	:	m_hInstance(nullptr),
 		m_hWnd(nullptr),
+		m_pSwapChain(nullptr),
 		m_pDevice(nullptr),
 		m_pCtx(nullptr),
 		m_width(0),
@@ -19,9 +22,7 @@ namespace Framework
 		const char * windowClassName,
 		const char * windowTitle,
 		HINSTANCE hInstance,
-		int nShowCmd,
-		DXGI_FORMAT backBufferFormat /*= DXGI_FORMAT_R8G8B8A8_UNORM_SRGB*/,
-		int backBufferSampleCount /*= 4*/)
+		int nShowCmd)
 	{
 		m_hInstance = hInstance;
 
@@ -40,7 +41,10 @@ namespace Framework
 			windowClassName,
 		};
 		if (!RegisterClass(&wc))
+		{
+			assert(false);
 			return false;
+		}
 
 		// Create the window
 		m_hWnd = CreateWindow(
@@ -56,12 +60,40 @@ namespace Framework
 					hInstance,
 					this);
 		if (!m_hWnd)
+		{
+			assert(false);
 			return false;
+		}
 
+		// Initialize D3D11
+		UINT flags = 0;
+#ifdef _DEBUG
+		flags |= D3D11_CREATE_DEVICE_DEBUG;
+#endif
+		DXGI_SWAP_CHAIN_DESC swapChainDesc =
+		{
+			{ 0, 0, {}, DXGI_FORMAT_R8G8B8A8_UNORM, },
+			{ 1, 0, },
+			DXGI_USAGE_RENDER_TARGET_OUTPUT | DXGI_USAGE_BACK_BUFFER,
+			2,
+			m_hWnd,
+			true,
+			DXGI_SWAP_EFFECT_FLIP_SEQUENTIAL,
+		};
+		D3D_FEATURE_LEVEL featureLevel;
+		if (FAILED(D3D11CreateDeviceAndSwapChain(
+						nullptr, D3D_DRIVER_TYPE_HARDWARE, nullptr,
+						flags, nullptr, 0, D3D11_SDK_VERSION,
+						&swapChainDesc,
+						&m_pSwapChain, &m_pDevice,
+						&featureLevel, &m_pCtx)))
+		{
+			assert(false);
+			return false;
+		}
+
+		// Show the window
 		ShowWindow(m_hWnd, nShowCmd);
-
-		(void)backBufferFormat;
-		(void)backBufferSampleCount;
 
 		return true;
 	}
@@ -72,8 +104,9 @@ namespace Framework
 		m_width = 0;
 		m_height = 0;
 
-		SafeRelease(m_pDevice);
 		SafeRelease(m_pCtx);
+		SafeRelease(m_pDevice);
+		SafeRelease(m_pSwapChain);
 
 		if (m_hWnd)
 		{
@@ -173,8 +206,6 @@ namespace Framework
 	{
 		m_width = width;
 		m_height = height;
-		char msg[128];
-		sprintf_s(msg, "OnResize(%d, %d)\n", width, height);
-		OutputDebugString(msg);
+		LOG("OnResize(%d, %d)\n", width, height);
 	}
 }
