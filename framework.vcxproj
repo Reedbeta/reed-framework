@@ -13,9 +13,11 @@
   <ItemGroup>
     <ClInclude Include="comptr.h" />
     <ClInclude Include="d3d11-window.h" />
+    <ClInclude Include="mesh.h" />
   </ItemGroup>
   <ItemGroup>
     <ClCompile Include="d3d11-window.cpp" />
+    <ClCompile Include="mesh.cpp" />
   </ItemGroup>
   <PropertyGroup Label="Globals">
     <ProjectGuid>{6D779109-842E-4C23-A10D-2345FFCCEA60}</ProjectGuid>
