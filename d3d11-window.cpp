@@ -36,8 +36,8 @@ namespace Framework
 			0,
 			0,
 			hInstance,
-			LoadIcon(NULL, IDI_APPLICATION),
-			LoadCursor(NULL, IDC_ARROW),
+			LoadIcon(nullptr, IDI_APPLICATION),
+			LoadCursor(nullptr, IDC_ARROW),
 			nullptr,
 			nullptr,
 			windowClassName,
@@ -57,8 +57,8 @@ namespace Framework
 					CW_USEDEFAULT,
 					CW_USEDEFAULT,
 					CW_USEDEFAULT,
-					NULL,
-					NULL,
+					nullptr,
+					nullptr,
 					hInstance,
 					this);
 		if (!m_hWnd)
