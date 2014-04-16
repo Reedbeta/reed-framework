@@ -21,6 +21,7 @@ namespace Framework
 		uint zero = 0;
 		pCtx->IASetVertexBuffers(0, 1, &m_pVtxBuffer, &m_vtxStride, &zero);
 		pCtx->IASetIndexBuffer(m_pIdxBuffer, DXGI_FORMAT_R32_UINT, 0);
+		pCtx->IASetPrimitiveTopology(m_primtopo);
 		pCtx->DrawIndexed(m_cIdx, 0, 0);
 	}
 
