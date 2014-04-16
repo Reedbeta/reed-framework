@@ -13,10 +13,21 @@ namespace Framework
 		m_pSwapChain(),
 		m_pDevice(),
 		m_pCtx(),
+		m_width(0),
+		m_height(0),
 		m_pRtvSRGB(),
 		m_pRtvRaw(),
-		m_width(0),
-		m_height(0)
+		m_pRsDefault(),
+		m_pRsDoubleSided(),
+		m_pDssDepthTest(),
+		m_pDssNoDepthWrite(),
+		m_pDssNoDepthTest(),
+		m_pBsAlphaBlend(),
+		m_pSsPointClamp(),
+		m_pSsBilinearClamp(),
+		m_pSsTrilinearRepeat(),
+		m_pSsTrilinearRepeatAniso(),
+		m_pSsPCF()
 	{
 	}
 
@@ -94,6 +105,10 @@ namespace Framework
 			return false;
 		}
 
+		// Show the window after initializing the swap chain (this is so we don't
+		// get our initial WM_SIZE message until the swap chain is set up)
+		ShowWindow(m_hWnd, nShowCmd);
+
 #if defined(_DEBUG)
 		// Set up D3D11 debug layer settings
 		comptr<ID3D11InfoQueue> pInfoQueue;
@@ -116,8 +131,140 @@ namespace Framework
 		}
 #endif
 
-		// Show the window
-		ShowWindow(m_hWnd, nShowCmd);
+		// Set up commonly used state blocks
+
+		D3D11_RASTERIZER_DESC rssDesc =
+		{
+			D3D11_FILL_SOLID,
+			D3D11_CULL_BACK,
+			true,							// FrontCounterClockwise
+			0, 0, 0,						// depth bias
+			true,							// DepthClipEnable
+			false,							// ScissorEnable
+			true,							// MultisampleEnable
+		};
+		if (FAILED(m_pDevice->CreateRasterizerState(&rssDesc, &m_pRsDefault)))
+		{
+			assert(false);
+			return false;
+		}
+
+		rssDesc.CullMode = D3D11_CULL_NONE;
+		if (FAILED(m_pDevice->CreateRasterizerState(&rssDesc, &m_pRsDoubleSided)))
+		{
+			assert(false);
+			return false;
+		}
+
+		D3D11_DEPTH_STENCIL_DESC dssDesc = 
+		{
+			true,							// DepthEnable
+			D3D11_DEPTH_WRITE_MASK_ALL,
+			D3D11_COMPARISON_LESS_EQUAL,
+		};
+		if (FAILED(m_pDevice->CreateDepthStencilState(&dssDesc, &m_pDssDepthTest)))
+		{
+			assert(false);
+			return false;
+		}
+
+		dssDesc.DepthWriteMask = D3D11_DEPTH_WRITE_MASK_ZERO;
+		if (FAILED(m_pDevice->CreateDepthStencilState(&dssDesc, &m_pDssNoDepthWrite)))
+		{
+			assert(false);
+			return false;
+		}
+
+		dssDesc.DepthEnable = false;
+		if (FAILED(m_pDevice->CreateDepthStencilState(&dssDesc, &m_pDssNoDepthTest)))
+		{
+			assert(false);
+			return false;
+		}
+
+		D3D11_BLEND_DESC bsDesc =
+		{
+			false, false,
+			{
+				true,
+				D3D11_BLEND_SRC_ALPHA,
+				D3D11_BLEND_INV_SRC_ALPHA,
+				D3D11_BLEND_OP_ADD,
+				D3D11_BLEND_SRC_ALPHA,
+				D3D11_BLEND_INV_SRC_ALPHA,
+				D3D11_BLEND_OP_ADD,
+				D3D11_COLOR_WRITE_ENABLE_ALL,
+			},
+		};
+		if (FAILED(m_pDevice->CreateBlendState(&bsDesc, &m_pBsAlphaBlend)))
+		{
+			assert(false);
+			return false;
+		}
+
+		// Set up commonly used samplers
+
+		D3D11_SAMPLER_DESC sampDesc =
+		{
+			D3D11_FILTER_MIN_MAG_MIP_POINT,
+			D3D11_TEXTURE_ADDRESS_CLAMP,
+			D3D11_TEXTURE_ADDRESS_CLAMP,
+			D3D11_TEXTURE_ADDRESS_CLAMP,
+			0.0f,
+			1,
+			D3D11_COMPARISON_FUNC(0),
+			{ 0.0f, 0.0f, 0.0f, 0.0f },
+			0.0f,
+			FLT_MAX,
+		};
+		if (FAILED(m_pDevice->CreateSamplerState(&sampDesc, &m_pSsPointClamp)))
+		{
+			assert(false);
+			return false;
+		}
+
+		sampDesc.Filter = D3D11_FILTER_MIN_MAG_LINEAR_MIP_POINT;
+		if (FAILED(m_pDevice->CreateSamplerState(&sampDesc, &m_pSsBilinearClamp)))
+		{
+			assert(false);
+			return false;
+		}
+	
+		sampDesc.Filter = D3D11_FILTER_MIN_MAG_MIP_LINEAR;
+		sampDesc.AddressU = D3D11_TEXTURE_ADDRESS_WRAP;
+		sampDesc.AddressV = D3D11_TEXTURE_ADDRESS_WRAP;
+		sampDesc.AddressW = D3D11_TEXTURE_ADDRESS_WRAP;
+		if (FAILED(m_pDevice->CreateSamplerState(&sampDesc, &m_pSsTrilinearRepeat)))
+		{
+			assert(false);
+			return false;
+		}
+	
+		sampDesc.Filter = D3D11_FILTER_ANISOTROPIC;
+		sampDesc.MaxAnisotropy = 16;
+		if (FAILED(m_pDevice->CreateSamplerState(&sampDesc, &m_pSsTrilinearRepeatAniso)))
+		{
+			assert(false);
+			return false;
+		}
+
+		// PCF shadow comparison filter, with border color set to 1.0 so areas outside
+		// the shadow map will be unshadowed
+		sampDesc.Filter = D3D11_FILTER_COMPARISON_MIN_MAG_LINEAR_MIP_POINT;
+		sampDesc.AddressU = D3D11_TEXTURE_ADDRESS_BORDER;
+		sampDesc.AddressV = D3D11_TEXTURE_ADDRESS_BORDER;
+		sampDesc.AddressW = D3D11_TEXTURE_ADDRESS_BORDER;
+		sampDesc.MaxAnisotropy = 1;
+		sampDesc.ComparisonFunc = D3D11_COMPARISON_LESS_EQUAL;
+		sampDesc.BorderColor[0] = 1.0f;
+		sampDesc.BorderColor[1] = 1.0f;
+		sampDesc.BorderColor[2] = 1.0f;
+		sampDesc.BorderColor[3] = 1.0f;
+		if (FAILED(m_pDevice->CreateSamplerState(&sampDesc, &m_pSsPCF)))
+		{
+			assert(false);
+			return false;
+		}
 
 		return true;
 	}
