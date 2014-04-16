@@ -124,20 +124,9 @@ namespace Framework
 
 	void D3D11Window::Shutdown()
 	{
-		m_hInstance = nullptr;
-		m_width = 0;
-		m_height = 0;
-
-		m_pRtvSRGB.release();
-		m_pRtvRaw.release();
-		m_pCtx.release();
-		m_pDevice.release();
-		m_pSwapChain.release();
-
 		if (m_hWnd)
 		{
 			DestroyWindow(m_hWnd);
-			m_hWnd = nullptr;
 		}
 	}
 

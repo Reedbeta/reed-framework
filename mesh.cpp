@@ -38,7 +38,8 @@ namespace Framework
 		const char * path,
 		std::vector<Vertex> * pVerts,
 		std::vector<uint> * pIndices,
-		box3 * pBoxOut)
+		box3 * pBoxOut,
+		bool * pHasNormalsOut)
 	{
 		// Read the whole file into memory
 		std::vector<byte> data;
@@ -58,18 +59,18 @@ namespace Framework
 		std::vector<OBJFace> OBJfaces;
 
 		// Parse the OBJ format line-by-line
-		char * pCtxLine = nullptr;
-		for (char * pLine = strtok_s((char *)&data[0], "\n", &pCtxLine);
+		char * pCtxLine = (char *)&data[0];
+		for (char * pLine = tokenize(pCtxLine, "\n");
 			 pLine;
-			 pLine = strtok_s(nullptr, "\n", &pCtxLine))
+			 pLine = tokenize(pCtxLine, "\n"))
 		{
 			// Strip comments starting with #
 			if (char * pChzComment = strchr(pLine, '#'))
 				*pChzComment = 0;
 
 			// Parse the line token-by-token
-			char * pCtxToken = nullptr;
-			char * pToken = strtok_s(pLine, " \t", &pCtxToken);
+			char * pCtxToken = pLine;
+			char * pToken = tokenize(pCtxToken, " \t");
 
 			// Ignore blank lines
 			if (!pToken)
@@ -79,26 +80,26 @@ namespace Framework
 			{
 				// Add vertex
 				point3 pos;
-				pos.x = float(atof(strtok_s(nullptr, " \t", &pCtxToken)));
-				pos.y = float(atof(strtok_s(nullptr, " \t", &pCtxToken)));
-				pos.z = float(atof(strtok_s(nullptr, " \t", &pCtxToken)));
+				pos.x = float(atof(tokenize(pCtxToken, " \t")));
+				pos.y = float(atof(tokenize(pCtxToken, " \t")));
+				pos.z = float(atof(tokenize(pCtxToken, " \t")));
 				positions.push_back(pos);
 			}
 			else if (_stricmp(pToken, "vn") == 0)
 			{
 				// Add normal
 				float3 normal;
-				normal.x = float(atof(strtok_s(nullptr, " \t", &pCtxToken)));
-				normal.y = float(atof(strtok_s(nullptr, " \t", &pCtxToken)));
-				normal.z = float(atof(strtok_s(nullptr, " \t", &pCtxToken)));
+				normal.x = float(atof(tokenize(pCtxToken, " \t")));
+				normal.y = float(atof(tokenize(pCtxToken, " \t")));
+				normal.z = float(atof(tokenize(pCtxToken, " \t")));
 				normals.push_back(normal);
 			}
 			else if (_stricmp(pToken, "vt") == 0)
 			{
 				// Add UV, flipping V-axis since OBJ is stored in the opposite convention
 				float2 uv;
-				uv.x = float(atof(strtok_s(nullptr, " \t", &pCtxToken)));
-				uv.y = 1.0f - float(atof(strtok_s(nullptr, " \t", &pCtxToken)));
+				uv.x = float(atof(tokenize(pCtxToken, " \t")));
+				uv.y = 1.0f - float(atof(tokenize(pCtxToken, " \t")));
 				uvs.push_back(uv);
 			}
 			else if (_stricmp(pToken, "f") == 0)
@@ -107,18 +108,19 @@ namespace Framework
 				OBJFace face;
 				face.iVertStart = uint(OBJverts.size());
 
-				while (char * pToken = strtok_s(nullptr, " \t", &pCtxToken))
+				while (char * pToken = tokenize(pCtxToken, " \t"))
 				{
 					// Parse vertex specification, with slashes separating position, UV, normal indices
-					// Note: assuming all three components are present, OBJ format allows some to be missing.
-					OBJVertex vert;
-					sscanf_s(pToken, "%d/%d/%d", &vert.iPos, &vert.iUv, &vert.iNormal);
-				
-					// OBJ format uses 1-based indices; correct them
-					--vert.iPos;
-					--vert.iNormal;
-					--vert.iUv;
+					// Note that some components may be missing and will be set to zero here
+					OBJVertex vert = {};
 
+					char * pCtxVert = pToken;
+					if (char * pIdx = tokenize(pCtxVert, "/"))
+						vert.iPos = atoi(pIdx);
+					if (char * pIdx = tokenize(pCtxVert, "/"))
+						vert.iUv = atoi(pIdx);
+					vert.iNormal = atoi(pCtxVert);
+				
 					OBJverts.push_back(vert);
 				}
 
@@ -139,9 +141,15 @@ namespace Framework
 		{
 			OBJVertex objv = OBJverts[iVert];
 			Vertex v = {};
-			v.m_pos = positions[objv.iPos];
-			v.m_normal = normals[objv.iNormal];
-			v.m_uv = uvs[objv.iUv];
+
+			// OBJ indices are 1-based; handle that and look out for missing components
+			if (objv.iPos > 0)
+				v.m_pos = positions[objv.iPos - 1];
+			if (objv.iNormal > 0)
+				v.m_normal = normals[objv.iNormal - 1];
+			if (objv.iUv > 0)
+				v.m_uv = uvs[objv.iUv - 1];
+
 			pVerts->push_back(v);
 		}
 
@@ -163,6 +171,9 @@ namespace Framework
 		if (pBoxOut)
 			*pBoxOut = makebox3(uint(positions.size()), &positions[0]);
 
+		if (pHasNormalsOut)
+			*pHasNormalsOut = !normals.empty();
+
 		return true;
 	}
 
@@ -183,9 +194,9 @@ namespace Framework
 		{
 			bool operator () (const Vertex & u, const Vertex & v) const
 			{
-				return (u.m_pos == v.m_pos &&
-						u.m_normal == v.m_normal &&
-						u.m_uv == v.m_uv);
+				return (all(u.m_pos == v.m_pos) &&
+						all(u.m_normal == v.m_normal) &&
+						all(u.m_uv == v.m_uv));
 			}
 		};
 
@@ -232,16 +243,45 @@ namespace Framework
 		pMesh->m_indices.swap(indicesRemapped);
 	}
 
+	static void CalculateNormals(Mesh * pMesh)
+	{
+		assert(pMesh->m_indices.size() % 3 == 0);
+
+		// Generate a normal for each triangle, and accumulate onto vertex
+		for (uint i = 0, c = uint(pMesh->m_indices.size()); i < c; i += 3)
+		{
+			uint indices[3] = { pMesh->m_indices[i], pMesh->m_indices[i+1], pMesh->m_indices[i+2] };
+
+			// Gather positions for this triangle
+			point3 facePositions[3] =
+			{
+				pMesh->m_verts[indices[0]].m_pos,
+				pMesh->m_verts[indices[1]].m_pos,
+				pMesh->m_verts[indices[2]].m_pos,
+			};
+
+			// Calculate edge and normal vectors
+			float3 edge0 = facePositions[1] - facePositions[0];
+			float3 edge1 = facePositions[2] - facePositions[0];
+			float3 normal = normalize(cross(edge0, edge1));
+
+			// Accumulate onto vertices
+			pMesh->m_verts[indices[0]].m_normal += normal;
+			pMesh->m_verts[indices[1]].m_normal += normal;
+			pMesh->m_verts[indices[2]].m_normal += normal;
+		}
+
+		// Normalize summed normals
+		for (uint i = 0, c = uint(pMesh->m_verts.size()); i < c; ++i)
+		{
+			pMesh->m_verts[i].m_normal = normalize(pMesh->m_verts[i].m_normal);
+		}
+	}
+
 #if VERTEX_TANGENT
 	static void CalculateTangents(Mesh * pMesh)
 	{
 		assert(pMesh->m_indices.size() % 3 == 0);
-
-		// Clear tangents to zero
-		for (uint i = 0, c = uint(pMesh->m_verts.size()); i < c; ++i)
-		{
-			pMesh->m_verts[i].m_tangent = makefloat3(0.0f);
-		}
 
 		// Generate a tangent for each triangle, based on triangle's UV mapping,
 		// and accumulate onto vertex
@@ -307,7 +347,13 @@ namespace Framework
 		ID3D11Device * pDevice,
 		Mesh * pMeshOut)
 	{
-		if (!LoadObjMeshRaw(path, &pMeshOut->m_verts, &pMeshOut->m_indices, &pMeshOut->m_box))
+		bool hasNormals;
+		if (!LoadObjMeshRaw(
+				path,
+				&pMeshOut->m_verts,
+				&pMeshOut->m_indices,
+				&pMeshOut->m_box,
+				&hasNormals))
 		{
 			return false;
 		}
@@ -318,6 +364,9 @@ namespace Framework
 			path, pMeshOut->m_verts.size(), pMeshOut->m_indices.size());
 
 		// !!!UNDONE: vertex cache optimization?
+
+		if (!hasNormals)
+			CalculateNormals(pMeshOut);
 
 #if VERTEX_TANGENT
 		CalculateTangents(pMeshOut);
