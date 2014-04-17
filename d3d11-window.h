@@ -18,10 +18,9 @@ namespace Framework
 		virtual bool		Init(
 								const char * windowClassName,
 								const char * windowTitle,
-								HINSTANCE hInstance,
-								int nShowCmd);
+								HINSTANCE hInstance);
 		virtual void		Shutdown();
-		int					MainLoop();
+		int					MainLoop(int nShowCmd);
 
 		virtual LRESULT		MsgProc(HWND hWnd, UINT message, WPARAM wParam, LPARAM lParam);
 		virtual void		OnResize(int width, int height);

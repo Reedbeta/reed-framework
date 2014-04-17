@@ -50,15 +50,6 @@ namespace Framework
 		D3D11_SHADER_RESOURCE_VIEW_DESC srvDesc;
 		pSrv->GetDesc(&srvDesc);
 
-		const char * strFormat = "other";
-		switch (srvDesc.Format)
-		{
-		case DXGI_FORMAT_R8G8B8A8_UNORM:		strFormat = "R8G8B8A8_UNORM"; break;
-		case DXGI_FORMAT_R8G8B8A8_UNORM_SRGB:	strFormat = "R8G8B8A8_UNORM_SRGB"; break;
-		case DXGI_FORMAT_R16G16B16A16_FLOAT:	strFormat = "R16G16B16A16_FLOAT"; break;
-		default: assert(false); break;
-		}
-
 		UINT cMipLevels = 1;
 		const char * strDimension = "other";
 		switch (srvDesc.ViewDimension)
@@ -76,9 +67,18 @@ namespace Framework
 		default: assert(false); break;
 		}
 
+		const char * strFormat = "other";
+		switch (srvDesc.Format)
+		{
+		case DXGI_FORMAT_R8G8B8A8_UNORM:		strFormat = "R8G8B8A8_UNORM"; break;
+		case DXGI_FORMAT_R8G8B8A8_UNORM_SRGB:	strFormat = "R8G8B8A8_UNORM_SRGB"; break;
+		case DXGI_FORMAT_R16G16B16A16_FLOAT:	strFormat = "R16G16B16A16_FLOAT"; break;
+		default: assert(false); break;
+		}
+
 		LOG(
-			"Loaded %s, format %s, %s, %d mip levels",
-			path,  strFormat, strDimension, cMipLevels);
+			"Loaded %s - %s, format %s, %d mip levels",
+			path,  strDimension, strFormat, cMipLevels);
 #endif // ENABLE_LOGGING
 
 		return pSrv;

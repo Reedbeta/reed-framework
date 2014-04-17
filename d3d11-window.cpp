@@ -36,9 +36,10 @@ namespace Framework
 	bool D3D11Window::Init(
 		const char * windowClassName,
 		const char * windowTitle,
-		HINSTANCE hInstance,
-		int nShowCmd)
+		HINSTANCE hInstance)
 	{
+		LOG("Initialization started");
+
 		m_hInstance = hInstance;
 
 		// Register window class
@@ -128,10 +129,6 @@ namespace Framework
 			pInfoQueue->AddStorageFilterEntries(&filter);
 		}
 #endif
-
-		// Show the window after initializing the swap chain (this is so we don't
-		// get our initial WM_SIZE message until the swap chain is set up)
-		ShowWindow(m_hWnd, nShowCmd);
 
 		// Set up commonly used state blocks
 
@@ -273,16 +270,24 @@ namespace Framework
 
 	void D3D11Window::Shutdown()
 	{
+		LOG("Shutting down");
+
 		if (m_hWnd)
 		{
 			DestroyWindow(m_hWnd);
 		}
 	}
 
-	int D3D11Window::MainLoop()
+	int D3D11Window::MainLoop(int nShowCmd)
 	{
-		MSG msg;
+		// Show the window.  This sends the initial WM_SIZE message which results in
+		// calling OnRender(); we don't want to do this until all initialization 
+		// (including subclass init) is done, so it's here instead of in Init().
+		ShowWindow(m_hWnd, nShowCmd);
 
+		LOG("Main loop started");
+
+		MSG msg;
 		for (;;)
 		{
 			// Handle any messages
@@ -368,6 +373,8 @@ namespace Framework
 
 	void D3D11Window::OnResize(int width, int height)
 	{
+		LOG("Window resized to %d x %d", width, height);
+
 		m_width = width;
 		m_height = height;
 
