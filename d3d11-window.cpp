@@ -17,6 +17,8 @@ namespace Framework
 		m_height(0),
 		m_pRtvSRGB(),
 		m_pRtvRaw(),
+		m_pDsv(),
+		m_pSrvDepth(),
 		m_pRsDefault(),
 		m_pRsDoubleSided(),
 		m_pDssDepthTest(),
@@ -105,10 +107,6 @@ namespace Framework
 			return false;
 		}
 
-		// Show the window after initializing the swap chain (this is so we don't
-		// get our initial WM_SIZE message until the swap chain is set up)
-		ShowWindow(m_hWnd, nShowCmd);
-
 #if defined(_DEBUG)
 		// Set up D3D11 debug layer settings
 		comptr<ID3D11InfoQueue> pInfoQueue;
@@ -130,6 +128,10 @@ namespace Framework
 			pInfoQueue->AddStorageFilterEntries(&filter);
 		}
 #endif
+
+		// Show the window after initializing the swap chain (this is so we don't
+		// get our initial WM_SIZE message until the swap chain is set up)
+		ShowWindow(m_hWnd, nShowCmd);
 
 		// Set up commonly used state blocks
 
@@ -293,7 +295,7 @@ namespace Framework
 			if (msg.message == WM_QUIT)
 				break;
 
-			// Render the frame
+			// Render a new frame
 			OnRender();
 		}
 
@@ -372,6 +374,8 @@ namespace Framework
 		// Have to release old render target views before swap chain can be resized
 		m_pRtvSRGB.release();
 		m_pRtvRaw.release();
+		m_pDsv.release();
+		m_pSrvDepth.release();
 
 		// Resize the swap chain to fit the window again
 		if (!m_pSwapChain)
@@ -385,28 +389,77 @@ namespace Framework
 			return;
 		}
 
-		// Retrieve the back buffer
-		comptr<ID3D11Texture2D> pTex;
-		if (FAILED(m_pSwapChain->GetBuffer(0, IID_ID3D11Texture2D, (void **)&pTex)))
 		{
-			assert(false);
-			return;
+			// Retrieve the back buffer
+			comptr<ID3D11Texture2D> pTex;
+			if (FAILED(m_pSwapChain->GetBuffer(0, IID_ID3D11Texture2D, (void **)&pTex)))
+			{
+				assert(false);
+				return;
+			}
+
+			// Create render target views in sRGB and raw formats
+			D3D11_RENDER_TARGET_VIEW_DESC rtvDesc = 
+			{
+				DXGI_FORMAT_R8G8B8A8_UNORM_SRGB,
+				D3D11_RTV_DIMENSION_TEXTURE2D,
+			};
+			if (FAILED(m_pDevice->CreateRenderTargetView(pTex, &rtvDesc, &m_pRtvSRGB)))
+			{
+				assert(false);
+				return;
+			}
+			rtvDesc.Format = DXGI_FORMAT_R8G8B8A8_UNORM;
+			if (FAILED(m_pDevice->CreateRenderTargetView(pTex, &rtvDesc, &m_pRtvRaw)))
+			{
+				assert(false);
+				return;
+			}
 		}
 
-		// Create render target views in sRGB and raw formats
-		D3D11_RENDER_TARGET_VIEW_DESC rtvDesc = 
 		{
-			DXGI_FORMAT_R8G8B8A8_UNORM_SRGB,
-			D3D11_RTV_DIMENSION_TEXTURE2D,
-		};
-		if (FAILED(m_pDevice->CreateRenderTargetView(pTex, &rtvDesc, &m_pRtvSRGB)))
-		{
-			assert(false);
+			// Create depth buffer and its views
+
+			comptr<ID3D11Texture2D> pTexDepth;
+			D3D11_TEXTURE2D_DESC texDesc =
+			{
+				width, height, 1, 1,
+				DXGI_FORMAT_R32_TYPELESS,
+				{ 1, 0 },
+				D3D11_USAGE_DEFAULT,
+				D3D11_BIND_DEPTH_STENCIL | D3D11_BIND_SHADER_RESOURCE,
+			};
+			if (FAILED(m_pDevice->CreateTexture2D(&texDesc, nullptr, &pTexDepth)))
+			{
+				assert(false);
+				return;
+			}
+
+			D3D11_DEPTH_STENCIL_VIEW_DESC dsvDesc =
+			{
+				DXGI_FORMAT_D32_FLOAT,
+				D3D11_DSV_DIMENSION_TEXTURE2D,
+			};
+			if (FAILED(m_pDevice->CreateDepthStencilView(pTexDepth, &dsvDesc, &m_pDsv)))
+			{
+				assert(false);
+				return;
+			}
+
+			D3D11_SHADER_RESOURCE_VIEW_DESC srvDesc =
+			{
+				DXGI_FORMAT_R32_FLOAT,
+				D3D11_SRV_DIMENSION_TEXTURE2D,
+			};
+			srvDesc.Texture2D.MipLevels = 1;
+			if (FAILED(m_pDevice->CreateShaderResourceView(pTexDepth, &srvDesc, &m_pSrvDepth)))
+			{
+				assert(false);
+				return;
+			}
 		}
-		rtvDesc.Format = DXGI_FORMAT_R8G8B8A8_UNORM;
-		if (FAILED(m_pDevice->CreateRenderTargetView(pTex, &rtvDesc, &m_pRtvRaw)))
-		{
-			assert(false);
-		}
+
+		// Automatically re-render after changing size
+		OnRender();
 	}
 }
