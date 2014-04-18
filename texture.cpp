@@ -77,7 +77,7 @@ namespace Framework
 
 		LOG(
 			"Loaded %s - %s, format %s, %d mip levels",
-			path,  strDimension, strFormat, cMipLevels);
+			path, strDimension, strFormat, cMipLevels);
 #endif // ENABLE_LOGGING
 
 		return pSrv;
