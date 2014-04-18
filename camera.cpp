@@ -108,7 +108,7 @@ namespace Framework
 
 		// Calculate angles to look at posTarget
 		float3 vecToTarget = posTarget - posCamera;
-		ASSERT_WARN(all(isnear(vecToTarget, 0.0f)));
+		ASSERT_WARN(!all(isnear(vecToTarget, 0.0f)));
 		vecToTarget = normalize(vecToTarget);
 		m_yaw = atan2f(-vecToTarget.z, vecToTarget.x);
 		m_pitch = asinf(vecToTarget.y);
@@ -200,7 +200,7 @@ namespace Framework
 
 		// Calculate angles to look at posTarget
 		float3 vecToTarget = posTarget - posCamera;
-		ASSERT_WARN(all(isnear(vecToTarget, 0.0f)));
+		ASSERT_WARN(!all(isnear(vecToTarget, 0.0f)));
 		m_radius = length(vecToTarget);
 		vecToTarget /= m_radius;
 		m_yaw = atan2f(-vecToTarget.z, vecToTarget.x);
