@@ -1,22 +1,10 @@
 #pragma once
 
-#include "comptr.h"
-
-#include <util.h>
-#include <vector>
-
-#define NOMINMAX
-#define WIN32_LEAN_AND_MEAN
-#include <d3d11.h>
-
 // Vertex tangents are disabled for now...but they can be turned back on here
 #define VERTEX_TANGENT 0
 
 namespace Framework
 {
-	using namespace util;
-	using util::byte;				// Needed because Windows also defines the "byte" type
-
 	// Hard-coded vertex struct for now
 	struct Vertex
 	{

@@ -1,6 +1,4 @@
-#include "d3d11-window.h"
-
-#include <util.h>
+#include "framework.h"
 
 namespace Framework
 {

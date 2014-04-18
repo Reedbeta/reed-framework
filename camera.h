@@ -1,11 +1,7 @@
 #pragma once
 
-#include <util.h>
-
 namespace Framework
 {
-	using namespace util;
-
 	// !!!UNDONE: break out mouse stuff into a separate input framework
 	enum MBUTTON
 	{

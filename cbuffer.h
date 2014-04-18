@@ -1,14 +1,5 @@
 #pragma once
 
-#include <util.h>
-#include "comptr.h"
-
-#define NOMINMAX
-#define WIN32_LEAN_AND_MEAN
-#include <d3d11.h>
-
-using namespace util;
-
 namespace Framework
 {
 	// Wrapper for constant buffers

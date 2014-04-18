@@ -1,12 +1,5 @@
 #pragma once
 
-#include "comptr.h"
-
-#define NOMINMAX
-#define WIN32_LEAN_AND_MEAN
-#include <windows.h>
-#include <d3d11.h>
-
 namespace Framework
 {
 	class D3D11Window

@@ -15,6 +15,7 @@
     <ClInclude Include="cbuffer.h" />
     <ClInclude Include="comptr.h" />
     <ClInclude Include="d3d11-window.h" />
+    <ClInclude Include="framework.h" />
     <ClInclude Include="mesh.h" />
     <ClInclude Include="texture.h" />
   </ItemGroup>
