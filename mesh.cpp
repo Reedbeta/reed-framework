@@ -1,5 +1,4 @@
 #include "mesh.h"
-#include <cassert>
 #include <unordered_map>
 
 namespace Framework
@@ -229,8 +228,8 @@ namespace Framework
 			}
 		}
 
-		assert(vertsDeduplicated.size() <= pMesh->m_verts.size());
-		assert(remappingTable.size() == pMesh->m_verts.size());
+		ASSERT_ERR(vertsDeduplicated.size() <= pMesh->m_verts.size());
+		ASSERT_ERR(remappingTable.size() == pMesh->m_verts.size());
 
 		std::vector<uint> indicesRemapped;
 		indicesRemapped.reserve(pMesh->m_indices.size());
@@ -246,7 +245,7 @@ namespace Framework
 
 	static void CalculateNormals(Mesh * pMesh)
 	{
-		assert(pMesh->m_indices.size() % 3 == 0);
+		ASSERT_WARN(pMesh->m_indices.size() % 3 == 0);
 
 		// Generate a normal for each triangle, and accumulate onto vertex
 		for (uint i = 0, c = uint(pMesh->m_indices.size()); i < c; i += 3)
@@ -282,7 +281,7 @@ namespace Framework
 #if VERTEX_TANGENT
 	static void CalculateTangents(Mesh * pMesh)
 	{
-		assert(pMesh->m_indices.size() % 3 == 0);
+		ASSERT_WARN(pMesh->m_indices.size() % 3 == 0);
 
 		// Generate a tangent for each triangle, based on triangle's UV mapping,
 		// and accumulate onto vertex
@@ -385,12 +384,7 @@ namespace Framework
 			0,	// structured buffer stride
 		};
 		D3D11_SUBRESOURCE_DATA vtxBufferData = { &pMeshOut->m_verts[0], 0, 0 };
-
-		if (FAILED(pDevice->CreateBuffer(&vtxBufferDesc, &vtxBufferData, &pMeshOut->m_pVtxBuffer)))
-		{
-			assert(false);
-			return false;
-		}
+		CHECK_ERR(SUCCEEDED(pDevice->CreateBuffer(&vtxBufferDesc, &vtxBufferData, &pMeshOut->m_pVtxBuffer)));
 
 		D3D11_BUFFER_DESC idxBufferDesc =
 		{
@@ -402,12 +396,7 @@ namespace Framework
 			0,	// structured buffer stride
 		};
 		D3D11_SUBRESOURCE_DATA idxBufferData = { &pMeshOut->m_indices[0], 0, 0 };
-
-		if (FAILED(pDevice->CreateBuffer(&idxBufferDesc, &idxBufferData, &pMeshOut->m_pIdxBuffer)))
-		{
-			assert(false);
-			return false;
-		}
+		CHECK_ERR(SUCCEEDED(pDevice->CreateBuffer(&idxBufferDesc, &idxBufferData, &pMeshOut->m_pIdxBuffer)));
 
 		pMeshOut->m_vtxStride = sizeof(Vertex);
 		pMeshOut->m_cIdx = uint(pMeshOut->m_indices.size());

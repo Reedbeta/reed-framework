@@ -7,8 +7,6 @@
 #define WIN32_LEAN_AND_MEAN
 #include <d3d11.h>
 
-#include <cassert>
-
 using namespace util;
 
 namespace Framework
@@ -38,21 +36,14 @@ namespace Framework
 			D3D11_CPU_ACCESS_WRITE,
 		};
 
-		if (FAILED(pDevice->CreateBuffer(&bufDesc, nullptr, &m_pBuf)))
-		{
-			assert(false);
-		}
+		CHECK_ERR(SUCCEEDED(pDevice->CreateBuffer(&bufDesc, nullptr, &m_pBuf)));
 	}
 
 	template <typename T>
 	inline void CB<T>::Update(ID3D11DeviceContext * pCtx, const T * pData)
 	{
 		D3D11_MAPPED_SUBRESOURCE mapped = {};
-		if (FAILED(pCtx->Map(m_pBuf, 0, D3D11_MAP_WRITE_DISCARD, 0, &mapped)))
-		{
-			assert(false);
-			return;
-		}
+		CHECK_ERR(SUCCEEDED(pCtx->Map(m_pBuf, 0, D3D11_MAP_WRITE_DISCARD, 0, &mapped)));
 		memcpy(mapped.pData, pData, sizeof(T));
 		pCtx->Unmap(m_pBuf, 0);
 	}

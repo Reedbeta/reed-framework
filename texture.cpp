@@ -1,5 +1,4 @@
 #include "texture.h"
-#include <cassert>
 #include <d3dx11.h>
 
 namespace Framework
@@ -19,7 +18,7 @@ namespace Framework
 
 		// HDR bitmaps are always in linear color space
 		if (HDR)
-			assert(!SRGB);
+			ASSERT_WARN_MSG(!SRGB, "HDR bitmaps cannot be in SRGB space");
 
 		// Load the texture, generating mipmaps if requested
 
@@ -34,17 +33,13 @@ namespace Framework
 		imgLoadInfo.MipFilter = D3DX11_FILTER_TRIANGLE;
 
 		ID3D11ShaderResourceView * pSrv = nullptr;
-		if (FAILED(D3DX11CreateShaderResourceViewFromFile(
-						pDevice,
-						path,
-						&imgLoadInfo,
-						nullptr,		// no thread pump
-						&pSrv,
-						nullptr)))		// no async return value
-		{
-			assert(false);
-			return nullptr;
-		}
+		CHECK_ERR(SUCCEEDED(D3DX11CreateShaderResourceViewFromFile(
+								pDevice,
+								path,
+								&imgLoadInfo,
+								nullptr,		// no thread pump
+								&pSrv,
+								nullptr)));		// no async return value
 
 #if ENABLE_LOGGING
 		D3D11_SHADER_RESOURCE_VIEW_DESC srvDesc;
@@ -64,7 +59,9 @@ namespace Framework
 			cMipLevels = srvDesc.TextureCube.MipLevels;
 			break;
 	
-		default: assert(false); break;
+		default:
+			WARN("Unexpected SRV dimension %d", srvDesc.ViewDimension);
+			break;
 		}
 
 		const char * strFormat = "other";
@@ -73,7 +70,9 @@ namespace Framework
 		case DXGI_FORMAT_R8G8B8A8_UNORM:		strFormat = "R8G8B8A8_UNORM"; break;
 		case DXGI_FORMAT_R8G8B8A8_UNORM_SRGB:	strFormat = "R8G8B8A8_UNORM_SRGB"; break;
 		case DXGI_FORMAT_R16G16B16A16_FLOAT:	strFormat = "R16G16B16A16_FLOAT"; break;
-		default: assert(false); break;
+		default:
+			WARN("Unexpected SRV format %d", srvDesc.Format);
+			break;
 		}
 
 		LOG(
@@ -106,11 +105,7 @@ namespace Framework
 
 		D3D11_SUBRESOURCE_DATA initialData = { rgba, sizeof(byte4), };
 		comptr<ID3D11Texture2D> pTex;
-		if (FAILED(pDevice->CreateTexture2D(&texDesc, &initialData, &pTex)))
-		{
-			assert(false);
-			return nullptr;
-		}
+		CHECK_ERR(SUCCEEDED(pDevice->CreateTexture2D(&texDesc, &initialData, &pTex)));
 
 		D3D11_SHADER_RESOURCE_VIEW_DESC srvDesc =
 		{
@@ -120,11 +115,7 @@ namespace Framework
 		srvDesc.Texture2D.MipLevels = 1;
 
 		ID3D11ShaderResourceView * pSrv = NULL;
-		if (FAILED(pDevice->CreateShaderResourceView(pTex, &srvDesc, &pSrv)))
-		{
-			assert(false);
-			return nullptr;
-		}
+		CHECK_ERR(SUCCEEDED(pDevice->CreateShaderResourceView(pTex, &srvDesc, &pSrv)));
 
 		return pSrv;
 	}

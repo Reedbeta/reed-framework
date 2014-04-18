@@ -1,7 +1,6 @@
 #include "d3d11-window.h"
 
 #include <util.h>
-#include <cassert>
 
 namespace Framework
 {
@@ -56,11 +55,7 @@ namespace Framework
 			nullptr,
 			windowClassName,
 		};
-		if (!RegisterClass(&wc))
-		{
-			assert(false);
-			return false;
-		}
+		CHECK_ERR(RegisterClass(&wc));
 
 		// Create the window
 		m_hWnd = CreateWindow(
@@ -75,11 +70,7 @@ namespace Framework
 					nullptr,
 					hInstance,
 					this);
-		if (!m_hWnd)
-		{
-			assert(false);
-			return false;
-		}
+		ASSERT_ERR(m_hWnd);
 
 		// Initialize D3D11
 		UINT flags = 0;
@@ -97,16 +88,12 @@ namespace Framework
 			DXGI_SWAP_EFFECT_FLIP_SEQUENTIAL,
 		};
 		D3D_FEATURE_LEVEL featureLevel;
-		if (FAILED(D3D11CreateDeviceAndSwapChain(
-						nullptr, D3D_DRIVER_TYPE_HARDWARE, nullptr,
-						flags, nullptr, 0, D3D11_SDK_VERSION,
-						&swapChainDesc,
-						&m_pSwapChain, &m_pDevice,
-						&featureLevel, &m_pCtx)))
-		{
-			assert(false);
-			return false;
-		}
+		CHECK_ERR(SUCCEEDED(D3D11CreateDeviceAndSwapChain(
+								nullptr, D3D_DRIVER_TYPE_HARDWARE, nullptr,
+								flags, nullptr, 0, D3D11_SDK_VERSION,
+								&swapChainDesc,
+								&m_pSwapChain, &m_pDevice,
+								&featureLevel, &m_pCtx)));
 
 #if defined(_DEBUG)
 		// Set up D3D11 debug layer settings
@@ -142,18 +129,10 @@ namespace Framework
 			false,							// ScissorEnable
 			true,							// MultisampleEnable
 		};
-		if (FAILED(m_pDevice->CreateRasterizerState(&rssDesc, &m_pRsDefault)))
-		{
-			assert(false);
-			return false;
-		}
+		CHECK_ERR(SUCCEEDED(m_pDevice->CreateRasterizerState(&rssDesc, &m_pRsDefault)));
 
 		rssDesc.CullMode = D3D11_CULL_NONE;
-		if (FAILED(m_pDevice->CreateRasterizerState(&rssDesc, &m_pRsDoubleSided)))
-		{
-			assert(false);
-			return false;
-		}
+		CHECK_ERR(SUCCEEDED(m_pDevice->CreateRasterizerState(&rssDesc, &m_pRsDoubleSided)));
 
 		D3D11_DEPTH_STENCIL_DESC dssDesc = 
 		{
@@ -161,25 +140,13 @@ namespace Framework
 			D3D11_DEPTH_WRITE_MASK_ALL,
 			D3D11_COMPARISON_LESS_EQUAL,
 		};
-		if (FAILED(m_pDevice->CreateDepthStencilState(&dssDesc, &m_pDssDepthTest)))
-		{
-			assert(false);
-			return false;
-		}
+		CHECK_ERR(SUCCEEDED(m_pDevice->CreateDepthStencilState(&dssDesc, &m_pDssDepthTest)));
 
 		dssDesc.DepthWriteMask = D3D11_DEPTH_WRITE_MASK_ZERO;
-		if (FAILED(m_pDevice->CreateDepthStencilState(&dssDesc, &m_pDssNoDepthWrite)))
-		{
-			assert(false);
-			return false;
-		}
+		CHECK_ERR(SUCCEEDED(m_pDevice->CreateDepthStencilState(&dssDesc, &m_pDssNoDepthWrite)));
 
 		dssDesc.DepthEnable = false;
-		if (FAILED(m_pDevice->CreateDepthStencilState(&dssDesc, &m_pDssNoDepthTest)))
-		{
-			assert(false);
-			return false;
-		}
+		CHECK_ERR(SUCCEEDED(m_pDevice->CreateDepthStencilState(&dssDesc, &m_pDssNoDepthTest)));
 
 		D3D11_BLEND_DESC bsDesc =
 		{
@@ -195,11 +162,7 @@ namespace Framework
 				D3D11_COLOR_WRITE_ENABLE_ALL,
 			},
 		};
-		if (FAILED(m_pDevice->CreateBlendState(&bsDesc, &m_pBsAlphaBlend)))
-		{
-			assert(false);
-			return false;
-		}
+		CHECK_ERR(SUCCEEDED(m_pDevice->CreateBlendState(&bsDesc, &m_pBsAlphaBlend)));
 
 		// Set up commonly used samplers
 
@@ -216,36 +179,20 @@ namespace Framework
 			0.0f,
 			FLT_MAX,
 		};
-		if (FAILED(m_pDevice->CreateSamplerState(&sampDesc, &m_pSsPointClamp)))
-		{
-			assert(false);
-			return false;
-		}
+		CHECK_ERR(SUCCEEDED(m_pDevice->CreateSamplerState(&sampDesc, &m_pSsPointClamp)));
 
 		sampDesc.Filter = D3D11_FILTER_MIN_MAG_LINEAR_MIP_POINT;
-		if (FAILED(m_pDevice->CreateSamplerState(&sampDesc, &m_pSsBilinearClamp)))
-		{
-			assert(false);
-			return false;
-		}
+		CHECK_ERR(SUCCEEDED(m_pDevice->CreateSamplerState(&sampDesc, &m_pSsBilinearClamp)));
 	
 		sampDesc.Filter = D3D11_FILTER_MIN_MAG_MIP_LINEAR;
 		sampDesc.AddressU = D3D11_TEXTURE_ADDRESS_WRAP;
 		sampDesc.AddressV = D3D11_TEXTURE_ADDRESS_WRAP;
 		sampDesc.AddressW = D3D11_TEXTURE_ADDRESS_WRAP;
-		if (FAILED(m_pDevice->CreateSamplerState(&sampDesc, &m_pSsTrilinearRepeat)))
-		{
-			assert(false);
-			return false;
-		}
+		CHECK_ERR(SUCCEEDED(m_pDevice->CreateSamplerState(&sampDesc, &m_pSsTrilinearRepeat)));
 	
 		sampDesc.Filter = D3D11_FILTER_ANISOTROPIC;
 		sampDesc.MaxAnisotropy = 16;
-		if (FAILED(m_pDevice->CreateSamplerState(&sampDesc, &m_pSsTrilinearRepeatAniso)))
-		{
-			assert(false);
-			return false;
-		}
+		CHECK_ERR(SUCCEEDED(m_pDevice->CreateSamplerState(&sampDesc, &m_pSsTrilinearRepeatAniso)));
 
 		// PCF shadow comparison filter, with border color set to 1.0 so areas outside
 		// the shadow map will be unshadowed
@@ -259,11 +206,7 @@ namespace Framework
 		sampDesc.BorderColor[1] = 1.0f;
 		sampDesc.BorderColor[2] = 1.0f;
 		sampDesc.BorderColor[3] = 1.0f;
-		if (FAILED(m_pDevice->CreateSamplerState(&sampDesc, &m_pSsPCF)))
-		{
-			assert(false);
-			return false;
-		}
+		CHECK_ERR(SUCCEEDED(m_pDevice->CreateSamplerState(&sampDesc, &m_pSsPCF)));
 
 		return true;
 	}
@@ -392,25 +335,13 @@ namespace Framework
 		m_pSrvDepth.release();
 
 		// Resize the swap chain to fit the window again
-		if (!m_pSwapChain)
-		{
-			assert(false);
-			return;
-		}
-		if (FAILED(m_pSwapChain->ResizeBuffers(0, 0, 0, DXGI_FORMAT_UNKNOWN, 0)))
-		{
-			assert(false);
-			return;
-		}
+		ASSERT_ERR(m_pSwapChain);
+		CHECK_ERR(SUCCEEDED(m_pSwapChain->ResizeBuffers(0, 0, 0, DXGI_FORMAT_UNKNOWN, 0)));
 
 		{
 			// Retrieve the back buffer
 			comptr<ID3D11Texture2D> pTex;
-			if (FAILED(m_pSwapChain->GetBuffer(0, IID_ID3D11Texture2D, (void **)&pTex)))
-			{
-				assert(false);
-				return;
-			}
+			CHECK_ERR(SUCCEEDED(m_pSwapChain->GetBuffer(0, IID_ID3D11Texture2D, (void **)&pTex)));
 
 			// Create render target views in sRGB and raw formats
 			D3D11_RENDER_TARGET_VIEW_DESC rtvDesc = 
@@ -418,17 +349,9 @@ namespace Framework
 				DXGI_FORMAT_R8G8B8A8_UNORM_SRGB,
 				D3D11_RTV_DIMENSION_TEXTURE2D,
 			};
-			if (FAILED(m_pDevice->CreateRenderTargetView(pTex, &rtvDesc, &m_pRtvSRGB)))
-			{
-				assert(false);
-				return;
-			}
+			CHECK_ERR(SUCCEEDED(m_pDevice->CreateRenderTargetView(pTex, &rtvDesc, &m_pRtvSRGB)));
 			rtvDesc.Format = DXGI_FORMAT_R8G8B8A8_UNORM;
-			if (FAILED(m_pDevice->CreateRenderTargetView(pTex, &rtvDesc, &m_pRtvRaw)))
-			{
-				assert(false);
-				return;
-			}
+			CHECK_ERR(SUCCEEDED(m_pDevice->CreateRenderTargetView(pTex, &rtvDesc, &m_pRtvRaw)));
 		}
 
 		{
@@ -443,22 +366,14 @@ namespace Framework
 				D3D11_USAGE_DEFAULT,
 				D3D11_BIND_DEPTH_STENCIL | D3D11_BIND_SHADER_RESOURCE,
 			};
-			if (FAILED(m_pDevice->CreateTexture2D(&texDesc, nullptr, &pTexDepth)))
-			{
-				assert(false);
-				return;
-			}
+			CHECK_ERR(SUCCEEDED(m_pDevice->CreateTexture2D(&texDesc, nullptr, &pTexDepth)));
 
 			D3D11_DEPTH_STENCIL_VIEW_DESC dsvDesc =
 			{
 				DXGI_FORMAT_D32_FLOAT,
 				D3D11_DSV_DIMENSION_TEXTURE2D,
 			};
-			if (FAILED(m_pDevice->CreateDepthStencilView(pTexDepth, &dsvDesc, &m_pDsv)))
-			{
-				assert(false);
-				return;
-			}
+			CHECK_ERR(SUCCEEDED(m_pDevice->CreateDepthStencilView(pTexDepth, &dsvDesc, &m_pDsv)));
 
 			D3D11_SHADER_RESOURCE_VIEW_DESC srvDesc =
 			{
@@ -466,11 +381,7 @@ namespace Framework
 				D3D11_SRV_DIMENSION_TEXTURE2D,
 			};
 			srvDesc.Texture2D.MipLevels = 1;
-			if (FAILED(m_pDevice->CreateShaderResourceView(pTexDepth, &srvDesc, &m_pSrvDepth)))
-			{
-				assert(false);
-				return;
-			}
+			CHECK_ERR(SUCCEEDED(m_pDevice->CreateShaderResourceView(pTexDepth, &srvDesc, &m_pSrvDepth)));
 		}
 	}
 }

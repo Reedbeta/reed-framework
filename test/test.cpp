@@ -2,11 +2,12 @@
 #include <d3d11-window.h>
 
 using namespace util;
+using namespace Framework;
 
-class TestWindow : public Framework::D3D11Window
+class TestWindow : public D3D11Window
 {
 public:
-	typedef Framework::D3D11Window super;
+	typedef D3D11Window super;
 
 	virtual LRESULT MsgProc(HWND hWnd, UINT message, WPARAM wParam, LPARAM lParam)
 	{
@@ -32,13 +33,13 @@ public:
 int WINAPI WinMain(HINSTANCE hInstance, HINSTANCE hPrevInstance, LPSTR lpCmdLine, int nCmdShow)
 {
 	TestWindow w;
-	if (!w.Init("TestWindow", "Test", hInstance, nCmdShow))
+	if (!w.Init("TestWindow", "Test", hInstance))
 	{
 		w.Shutdown();
 		return 1;
 	}
 
-	return w.MainLoop();
+	return w.MainLoop(nCmdShow);
 
 	(void)hPrevInstance;
 	(void)lpCmdLine;

@@ -1,7 +1,5 @@
 #include "camera.h"
 
-#include <cassert>
-
 #define NOMINMAX
 #define WIN32_LEAN_AND_MEAN
 #include <windows.h>
@@ -114,11 +112,7 @@ namespace Framework
 
 		// Calculate angles to look at posTarget
 		float3 vecToTarget = posTarget - posCamera;
-		if (all(isnear(vecToTarget, 0.0f)))
-		{
-			assert(false);
-			return;
-		}
+		ASSERT_WARN(all(isnear(vecToTarget, 0.0f)));
 		vecToTarget = normalize(vecToTarget);
 		m_yaw = atan2f(-vecToTarget.z, vecToTarget.x);
 		m_pitch = asinf(vecToTarget.y);
@@ -210,11 +204,7 @@ namespace Framework
 
 		// Calculate angles to look at posTarget
 		float3 vecToTarget = posTarget - posCamera;
-		if (all(isnear(vecToTarget, 0.0f)))
-		{
-			assert(false);
-			return;
-		}
+		ASSERT_WARN(all(isnear(vecToTarget, 0.0f)));
 		m_radius = length(vecToTarget);
 		vecToTarget /= m_radius;
 		m_yaw = atan2f(-vecToTarget.z, vecToTarget.x);
