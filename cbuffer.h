@@ -27,14 +27,14 @@ namespace Framework
 			D3D11_CPU_ACCESS_WRITE,
 		};
 
-		CHECK_ERR(SUCCEEDED(pDevice->CreateBuffer(&bufDesc, nullptr, &m_pBuf)));
+		CHECK_D3D(pDevice->CreateBuffer(&bufDesc, nullptr, &m_pBuf));
 	}
 
 	template <typename T>
 	inline void CB<T>::Update(ID3D11DeviceContext * pCtx, const T * pData)
 	{
 		D3D11_MAPPED_SUBRESOURCE mapped = {};
-		CHECK_ERR(SUCCEEDED(pCtx->Map(m_pBuf, 0, D3D11_MAP_WRITE_DISCARD, 0, &mapped)));
+		CHECK_D3D(pCtx->Map(m_pBuf, 0, D3D11_MAP_WRITE_DISCARD, 0, &mapped));
 		memcpy(mapped.pData, pData, sizeof(T));
 		pCtx->Unmap(m_pBuf, 0);
 	}

@@ -15,6 +15,9 @@ namespace Framework
 	using util::byte;		// Needed because Windows also defines the "byte" type
 }
 
+#define CHECK_D3D(f) \
+			CHECK_ERR(SUCCEEDED(f))
+
 #include "comptr.h"
 
 #include "camera.h"

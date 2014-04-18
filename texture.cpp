@@ -33,13 +33,13 @@ namespace Framework
 		imgLoadInfo.MipFilter = D3DX11_FILTER_TRIANGLE;
 
 		ID3D11ShaderResourceView * pSrv = nullptr;
-		CHECK_ERR(SUCCEEDED(D3DX11CreateShaderResourceViewFromFile(
+		CHECK_D3D(D3DX11CreateShaderResourceViewFromFile(
 								pDevice,
 								path,
 								&imgLoadInfo,
 								nullptr,		// no thread pump
 								&pSrv,
-								nullptr)));		// no async return value
+								nullptr));		// no async return value
 
 #if ENABLE_LOGGING
 		D3D11_SHADER_RESOURCE_VIEW_DESC srvDesc;
@@ -105,7 +105,7 @@ namespace Framework
 
 		D3D11_SUBRESOURCE_DATA initialData = { rgba, sizeof(byte4), };
 		comptr<ID3D11Texture2D> pTex;
-		CHECK_ERR(SUCCEEDED(pDevice->CreateTexture2D(&texDesc, &initialData, &pTex)));
+		CHECK_D3D(pDevice->CreateTexture2D(&texDesc, &initialData, &pTex));
 
 		D3D11_SHADER_RESOURCE_VIEW_DESC srvDesc =
 		{
@@ -115,7 +115,7 @@ namespace Framework
 		srvDesc.Texture2D.MipLevels = 1;
 
 		ID3D11ShaderResourceView * pSrv = NULL;
-		CHECK_ERR(SUCCEEDED(pDevice->CreateShaderResourceView(pTex, &srvDesc, &pSrv)));
+		CHECK_D3D(pDevice->CreateShaderResourceView(pTex, &srvDesc, &pSrv));
 
 		return pSrv;
 	}

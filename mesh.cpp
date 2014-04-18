@@ -383,7 +383,7 @@ namespace Framework
 			0,	// structured buffer stride
 		};
 		D3D11_SUBRESOURCE_DATA vtxBufferData = { &pMeshOut->m_verts[0], 0, 0 };
-		CHECK_ERR(SUCCEEDED(pDevice->CreateBuffer(&vtxBufferDesc, &vtxBufferData, &pMeshOut->m_pVtxBuffer)));
+		CHECK_D3D(pDevice->CreateBuffer(&vtxBufferDesc, &vtxBufferData, &pMeshOut->m_pVtxBuffer));
 
 		D3D11_BUFFER_DESC idxBufferDesc =
 		{
@@ -395,7 +395,7 @@ namespace Framework
 			0,	// structured buffer stride
 		};
 		D3D11_SUBRESOURCE_DATA idxBufferData = { &pMeshOut->m_indices[0], 0, 0 };
-		CHECK_ERR(SUCCEEDED(pDevice->CreateBuffer(&idxBufferDesc, &idxBufferData, &pMeshOut->m_pIdxBuffer)));
+		CHECK_D3D(pDevice->CreateBuffer(&idxBufferDesc, &idxBufferData, &pMeshOut->m_pIdxBuffer));
 
 		pMeshOut->m_vtxStride = sizeof(Vertex);
 		pMeshOut->m_cIdx = uint(pMeshOut->m_indices.size());
