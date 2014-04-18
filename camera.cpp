@@ -86,6 +86,7 @@ namespace Framework
 		// !!!UNDONE: acceleration based on how long you've been holding the button,
 		// to make fine motions easier?
 		float moveStep = timestep * m_moveSpeed;
+		// !!!UNDONE: move keyboard tracking into an input system that respects focus, etc.
 		if (GetAsyncKeyState(VK_SHIFT))
 			moveStep *= 3.0f;
 		if (GetAsyncKeyState('W'))

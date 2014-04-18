@@ -293,6 +293,7 @@ namespace Framework
 			// Handle any messages
 			while (PeekMessage(&msg, nullptr, 0, 0, PM_REMOVE))
 			{
+				TranslateMessage(&msg);
 				DispatchMessage(&msg);
 			}
 
@@ -351,7 +352,10 @@ namespace Framework
 				int width = int(LOWORD(lParam));
 				int height = int(HIWORD(lParam));
 				if (width > 0 && height > 0 && (width != m_width || height != m_height))
+				{
 					OnResize(width, height);
+					OnRender();
+				}
 				return 0;
 			}
 
@@ -362,7 +366,10 @@ namespace Framework
 				int width = clientRect.right - clientRect.left;
 				int height = clientRect.bottom - clientRect.top;
 				if (width > 0 && height > 0 && (width != m_width || height != m_height))
+				{
 					OnResize(width, height);
+					OnRender();
+				}
 				return 0;
 			}
 
@@ -465,8 +472,5 @@ namespace Framework
 				return;
 			}
 		}
-
-		// Automatically re-render after changing size
-		OnRender();
 	}
 }
