@@ -18,6 +18,9 @@ namespace Framework
 #define CHECK_D3D(f) \
 			CHECK_ERR(SUCCEEDED(f))
 
+#define CHECK_D3D_WARN(f) \
+			CHECK_WARN(SUCCEEDED(f))
+
 #include "comptr.h"
 
 #include "camera.h"
