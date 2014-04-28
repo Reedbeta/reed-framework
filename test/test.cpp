@@ -187,6 +187,19 @@ bool TestWindow::Init(
 	TwAddVarRW(pTwBarLight, "Light color", TW_TYPE_COLOR3F, &g_rgbDirectionalLight, nullptr);
 	TwAddVarRW(pTwBarLight, "Sky color", TW_TYPE_COLOR3F, &g_rgbSky, nullptr);
 
+	// Create bar for camera position and orientation
+	TwBar * pTwBarCamera = TwNewBar("Camera");
+	TwDefine("Camera position='230 15' size='200 180' valueswidth=80 refresh=0.5");
+	TwAddVarRO(pTwBarCamera, "Camera X", TW_TYPE_FLOAT, &m_camera.m_pos.x, "precision=3");
+	TwAddVarRO(pTwBarCamera, "Camera Y", TW_TYPE_FLOAT, &m_camera.m_pos.y, "precision=3");
+	TwAddVarRO(pTwBarCamera, "Camera Z", TW_TYPE_FLOAT, &m_camera.m_pos.z, "precision=3");
+	TwAddVarRO(pTwBarCamera, "Yaw", TW_TYPE_FLOAT, &m_camera.m_yaw, "precision=3");
+	TwAddVarRO(pTwBarCamera, "Pitch", TW_TYPE_FLOAT, &m_camera.m_pitch, "precision=3");
+	auto lambdaNegate = [](void * outValue, void * inValue) { *(float *)outValue = -*(float *)inValue; };
+	TwAddVarCB(pTwBarCamera, "Look X", TW_TYPE_FLOAT, nullptr, lambdaNegate, &m_camera.m_viewToWorld.m_linear[2].x, "precision=3");
+	TwAddVarCB(pTwBarCamera, "Look Y", TW_TYPE_FLOAT, nullptr, lambdaNegate, &m_camera.m_viewToWorld.m_linear[2].y, "precision=3");
+	TwAddVarCB(pTwBarCamera, "Look Z", TW_TYPE_FLOAT, nullptr, lambdaNegate, &m_camera.m_viewToWorld.m_linear[2].z, "precision=3");
+
 	return true;
 }
 

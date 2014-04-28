@@ -59,9 +59,7 @@ namespace Framework
 
 		// Parse the OBJ format line-by-line
 		char * pCtxLine = (char *)&data[0];
-		for (char * pLine = tokenize(pCtxLine, "\n");
-			 pLine;
-			 pLine = tokenize(pCtxLine, "\n"))
+		while (char * pLine = tokenize(pCtxLine, "\n"))
 		{
 			// Strip comments starting with #
 			if (char * pChzComment = strchr(pLine, '#'))
