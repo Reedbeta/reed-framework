@@ -139,7 +139,7 @@ namespace Framework
 			OBJVertex objv = OBJverts[iVert];
 			Vertex v = {};
 
-			// OBJ indices are 1-based; handle that and look out for missing components
+			// OBJ indices are 1-based; fix that (missing components are zeros)
 			if (objv.iPos > 0)
 				v.m_pos = positions[objv.iPos - 1];
 			if (objv.iNormal > 0)
@@ -187,7 +187,7 @@ namespace Framework
 			}
 		};
 
-		struct VertexEquator
+		struct VertexEqualityTester
 		{
 			bool operator () (const Vertex & u, const Vertex & v) const
 			{
@@ -199,7 +199,7 @@ namespace Framework
 
 		std::vector<Vertex> vertsDeduplicated;
 		std::vector<uint> remappingTable;
-		std::unordered_map<Vertex, int, VertexHasher, VertexEquator> mapVertToIndex;
+		std::unordered_map<Vertex, int, VertexHasher, VertexEqualityTester> mapVertToIndex;
 
 		vertsDeduplicated.reserve(pMesh->m_verts.size());
 		remappingTable.reserve(pMesh->m_verts.size());
@@ -207,7 +207,7 @@ namespace Framework
 		for (uint i = 0, cVert = uint(pMesh->m_verts.size()); i < cVert; ++i)
 		{
 			const Vertex & vert = pMesh->m_verts[i];
-			std::unordered_map<Vertex, int, VertexHasher, VertexEquator>::iterator
+			std::unordered_map<Vertex, int, VertexHasher, VertexEqualityTester>::iterator
 				iter = mapVertToIndex.find(vert);
 			if (iter == mapVertToIndex.end())
 			{
