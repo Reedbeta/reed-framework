@@ -297,7 +297,7 @@ void TestWindow::OnRender()
 		g_debugSlider3,
 	};
 	m_cbDebug.Update(m_pCtx, &cbDebug);
-	m_cbFrame.Bind(m_pCtx, CB_DEBUG);
+	m_cbDebug.Bind(m_pCtx, CB_DEBUG);
 
 	m_pCtx->ClearRenderTargetView(m_pRtvRaw, makergba(g_rgbSky, 1.0f));
 	m_pCtx->ClearDepthStencilView(m_pDsv, D3D11_CLEAR_DEPTH, 1.0f, 0);
