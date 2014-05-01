@@ -154,7 +154,7 @@ bool TestWindow::Init(
 
 	// Create bar for FPS display
 	TwBar * pTwBarFPS = TwNewBar("FPS");
-	TwDefine("FPS position='15 15' size='200 80' valueswidth=50 refresh=0.5");
+	TwDefine("FPS position='15 15' size='225 80' valueswidth=75 refresh=0.5");
 	TwAddVarCB(
 			pTwBarFPS, "Frame time (ms)", TW_TYPE_FLOAT,
 			nullptr,
@@ -174,7 +174,7 @@ bool TestWindow::Init(
 
 	// Create bar for debug sliders
 	TwBar * pTwBarDebug = TwNewBar("Debug");
-	TwDefine("Debug position='15 110' size='200 115' valueswidth=50");
+	TwDefine("Debug position='15 110' size='225 115' valueswidth=75");
 	TwAddVarRW(pTwBarDebug, "g_debugSlider0", TW_TYPE_FLOAT, &g_debugSlider0, "min=0.0 step=0.01 precision=2");
 	TwAddVarRW(pTwBarDebug, "g_debugSlider1", TW_TYPE_FLOAT, &g_debugSlider1, "min=0.0 step=0.01 precision=2");
 	TwAddVarRW(pTwBarDebug, "g_debugSlider2", TW_TYPE_FLOAT, &g_debugSlider2, "min=0.0 step=0.01 precision=2");
@@ -189,7 +189,7 @@ bool TestWindow::Init(
 
 	// Create bar for camera position and orientation
 	TwBar * pTwBarCamera = TwNewBar("Camera");
-	TwDefine("Camera position='230 15' size='200 180' valueswidth=80 refresh=0.5");
+	TwDefine("Camera position='255 15' size='195 180' valueswidth=75 refresh=0.5");
 	TwAddVarRO(pTwBarCamera, "Camera X", TW_TYPE_FLOAT, &m_camera.m_pos.x, "precision=3");
 	TwAddVarRO(pTwBarCamera, "Camera Y", TW_TYPE_FLOAT, &m_camera.m_pos.y, "precision=3");
 	TwAddVarRO(pTwBarCamera, "Camera Z", TW_TYPE_FLOAT, &m_camera.m_pos.z, "precision=3");
