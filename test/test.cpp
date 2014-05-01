@@ -324,6 +324,10 @@ void TestWindow::OnRender()
 
 int WINAPI WinMain(HINSTANCE hInstance, HINSTANCE hPrevInstance, LPSTR lpCmdLine, int nCmdShow)
 {
+	(void)hPrevInstance;
+	(void)lpCmdLine;
+	(void)nCmdShow;
+
 	TestWindow w;
 	if (!w.Init("TestWindow", "Test", hInstance))
 	{
@@ -331,8 +335,5 @@ int WINAPI WinMain(HINSTANCE hInstance, HINSTANCE hPrevInstance, LPSTR lpCmdLine
 		return 1;
 	}
 
-	return w.MainLoop(nCmdShow);
-
-	(void)hPrevInstance;
-	(void)lpCmdLine;
+	return w.MainLoop(SW_SHOWMAXIMIZED);
 }
