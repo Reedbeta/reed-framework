@@ -29,5 +29,5 @@ namespace Framework
 		const void * pPixels);
 
 	const char * NameOfFormat(DXGI_FORMAT format);
-	uint BytesPerPixel(DXGI_FORMAT format);
+	uint BitsPerPixel(DXGI_FORMAT format);
 }
