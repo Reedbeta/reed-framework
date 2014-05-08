@@ -27,5 +27,6 @@ namespace Framework
 #include "cbuffer.h"
 #include "d3d11-window.h"
 #include "mesh.h"
+#include "rendertarget.h"
 #include "texture.h"
 #include "timer.h"

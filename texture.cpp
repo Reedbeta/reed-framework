@@ -3,9 +3,6 @@
 
 namespace Framework
 {
-	using namespace util;
-	using util::byte;				// Needed because Windows also defines the "byte" type
-
 	ID3D11ShaderResourceView * LoadTexture(
 		ID3D11Device * pDevice,
 		const char * path,
