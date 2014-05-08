@@ -2,6 +2,12 @@
 
 namespace Framework
 {
+	struct CBBlit		// matches cbuffer CBBlit in fullscreen_vs.hlsl, rect_vs.hlsl
+	{
+		box2	m_boxSrc;
+		box2	m_boxDst;
+	};
+
 	class D3D11Window
 	{
 	public:
@@ -18,6 +24,35 @@ namespace Framework
 		virtual LRESULT		MsgProc(HWND hWnd, UINT message, WPARAM wParam, LPARAM lParam);
 		virtual void		OnResize(int width, int height);
 		virtual void		OnRender() = 0;
+
+		// Utility methods
+
+		void				DrawFullscreenPass(
+								ID3D11DeviceContext * pCtx,
+								box2_arg boxSrc = makebox2(0, 0, 1, 1));
+
+		void				BlitFullscreen(
+								ID3D11DeviceContext * pCtx,
+								ID3D11ShaderResourceView * pSrvSrc,
+								box2_arg boxSrc = makebox2(0, 0, 1, 1))
+								{ BlitFullscreen(pCtx, pSrvSrc, m_pSsBilinearClamp, boxSrc); }
+		void				BlitFullscreen(
+								ID3D11DeviceContext * pCtx,
+								ID3D11ShaderResourceView * pSrvSrc,
+								ID3D11SamplerState * pSampSrc,
+								box2_arg boxSrc = makebox2(0, 0, 1, 1));
+
+		void				Blit(
+								ID3D11DeviceContext * pCtx,
+								ID3D11ShaderResourceView * pSrvSrc,
+								box2_arg boxDst)
+								{ Blit(pCtx, pSrvSrc, m_pSsBilinearClamp, makebox2(0, 0, 1, 1), boxDst); }
+		void				Blit(
+								ID3D11DeviceContext * pCtx,
+								ID3D11ShaderResourceView * pSrvSrc,
+								ID3D11SamplerState * pSampSrc,
+								box2_arg boxSrc,
+								box2_arg boxDst);
 
 		// Basic resources
 		HINSTANCE							m_hInstance;
@@ -49,5 +84,13 @@ namespace Framework
 		comptr<ID3D11SamplerState>			m_pSsTrilinearRepeat;
 		comptr<ID3D11SamplerState>			m_pSsTrilinearRepeatAniso;
 		comptr<ID3D11SamplerState>			m_pSsPCF;
+
+		// Commonly used shaders
+		comptr<ID3D11VertexShader>			m_pVsFullscreen;
+		comptr<ID3D11VertexShader>			m_pVsRect;
+		comptr<ID3D11PixelShader>			m_pPsCopy;
+
+		// CB for doing blits and fullscreen passes
+		CB<CBBlit>							m_cbBlit;
 	};
 }

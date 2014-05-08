@@ -29,6 +29,20 @@
     <ClCompile Include="texture.cpp" />
     <ClCompile Include="timer.cpp" />
   </ItemGroup>
+  <ItemGroup>
+    <FxCompile Include="copy_ps.hlsl">
+      <ShaderType Condition="'$(Configuration)|$(Platform)'=='Debug|x64'">Pixel</ShaderType>
+      <ShaderType Condition="'$(Configuration)|$(Platform)'=='Release|x64'">Pixel</ShaderType>
+    </FxCompile>
+    <FxCompile Include="fullscreen_vs.hlsl">
+      <ShaderType Condition="'$(Configuration)|$(Platform)'=='Debug|x64'">Vertex</ShaderType>
+      <ShaderType Condition="'$(Configuration)|$(Platform)'=='Release|x64'">Vertex</ShaderType>
+    </FxCompile>
+    <FxCompile Include="rect_vs.hlsl">
+      <ShaderType Condition="'$(Configuration)|$(Platform)'=='Debug|x64'">Vertex</ShaderType>
+      <ShaderType Condition="'$(Configuration)|$(Platform)'=='Release|x64'">Vertex</ShaderType>
+    </FxCompile>
+  </ItemGroup>
   <PropertyGroup Label="Globals">
     <ProjectGuid>{6D779109-842E-4C23-A10D-2345FFCCEA60}</ProjectGuid>
     <Keyword>Win32Proj</Keyword>
@@ -73,12 +87,21 @@
       <PreprocessorDefinitions>WIN32;_DEBUG;_LIB;%(PreprocessorDefinitions)</PreprocessorDefinitions>
       <SDLCheck>true</SDLCheck>
       <TreatWarningAsError>true</TreatWarningAsError>
-      <AdditionalIncludeDirectories>..\reed-util;d3dx11</AdditionalIncludeDirectories>
+      <AdditionalIncludeDirectories>..\reed-util;d3dx11;$(Platform)\$(Configuration)\shaders\</AdditionalIncludeDirectories>
+      <AdditionalOptions>/d2Zi+</AdditionalOptions>
     </ClCompile>
     <Link>
       <SubSystem>Windows</SubSystem>
       <GenerateDebugInformation>true</GenerateDebugInformation>
     </Link>
+    <FxCompile>
+      <ShaderModel>5.0</ShaderModel>
+      <TreatWarningAsError>true</TreatWarningAsError>
+      <VariableName>%(Filename)_bytecode</VariableName>
+      <HeaderFileOutput>$(Platform)\$(Configuration)\shaders\%(Filename).h</HeaderFileOutput>
+      <ObjectFileOutput />
+      <AdditionalOptions>/Gfp</AdditionalOptions>
+    </FxCompile>
   </ItemDefinitionGroup>
   <ItemDefinitionGroup Condition="'$(Configuration)|$(Platform)'=='Release|x64'">
     <ClCompile>
@@ -91,7 +114,8 @@
       <PreprocessorDefinitions>WIN32;NDEBUG;_LIB;%(PreprocessorDefinitions)</PreprocessorDefinitions>
       <SDLCheck>true</SDLCheck>
       <TreatWarningAsError>true</TreatWarningAsError>
-      <AdditionalIncludeDirectories>..\reed-util;d3dx11</AdditionalIncludeDirectories>
+      <AdditionalIncludeDirectories>..\reed-util;d3dx11;$(Platform)\$(Configuration)\shaders\</AdditionalIncludeDirectories>
+      <AdditionalOptions>/d2Zi+</AdditionalOptions>
     </ClCompile>
     <Link>
       <SubSystem>Windows</SubSystem>
@@ -99,6 +123,20 @@
       <EnableCOMDATFolding>true</EnableCOMDATFolding>
       <OptimizeReferences>true</OptimizeReferences>
     </Link>
+    <FxCompile>
+      <DisableOptimizations>true</DisableOptimizations>
+    </FxCompile>
+    <FxCompile>
+      <EnableDebuggingInformation>true</EnableDebuggingInformation>
+    </FxCompile>
+    <FxCompile>
+      <ShaderModel>5.0</ShaderModel>
+      <TreatWarningAsError>true</TreatWarningAsError>
+      <VariableName>%(Filename)_bytecode</VariableName>
+      <HeaderFileOutput>$(Platform)\$(Configuration)\shaders\%(Filename).h</HeaderFileOutput>
+      <ObjectFileOutput />
+      <AdditionalOptions>/Gfp</AdditionalOptions>
+    </FxCompile>
   </ItemDefinitionGroup>
   <Import Project="$(VCTargetsPath)\Microsoft.Cpp.targets" />
   <ImportGroup Label="ExtensionTargets">

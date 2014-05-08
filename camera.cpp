@@ -101,7 +101,7 @@ namespace Framework
 		UpdateWorldToClip();
 	}
 
-	void FPSCamera::LookAt(point3 posCamera, point3 posTarget)
+	void FPSCamera::LookAt(point3_arg posCamera, point3_arg posTarget)
 	{
 		m_pos = posCamera;
 		m_viewToWorld.m_translation = makefloat3(m_pos);
@@ -192,7 +192,7 @@ namespace Framework
 		UpdateWorldToClip();
 	}
 
-	void MayaCamera::LookAt(point3 posCamera, point3 posTarget)
+	void MayaCamera::LookAt(point3_arg posCamera, point3_arg posTarget)
 	{
 		m_posTarget = posTarget;
 		m_pos = posCamera;

@@ -57,6 +57,7 @@
       <SDLCheck>true</SDLCheck>
       <AdditionalIncludeDirectories>..;..\..\reed-util;..\..\AntTweakBar\include;$(Platform)\$(Configuration)\shaders</AdditionalIncludeDirectories>
       <TreatWarningAsError>true</TreatWarningAsError>
+      <AdditionalOptions>/d2Zi+</AdditionalOptions>
     </ClCompile>
     <Link>
       <SubSystem>Windows</SubSystem>
@@ -99,6 +100,7 @@ copy /y $(ProjectDir)d3dcompiler_46.dll $(OutDir)
       <SDLCheck>true</SDLCheck>
       <AdditionalIncludeDirectories>..;..\..\reed-util;..\..\AntTweakBar\include;$(Platform)\$(Configuration)\shaders</AdditionalIncludeDirectories>
       <TreatWarningAsError>true</TreatWarningAsError>
+      <AdditionalOptions>/d2Zi+</AdditionalOptions>
     </ClCompile>
     <Link>
       <SubSystem>Windows</SubSystem>
