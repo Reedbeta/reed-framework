@@ -7,9 +7,9 @@ namespace Framework
 	using util::byte;				// Needed because Windows also defines the "byte" type
 
 	ID3D11ShaderResourceView * LoadTexture(
-			const char * path,
-			ID3D11Device * pDevice,
-			int flags /*= LOADTEX_Mipmap | LOADTEX_SRGB*/)
+		ID3D11Device * pDevice,
+		const char * path,
+		int flags /*= LOADTEX_Mipmap | LOADTEX_SRGB*/)
 	{
 		bool mipmap = (flags & LOADTEX_Mipmap) != 0;
 		bool SRGB = (flags & LOADTEX_SRGB) != 0;
@@ -64,28 +64,17 @@ namespace Framework
 			break;
 		}
 
-		const char * strFormat = "other";
-		switch (srvDesc.Format)
-		{
-		case DXGI_FORMAT_R8G8B8A8_UNORM:		strFormat = "R8G8B8A8_UNORM"; break;
-		case DXGI_FORMAT_R8G8B8A8_UNORM_SRGB:	strFormat = "R8G8B8A8_UNORM_SRGB"; break;
-		case DXGI_FORMAT_R16G16B16A16_FLOAT:	strFormat = "R16G16B16A16_FLOAT"; break;
-		default:
-			WARN("Unexpected SRV format %d", srvDesc.Format);
-			break;
-		}
-
 		LOG(
 			"Loaded %s - %s, format %s, %d mip levels",
-			path, strDimension, strFormat, cMipLevels);
+			path, strDimension, NameOfFormat(srvDesc.Format), cMipLevels);
 #endif // ENABLE_LOGGING
 
 		return pSrv;
 	}
 
 	ID3D11ShaderResourceView * Create1x1Texture(
-		float r, float g, float b,
 		ID3D11Device * pDevice,
+		float r, float g, float b,
 		bool linear /*= false*/)
 	{
 		// Convert floats to 8-bit format
@@ -114,9 +103,74 @@ namespace Framework
 		};
 		srvDesc.Texture2D.MipLevels = 1;
 
-		ID3D11ShaderResourceView * pSrv = NULL;
+		ID3D11ShaderResourceView * pSrv = nullptr;
 		CHECK_D3D(pDevice->CreateShaderResourceView(pTex, &srvDesc, &pSrv));
 
 		return pSrv;
+	}
+
+	ID3D11ShaderResourceView * CreateTextureFromMemory(
+		ID3D11Device * pDevice,
+		uint width, uint height,
+		DXGI_FORMAT format,
+		const void * pPixels)
+	{
+		D3D11_TEXTURE2D_DESC texDesc =
+		{
+			width, height, 1, 1,
+			format,
+			{ 1, 0 },
+			D3D11_USAGE_IMMUTABLE,
+			D3D11_BIND_SHADER_RESOURCE,
+			0, 0,
+		};
+
+		D3D11_SUBRESOURCE_DATA initialData = { pPixels, width * BytesPerPixel(format) };
+		comptr<ID3D11Texture2D> pTex;
+		CHECK_D3D(pDevice->CreateTexture2D(&texDesc, &initialData, &pTex));
+
+		D3D11_SHADER_RESOURCE_VIEW_DESC srvDesc =
+		{
+			format,
+			D3D11_SRV_DIMENSION_TEXTURE2D,
+		};
+		srvDesc.Texture2D.MipLevels = 1;
+
+		ID3D11ShaderResourceView * pSrv = nullptr;
+		CHECK_D3D(pDevice->CreateShaderResourceView(pTex, &srvDesc, &pSrv));
+
+		return pSrv;
+	}
+
+
+
+	const char * NameOfFormat(DXGI_FORMAT format)
+	{
+		// !!!UNDONE: handle *all* DXGI formats here
+
+		switch (format)
+		{
+		case DXGI_FORMAT_R8G8B8A8_UNORM:		return "R8G8B8A8_UNORM";
+		case DXGI_FORMAT_R8G8B8A8_UNORM_SRGB:	return "R8G8B8A8_UNORM_SRGB";
+		case DXGI_FORMAT_R16G16B16A16_FLOAT:	return "R16G16B16A16_FLOAT";
+		default:
+			WARN("Unexpected DXGI_FORMAT %d", format);
+			return "other";
+		}
+	}
+
+	uint BytesPerPixel(DXGI_FORMAT format)
+	{
+		// !!!UNDONE: handle *all* DXGI formats here
+
+		switch (format)
+		{
+		case DXGI_FORMAT_R8G8B8A8_UNORM:		return 4;
+		case DXGI_FORMAT_R8G8B8A8_UNORM_SRGB:	return 4;
+		case DXGI_FORMAT_R16G16B16A16_FLOAT:	return 8;
+		default:
+			WARN("Unexpected DXGI_FORMAT %d", format);
+			return 0;
+		}
 	}
 }

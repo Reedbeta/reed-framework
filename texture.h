@@ -13,12 +13,21 @@ namespace Framework
 	};
 
 	ID3D11ShaderResourceView * LoadTexture(
-			const char * path,
-			ID3D11Device * pDevice,
-			int flags = LOADTEX_Mipmap | LOADTEX_SRGB);
+		ID3D11Device * pDevice,
+		const char * path,
+		int flags = LOADTEX_Mipmap | LOADTEX_SRGB);
 
 	ID3D11ShaderResourceView * Create1x1Texture(
-			float r, float g, float b,
-			ID3D11Device * pDevice,
-			bool linear = false);
+		ID3D11Device * pDevice,
+		float r, float g, float b,
+		bool linear = false);
+
+	ID3D11ShaderResourceView * CreateTextureFromMemory(
+		ID3D11Device * pDevice,
+		uint width, uint height,
+		DXGI_FORMAT format,
+		const void * pPixels);
+
+	const char * NameOfFormat(DXGI_FORMAT format);
+	uint BytesPerPixel(DXGI_FORMAT format);
 }
