@@ -34,7 +34,7 @@ namespace Framework
 	inline void CB<T>::Update(ID3D11DeviceContext * pCtx, const T * pData)
 	{
 		D3D11_MAPPED_SUBRESOURCE mapped = {};
-		CHECK_D3D(pCtx->Map(m_pBuf, 0, D3D11_MAP_WRITE_DISCARD, 0, &mapped));
+		CHECK_D3D_WARN(pCtx->Map(m_pBuf, 0, D3D11_MAP_WRITE_DISCARD, 0, &mapped));
 		memcpy(mapped.pData, pData, sizeof(T));
 		pCtx->Unmap(m_pBuf, 0);
 	}
