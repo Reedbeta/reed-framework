@@ -8,7 +8,7 @@ namespace Framework
 							D3D11Window();
 		virtual				~D3D11Window() {}
 
-		virtual bool		Init(
+		bool				Init(
 								const char * windowClassName,
 								const char * windowTitle,
 								HINSTANCE hInstance);

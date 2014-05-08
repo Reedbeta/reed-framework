@@ -60,10 +60,7 @@ public:
 
 						TestWindow();
 
-	virtual bool		Init(
-							const char * windowClassName,
-							const char * windowTitle,
-							HINSTANCE hInstance);
+	bool				Init(HINSTANCE hInstance);
 	virtual void		Shutdown();
 	virtual LRESULT		MsgProc(HWND hWnd, UINT message, WPARAM wParam, LPARAM lParam);
 	virtual void		OnResize(int width, int height);
@@ -95,21 +92,18 @@ TestWindow::TestWindow()
 {
 }
 
-bool TestWindow::Init(
-	const char * windowClassName,
-	const char * windowTitle,
-	HINSTANCE hInstance)
+bool TestWindow::Init(HINSTANCE hInstance)
 {
-	if (!super::Init(windowClassName, windowTitle, hInstance))
+	if (!super::Init("TestWindow", "Test", hInstance))
 		return false;
 
 	// Load assets
-	if (!LoadObjMesh("sponza\\sponza_cracksFilled.obj", m_pDevice, &m_meshSponza))
+	if (!LoadObjMesh(m_pDevice, "sponza\\sponza_cracksFilled.obj", &m_meshSponza))
 	{
 		ERR("Couldn't load Sponza mesh");
 		return false;
 	}
-	m_pSrvStone = LoadTexture("sponza\\kamen.jpg", m_pDevice);
+	m_pSrvStone = LoadTexture(m_pDevice, "sponza\\kamen.jpg");
 	if (!m_pSrvStone)
 	{
 		ERR("Couldn't load Sponza stone texture");
@@ -329,7 +323,7 @@ int WINAPI WinMain(HINSTANCE hInstance, HINSTANCE hPrevInstance, LPSTR lpCmdLine
 	(void)nCmdShow;
 
 	TestWindow w;
-	if (!w.Init("TestWindow", "Test", hInstance))
+	if (!w.Init(hInstance))
 	{
 		w.Shutdown();
 		return 1;

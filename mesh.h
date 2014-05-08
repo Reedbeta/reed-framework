@@ -35,7 +35,7 @@ namespace Framework
 	};
 
 	bool LoadObjMesh(
-			const char * path,
-			ID3D11Device * pDevice,
-			Mesh * pMeshOut);
+		ID3D11Device * pDevice,
+		const char * path,
+		Mesh * pMeshOut);
 }

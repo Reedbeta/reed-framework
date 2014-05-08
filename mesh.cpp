@@ -340,8 +340,8 @@ namespace Framework
 #endif // VERTEX_TANGENT
 
 	bool LoadObjMesh(
-		const char * path,
 		ID3D11Device * pDevice,
+		const char * path,
 		Mesh * pMeshOut)
 	{
 		bool hasNormals;
