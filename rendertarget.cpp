@@ -42,6 +42,9 @@ namespace Framework
 		};
 		srvDesc.Texture2D.MipLevels = 1;
 		CHECK_D3D(pDevice->CreateShaderResourceView(pTex, &srvDesc, &m_pSrv));
+
+		m_width = width;
+		m_height = height;
 	}
 
 	void RenderTarget::Bind(ID3D11DeviceContext * pCtx)
