@@ -14,6 +14,7 @@ namespace Framework
 
 		void	Bind(ID3D11DeviceContext * pCtx);
 
+		comptr<ID3D11Texture2D>				m_pTex;
 		comptr<ID3D11RenderTargetView>		m_pRtv;
 		comptr<ID3D11ShaderResourceView>	m_pSrv;
 		uint								m_width, m_height;

@@ -3,7 +3,8 @@
 namespace Framework
 {
 	RenderTarget::RenderTarget()
-	:	m_pRtv(),
+	:	m_pTex(),
+		m_pRtv(),
 		m_pSrv(),
 		m_width(0),
 		m_height(0)
@@ -24,16 +25,14 @@ namespace Framework
 			D3D11_BIND_RENDER_TARGET | D3D11_BIND_SHADER_RESOURCE,
 			0, 0,
 		};
-
-		comptr<ID3D11Texture2D> pTex;
-		CHECK_D3D(pDevice->CreateTexture2D(&texDesc, nullptr, &pTex));
+		CHECK_D3D(pDevice->CreateTexture2D(&texDesc, nullptr, &m_pTex));
 
 		D3D11_RENDER_TARGET_VIEW_DESC rtvDesc =
 		{
 			format,
 			D3D11_RTV_DIMENSION_TEXTURE2D,
 		};
-		CHECK_D3D(pDevice->CreateRenderTargetView(pTex, &rtvDesc, &m_pRtv));
+		CHECK_D3D(pDevice->CreateRenderTargetView(m_pTex, &rtvDesc, &m_pRtv));
 
 		D3D11_SHADER_RESOURCE_VIEW_DESC srvDesc =
 		{
@@ -41,7 +40,7 @@ namespace Framework
 			D3D11_SRV_DIMENSION_TEXTURE2D,
 		};
 		srvDesc.Texture2D.MipLevels = 1;
-		CHECK_D3D(pDevice->CreateShaderResourceView(pTex, &srvDesc, &m_pSrv));
+		CHECK_D3D(pDevice->CreateShaderResourceView(m_pTex, &srvDesc, &m_pSrv));
 
 		m_width = width;
 		m_height = height;
