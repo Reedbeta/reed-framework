@@ -309,8 +309,8 @@ namespace Framework
 
 		case WM_SIZE:
 			{
-				int width = int(LOWORD(lParam));
-				int height = int(HIWORD(lParam));
+				uint width = uint(LOWORD(lParam));
+				uint height = uint(HIWORD(lParam));
 				if (width > 0 && height > 0 && (width != m_width || height != m_height))
 				{
 					OnResize(width, height);
@@ -323,8 +323,8 @@ namespace Framework
 			{
 				RECT clientRect;
 				GetClientRect(hWnd, &clientRect);
-				int width = clientRect.right - clientRect.left;
-				int height = clientRect.bottom - clientRect.top;
+				uint width = clientRect.right - clientRect.left;
+				uint height = clientRect.bottom - clientRect.top;
 				if (width > 0 && height > 0 && (width != m_width || height != m_height))
 				{
 					OnResize(width, height);
@@ -338,7 +338,7 @@ namespace Framework
 		}
 	}
 
-	void D3D11Window::OnResize(int width, int height)
+	void D3D11Window::OnResize(uint width, uint height)
 	{
 		LOG("Window resized to %d x %d", width, height);
 
