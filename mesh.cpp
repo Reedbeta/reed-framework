@@ -105,13 +105,12 @@ namespace Framework
 				OBJFace face;
 				face.iVertStart = uint(OBJverts.size());
 
-				while (char * pToken = tokenize(pCtxToken, " \t"))
+				while (char * pCtxVert = tokenize(pCtxToken, " \t"))
 				{
 					// Parse vertex specification, with slashes separating position, UV, normal indices
 					// Note that some components may be missing and will be set to zero here
 					OBJVertex vert = {};
 
-					char * pCtxVert = pToken;
 					if (char * pIdx = tokenize(pCtxVert, "/"))
 						vert.iPos = atoi(pIdx);
 					if (char * pIdx = tokenize(pCtxVert, "/"))
