@@ -41,7 +41,7 @@ namespace Framework
 	{
 	}
 
-	bool D3D11Window::Init(
+	void D3D11Window::Init(
 		const char * windowClassName,
 		const char * windowTitle,
 		HINSTANCE hInstance)
@@ -224,8 +224,6 @@ namespace Framework
 
 		// Init CB for blits and fullscreen passes
 		m_cbBlit.Init(m_pDevice);
-
-		return true;
 	}
 
 	void D3D11Window::Shutdown()

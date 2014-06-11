@@ -95,8 +95,7 @@ TestWindow::TestWindow()
 
 bool TestWindow::Init(HINSTANCE hInstance)
 {
-	if (!super::Init("TestWindow", "Test", hInstance))
-		return false;
+	super::Init("TestWindow", "Test", hInstance);
 
 	// Load assets
 	if (!LoadObjMesh(m_pDevice, "sponza\\sponza_cracksFilled.obj", &m_meshSponza))
