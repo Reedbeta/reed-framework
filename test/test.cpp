@@ -82,6 +82,7 @@ public:
 TestWindow::TestWindow()
 : super(),
   m_meshSponza(),
+  m_pSrvStone(),
   m_pVsWorld(),
   m_pPsSimple(),
   m_pInputLayout(),
