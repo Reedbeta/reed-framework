@@ -10,7 +10,8 @@ namespace Framework
 		void	Init(
 					ID3D11Device * pDevice,
 					uint2_arg dims,
-					DXGI_FORMAT format);
+					DXGI_FORMAT format,
+					uint sampleCount = 1);
 
 		void	Bind(ID3D11DeviceContext * pCtx);
 
@@ -18,5 +19,7 @@ namespace Framework
 		comptr<ID3D11RenderTargetView>		m_pRtv;
 		comptr<ID3D11ShaderResourceView>	m_pSrv;
 		uint2								m_dims;
+		uint								m_sampleCount;
+		DXGI_FORMAT							m_format;
 	};
 }
