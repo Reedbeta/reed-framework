@@ -27,6 +27,9 @@ namespace Framework
 
 		// Utility methods
 
+		void				BindSRGBBackBuffer(ID3D11DeviceContext * pCtx);
+		void				BindRawBackBuffer(ID3D11DeviceContext * pCtx);
+
 		void				DrawFullscreenPass(
 								ID3D11DeviceContext * pCtx,
 								box2_arg boxSrc = makebox2(0, 0, 1, 1));
@@ -67,6 +70,7 @@ namespace Framework
 		comptr<ID3D11RenderTargetView>		m_pRtvRaw;
 
 		// Screen depth buffer
+		bool								m_hasDepthBuffer;
 		comptr<ID3D11DepthStencilView>		m_pDsv;
 		comptr<ID3D11ShaderResourceView>	m_pSrvDepth;
 

@@ -20,6 +20,7 @@ namespace Framework
 		m_dims(makeuint2(0)),
 		m_pRtvSRGB(),
 		m_pRtvRaw(),
+		m_hasDepthBuffer(true),
 		m_pDsv(),
 		m_pSrvDepth(),
 		m_pRsDefault(),
@@ -367,9 +368,9 @@ namespace Framework
 			CHECK_D3D(m_pDevice->CreateRenderTargetView(pTex, &rtvDesc, &m_pRtvRaw));
 		}
 
+		if (m_hasDepthBuffer)
 		{
 			// Create depth buffer and its views
-			// !!!UNDONE: make depth buffer optional
 
 			comptr<ID3D11Texture2D> pTexDepth;
 			D3D11_TEXTURE2D_DESC texDesc =
@@ -402,6 +403,20 @@ namespace Framework
 
 
 	// Utility methods
+
+	void D3D11Window::BindSRGBBackBuffer(ID3D11DeviceContext * pCtx)
+	{
+		pCtx->OMSetRenderTargets(1, &m_pRtvSRGB, m_pDsv);
+		D3D11_VIEWPORT viewport = { 0.0f, 0.0f, float(m_dims.x), float(m_dims.y), 0.0f, 1.0f, };
+		pCtx->RSSetViewports(1, &viewport);
+	}
+
+	void D3D11Window::BindRawBackBuffer(ID3D11DeviceContext * pCtx)
+	{
+		pCtx->OMSetRenderTargets(1, &m_pRtvRaw, m_pDsv);
+		D3D11_VIEWPORT viewport = { 0.0f, 0.0f, float(m_dims.x), float(m_dims.y), 0.0f, 1.0f, };
+		pCtx->RSSetViewports(1, &viewport);
+	}
 
 	void D3D11Window::DrawFullscreenPass(
 		ID3D11DeviceContext * pCtx,

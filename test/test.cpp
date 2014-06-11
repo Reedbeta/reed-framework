@@ -265,6 +265,8 @@ void TestWindow::OnRender()
 
 	m_pCtx->ClearState();
 	m_pCtx->IASetInputLayout(m_pInputLayout);
+	m_pCtx->RSSetState(m_pRsDefault);
+	m_pCtx->OMSetDepthStencilState(m_pDssDepthTest, 0);
 
 	// Set up whole-frame constant buffers
 
@@ -296,12 +298,7 @@ void TestWindow::OnRender()
 
 	m_pCtx->ClearRenderTargetView(m_pRtvRaw, makergba(g_rgbSky, 1.0f));
 	m_pCtx->ClearDepthStencilView(m_pDsv, D3D11_CLEAR_DEPTH, 1.0f, 0);
-
-	m_pCtx->OMSetRenderTargets(1, &m_pRtvSRGB, m_pDsv);
-	D3D11_VIEWPORT viewport = { 0.0f, 0.0f, float(m_dims.x), float(m_dims.y), 0.0f, 1.0f, };
-	m_pCtx->RSSetViewports(1, &viewport);
-	m_pCtx->RSSetState(m_pRsDefault);
-	m_pCtx->OMSetDepthStencilState(m_pDssDepthTest, 0);
+	BindSRGBBackBuffer(m_pCtx);
 
 	m_pCtx->VSSetShader(m_pVsWorld, nullptr, 0);
 	m_pCtx->PSSetShader(m_pPsSimple, nullptr, 0);
