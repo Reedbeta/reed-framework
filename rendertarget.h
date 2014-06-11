@@ -9,7 +9,7 @@ namespace Framework
 
 		void	Init(
 					ID3D11Device * pDevice,
-					uint width, uint height,
+					uint2_arg dims,
 					DXGI_FORMAT format);
 
 		void	Bind(ID3D11DeviceContext * pCtx);
@@ -17,6 +17,6 @@ namespace Framework
 		comptr<ID3D11Texture2D>				m_pTex;
 		comptr<ID3D11RenderTargetView>		m_pRtv;
 		comptr<ID3D11ShaderResourceView>	m_pSrv;
-		uint								m_width, m_height;
+		uint2								m_dims;
 	};
 }

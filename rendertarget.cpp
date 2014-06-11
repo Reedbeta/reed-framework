@@ -6,19 +6,18 @@ namespace Framework
 	:	m_pTex(),
 		m_pRtv(),
 		m_pSrv(),
-		m_width(0),
-		m_height(0)
+		m_dims(makeuint2(0))
 	{
 	}
 
 	void RenderTarget::Init(
 		ID3D11Device * pDevice,
-		uint width, uint height,
+		uint2_arg dims,
 		DXGI_FORMAT format)
 	{
 		D3D11_TEXTURE2D_DESC texDesc =
 		{
-			width, height, 1, 1,
+			dims.x, dims.y, 1, 1,
 			format,
 			{ 1, 0 },
 			D3D11_USAGE_DEFAULT,
@@ -42,14 +41,13 @@ namespace Framework
 		srvDesc.Texture2D.MipLevels = 1;
 		CHECK_D3D(pDevice->CreateShaderResourceView(m_pTex, &srvDesc, &m_pSrv));
 
-		m_width = width;
-		m_height = height;
+		m_dims = dims;
 	}
 
 	void RenderTarget::Bind(ID3D11DeviceContext * pCtx)
 	{
 		pCtx->OMSetRenderTargets(1, &m_pRtv, nullptr);
-		D3D11_VIEWPORT viewport = { 0.0f, 0.0f, float(m_width), float(m_height), 0.0f, 1.0f, };
+		D3D11_VIEWPORT viewport = { 0.0f, 0.0f, float(m_dims.x), float(m_dims.y), 0.0f, 1.0f, };
 		pCtx->RSSetViewports(1, &viewport);
 	}
 }

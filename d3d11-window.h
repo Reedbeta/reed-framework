@@ -22,7 +22,7 @@ namespace Framework
 		int					MainLoop(int nShowCmd);
 
 		virtual LRESULT		MsgProc(HWND hWnd, UINT message, WPARAM wParam, LPARAM lParam);
-		virtual void		OnResize(uint width, uint height);
+		virtual void		OnResize(uint2_arg dimsNew);
 		virtual void		OnRender() = 0;
 
 		// Utility methods
@@ -60,7 +60,7 @@ namespace Framework
 		comptr<IDXGISwapChain>				m_pSwapChain;
 		comptr<ID3D11Device>				m_pDevice;
 		comptr<ID3D11DeviceContext>			m_pCtx;
-		uint								m_width, m_height;
+		uint2								m_dims;
 
 		// Back buffer render target views, one as SRGB and one as raw
 		comptr<ID3D11RenderTargetView>		m_pRtvSRGB;

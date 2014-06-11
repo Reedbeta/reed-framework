@@ -17,8 +17,7 @@ namespace Framework
 		m_pSwapChain(),
 		m_pDevice(),
 		m_pCtx(),
-		m_width(0),
-		m_height(0),
+		m_dims(makeuint2(0)),
 		m_pRtvSRGB(),
 		m_pRtvRaw(),
 		m_pDsv(),
@@ -309,11 +308,10 @@ namespace Framework
 
 		case WM_SIZE:
 			{
-				uint width = uint(LOWORD(lParam));
-				uint height = uint(HIWORD(lParam));
-				if (width > 0 && height > 0 && (width != m_width || height != m_height))
+				uint2 dimsNew = { uint(LOWORD(lParam)), uint(HIWORD(lParam)) };
+				if (all(dimsNew > 0U) && any(dimsNew != m_dims))
 				{
-					OnResize(width, height);
+					OnResize(dimsNew);
 					OnRender();
 				}
 				return 0;
@@ -323,11 +321,10 @@ namespace Framework
 			{
 				RECT clientRect;
 				GetClientRect(hWnd, &clientRect);
-				uint width = clientRect.right - clientRect.left;
-				uint height = clientRect.bottom - clientRect.top;
-				if (width > 0 && height > 0 && (width != m_width || height != m_height))
+				uint2 dimsNew = { clientRect.right - clientRect.left, clientRect.bottom - clientRect.top };
+				if (all(dimsNew > 0U) && any(dimsNew != m_dims))
 				{
-					OnResize(width, height);
+					OnResize(dimsNew);
 					OnRender();
 				}
 				return 0;
@@ -338,12 +335,11 @@ namespace Framework
 		}
 	}
 
-	void D3D11Window::OnResize(uint width, uint height)
+	void D3D11Window::OnResize(uint2_arg dimsNew)
 	{
-		LOG("Window resized to %d x %d", width, height);
+		LOG("Window resized to %d x %d", dimsNew.x, dimsNew.y);
 
-		m_width = width;
-		m_height = height;
+		m_dims = dimsNew;
 
 		// Have to release old render target views before swap chain can be resized
 		m_pRtvSRGB.release();
@@ -373,11 +369,12 @@ namespace Framework
 
 		{
 			// Create depth buffer and its views
+			// !!!UNDONE: make depth buffer optional
 
 			comptr<ID3D11Texture2D> pTexDepth;
 			D3D11_TEXTURE2D_DESC texDesc =
 			{
-				width, height, 1, 1,
+				dimsNew.x, dimsNew.y, 1, 1,
 				DXGI_FORMAT_R32_TYPELESS,
 				{ 1, 0 },
 				D3D11_USAGE_DEFAULT,

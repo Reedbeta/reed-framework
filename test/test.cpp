@@ -63,7 +63,7 @@ public:
 	bool				Init(HINSTANCE hInstance);
 	virtual void		Shutdown();
 	virtual LRESULT		MsgProc(HWND hWnd, UINT message, WPARAM wParam, LPARAM lParam);
-	virtual void		OnResize(uint width, uint height);
+	virtual void		OnResize(uint2_arg dimsNew);
 	virtual void		OnRender();
 
 	Mesh								m_meshSponza;
@@ -250,12 +250,12 @@ LRESULT TestWindow::MsgProc(HWND hWnd, UINT message, WPARAM wParam, LPARAM lPara
 	}
 }
 
-void TestWindow::OnResize(uint width, uint height)
+void TestWindow::OnResize(uint2_arg dimsNew)
 {
-	super::OnResize(width, height);
+	super::OnResize(dimsNew);
 
 	// Update projection matrix for new aspect ratio
-	m_camera.SetProjection(1.0f, float(width) / float(height), 0.1f, 1000.0f);
+	m_camera.SetProjection(1.0f, float(dimsNew.x) / float(dimsNew.y), 0.1f, 1000.0f);
 }
 
 void TestWindow::OnRender()
@@ -298,7 +298,7 @@ void TestWindow::OnRender()
 	m_pCtx->ClearDepthStencilView(m_pDsv, D3D11_CLEAR_DEPTH, 1.0f, 0);
 
 	m_pCtx->OMSetRenderTargets(1, &m_pRtvSRGB, m_pDsv);
-	D3D11_VIEWPORT viewport = { 0.0f, 0.0f, float(m_width), float(m_height), 0.0f, 1.0f, };
+	D3D11_VIEWPORT viewport = { 0.0f, 0.0f, float(m_dims.x), float(m_dims.y), 0.0f, 1.0f, };
 	m_pCtx->RSSetViewports(1, &viewport);
 	m_pCtx->RSSetState(m_pRsDefault);
 	m_pCtx->OMSetDepthStencilState(m_pDssDepthTest, 0);
