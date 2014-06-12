@@ -50,6 +50,16 @@ namespace Framework
 		m_format = format;
 	}
 
+	void RenderTarget::Release()
+	{
+		m_pTex.release();
+		m_pRtv.release();
+		m_pSrv.release();
+		m_dims = makeuint2(0);
+		m_sampleCount = 0;
+		m_format = DXGI_FORMAT_UNKNOWN;
+	}
+
 	void RenderTarget::Bind(ID3D11DeviceContext * pCtx)
 	{
 		pCtx->OMSetRenderTargets(1, &m_pRtv, nullptr);

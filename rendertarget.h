@@ -12,6 +12,7 @@ namespace Framework
 					uint2_arg dims,
 					DXGI_FORMAT format,
 					uint sampleCount = 1);
+		void	Release();
 
 		void	Bind(ID3D11DeviceContext * pCtx);
 
