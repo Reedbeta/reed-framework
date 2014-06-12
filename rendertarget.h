@@ -15,6 +15,8 @@ namespace Framework
 		void	Release();
 
 		void	Bind(ID3D11DeviceContext * pCtx);
+		void	Bind(ID3D11DeviceContext * pCtx, box2_arg viewport);
+		void	Bind(ID3D11DeviceContext * pCtx, box3_arg viewport);
 
 		comptr<ID3D11Texture2D>				m_pTex;
 		comptr<ID3D11RenderTargetView>		m_pRtv;

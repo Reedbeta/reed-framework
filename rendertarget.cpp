@@ -63,7 +63,31 @@ namespace Framework
 	void RenderTarget::Bind(ID3D11DeviceContext * pCtx)
 	{
 		pCtx->OMSetRenderTargets(1, &m_pRtv, nullptr);
-		D3D11_VIEWPORT viewport = { 0.0f, 0.0f, float(m_dims.x), float(m_dims.y), 0.0f, 1.0f, };
-		pCtx->RSSetViewports(1, &viewport);
+		D3D11_VIEWPORT d3dViewport = { 0.0f, 0.0f, float(m_dims.x), float(m_dims.y), 0.0f, 1.0f, };
+		pCtx->RSSetViewports(1, &d3dViewport);
+	}
+
+	void RenderTarget::Bind(ID3D11DeviceContext * pCtx, box2_arg viewport)
+	{
+		pCtx->OMSetRenderTargets(1, &m_pRtv, nullptr);
+		D3D11_VIEWPORT d3dViewport =
+		{
+			viewport.m_mins.x, viewport.m_mins.y,
+			viewport.diagonal().x, viewport.diagonal().y,
+			0.0f, 1.0f,
+		};
+		pCtx->RSSetViewports(1, &d3dViewport);
+	}
+
+	void RenderTarget::Bind(ID3D11DeviceContext * pCtx, box3_arg viewport)
+	{
+		pCtx->OMSetRenderTargets(1, &m_pRtv, nullptr);
+		D3D11_VIEWPORT d3dViewport =
+		{
+			viewport.m_mins.x, viewport.m_mins.y,
+			viewport.diagonal().x, viewport.diagonal().y,
+			viewport.m_mins.z, viewport.m_maxs.z,
+		};
+		pCtx->RSSetViewports(1, &d3dViewport);
 	}
 }
