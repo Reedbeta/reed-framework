@@ -43,6 +43,10 @@ namespace Framework
 	inline void CB<T>::Bind(ID3D11DeviceContext * pCtx, uint slot)
 	{
 		pCtx->VSSetConstantBuffers(slot, 1, &m_pBuf);
+		pCtx->HSSetConstantBuffers(slot, 1, &m_pBuf);
+		pCtx->DSSetConstantBuffers(slot, 1, &m_pBuf);
+		pCtx->GSSetConstantBuffers(slot, 1, &m_pBuf);
 		pCtx->PSSetConstantBuffers(slot, 1, &m_pBuf);
+		pCtx->CSSetConstantBuffers(slot, 1, &m_pBuf);
 	}
 }
