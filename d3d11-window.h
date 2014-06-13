@@ -80,6 +80,7 @@ namespace Framework
 		comptr<ID3D11DepthStencilState>		m_pDssDepthTest;
 		comptr<ID3D11DepthStencilState>		m_pDssNoDepthWrite;
 		comptr<ID3D11DepthStencilState>		m_pDssNoDepthTest;
+		comptr<ID3D11BlendState>			m_pBsAdditive;
 		comptr<ID3D11BlendState>			m_pBsAlphaBlend;
 
 		// Commonly used samplers

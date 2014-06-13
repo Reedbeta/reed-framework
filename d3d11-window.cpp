@@ -28,6 +28,7 @@ namespace Framework
 		m_pDssDepthTest(),
 		m_pDssNoDepthWrite(),
 		m_pDssNoDepthTest(),
+		m_pBsAdditive(),
 		m_pBsAlphaBlend(),
 		m_pSsPointClamp(),
 		m_pSsBilinearClamp(),
@@ -157,7 +158,23 @@ namespace Framework
 		dssDesc.DepthEnable = false;
 		CHECK_D3D(m_pDevice->CreateDepthStencilState(&dssDesc, &m_pDssNoDepthTest));
 
-		D3D11_BLEND_DESC bsDesc =
+		D3D11_BLEND_DESC bsAdditiveDesc =
+		{
+			false, false,
+			{
+				true,
+				D3D11_BLEND_ONE,
+				D3D11_BLEND_ONE,
+				D3D11_BLEND_OP_ADD,
+				D3D11_BLEND_ONE,
+				D3D11_BLEND_ONE,
+				D3D11_BLEND_OP_ADD,
+				D3D11_COLOR_WRITE_ENABLE_ALL,
+			},
+		};
+		CHECK_D3D(m_pDevice->CreateBlendState(&bsAdditiveDesc, &m_pBsAdditive));
+
+		D3D11_BLEND_DESC bsAlphaBlendDesc =
 		{
 			false, false,
 			{
@@ -171,7 +188,7 @@ namespace Framework
 				D3D11_COLOR_WRITE_ENABLE_ALL,
 			},
 		};
-		CHECK_D3D(m_pDevice->CreateBlendState(&bsDesc, &m_pBsAlphaBlend));
+		CHECK_D3D(m_pDevice->CreateBlendState(&bsAlphaBlendDesc, &m_pBsAlphaBlend));
 
 		// Set up commonly used samplers
 
