@@ -211,7 +211,7 @@ LRESULT TestWindow::MsgProc(HWND hWnd, UINT message, WPARAM wParam, LPARAM lPara
 
 	switch (message)
 	{
-	case WM_KEYUP:
+	case WM_KEYDOWN:
 		if (wParam == VK_ESCAPE)
 			Shutdown();
 		return 0;
