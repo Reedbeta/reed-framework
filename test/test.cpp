@@ -63,7 +63,7 @@ public:
 	bool				Init(HINSTANCE hInstance);
 	virtual void		Shutdown();
 	virtual LRESULT		MsgProc(HWND hWnd, UINT message, WPARAM wParam, LPARAM lParam);
-	virtual void		OnResize(uint2_arg dimsNew);
+	virtual void		OnResize(int2_arg dimsNew);
 	virtual void		OnRender();
 
 	Mesh								m_meshSponza;
@@ -249,7 +249,7 @@ LRESULT TestWindow::MsgProc(HWND hWnd, UINT message, WPARAM wParam, LPARAM lPara
 	}
 }
 
-void TestWindow::OnResize(uint2_arg dimsNew)
+void TestWindow::OnResize(int2_arg dimsNew)
 {
 	super::OnResize(dimsNew);
 

@@ -108,7 +108,7 @@ namespace Framework
 
 	ID3D11ShaderResourceView * CreateTextureFromMemory(
 		ID3D11Device * pDevice,
-		uint width, uint height,
+		int width, int height,
 		DXGI_FORMAT format,
 		const void * pPixels)
 	{
@@ -272,9 +272,9 @@ namespace Framework
 		return s_names[format];
 	}
 
-	uint BitsPerPixel(DXGI_FORMAT format)
+	int BitsPerPixel(DXGI_FORMAT format)
 	{
-		static const uint s_bitsPerPixel[] =
+		static const int s_bitsPerPixel[] =
 		{
 			0,			// UNKNOWN
 			128,		// R32G32B32A32_TYPELESS

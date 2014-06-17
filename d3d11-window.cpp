@@ -17,7 +17,7 @@ namespace Framework
 		m_pSwapChain(),
 		m_pDevice(),
 		m_pCtx(),
-		m_dims(makeuint2(0)),
+		m_dims(makeint2(0)),
 		m_pRtvSRGB(),
 		m_pRtvRaw(),
 		m_hasDepthBuffer(true),
@@ -324,8 +324,8 @@ namespace Framework
 
 		case WM_SIZE:
 			{
-				uint2 dimsNew = { uint(LOWORD(lParam)), uint(HIWORD(lParam)) };
-				if (all(dimsNew > 0U) && any(dimsNew != m_dims))
+				int2 dimsNew = { LOWORD(lParam), HIWORD(lParam) };
+				if (all(dimsNew > 0) && any(dimsNew != m_dims))
 				{
 					OnResize(dimsNew);
 					OnRender();
@@ -337,8 +337,8 @@ namespace Framework
 			{
 				RECT clientRect;
 				GetClientRect(hWnd, &clientRect);
-				uint2 dimsNew = { clientRect.right - clientRect.left, clientRect.bottom - clientRect.top };
-				if (all(dimsNew > 0U) && any(dimsNew != m_dims))
+				int2 dimsNew = { clientRect.right - clientRect.left, clientRect.bottom - clientRect.top };
+				if (all(dimsNew > 0) && any(dimsNew != m_dims))
 				{
 					OnResize(dimsNew);
 					OnRender();
@@ -351,7 +351,7 @@ namespace Framework
 		}
 	}
 
-	void D3D11Window::OnResize(uint2_arg dimsNew)
+	void D3D11Window::OnResize(int2_arg dimsNew)
 	{
 		LOG("Window resized to %d x %d", dimsNew.x, dimsNew.y);
 

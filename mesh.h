@@ -20,12 +20,12 @@ namespace Framework
 	{
 	public:
 		std::vector<Vertex>			m_verts;
-		std::vector<uint>			m_indices;
+		std::vector<int>			m_indices;
 
 		comptr<ID3D11Buffer>		m_pVtxBuffer;
 		comptr<ID3D11Buffer>		m_pIdxBuffer;
-		uint						m_vtxStride;	// Vertex stride for IASetVertexBuffers
-		uint						m_cIdx;			// Index count for DrawIndexed
+		int							m_vtxStride;	// Vertex stride for IASetVertexBuffers
+		int							m_cIdx;			// Index count for DrawIndexed
 		D3D11_PRIMITIVE_TOPOLOGY	m_primtopo;
 		box3						m_box;			// Bounding box in local space
 

@@ -16,8 +16,8 @@ namespace Framework
 
 	void Mesh::Draw(ID3D11DeviceContext * pCtx)
 	{
-		uint zero = 0;
-		pCtx->IASetVertexBuffers(0, 1, &m_pVtxBuffer, &m_vtxStride, &zero);
+		UINT zero = 0;
+		pCtx->IASetVertexBuffers(0, 1, &m_pVtxBuffer, (UINT *)&m_vtxStride, &zero);
 		pCtx->IASetIndexBuffer(m_pIdxBuffer, DXGI_FORMAT_R32_UINT, 0);
 		pCtx->IASetPrimitiveTopology(m_primtopo);
 		pCtx->DrawIndexed(m_cIdx, 0, 0);
@@ -36,7 +36,7 @@ namespace Framework
 	static bool LoadObjMeshRaw(
 		const char * path,
 		std::vector<Vertex> * pVerts,
-		std::vector<uint> * pIndices,
+		std::vector<int> * pIndices,
 		box3 * pBoxOut,
 		bool * pHasNormalsOut)
 	{
@@ -51,10 +51,10 @@ namespace Framework
 		std::vector<float3> normals;
 		std::vector<float2> uvs;
 
-		struct OBJVertex { uint iPos, iNormal, iUv; };
+		struct OBJVertex { int iPos, iNormal, iUv; };
 		std::vector<OBJVertex> OBJverts;
 
-		struct OBJFace { uint iVertStart, iVertEnd; };
+		struct OBJFace { int iVertStart, iVertEnd; };
 		std::vector<OBJFace> OBJfaces;
 
 		// Parse the OBJ format line-by-line
@@ -103,7 +103,7 @@ namespace Framework
 			{
 				// Add face
 				OBJFace face;
-				face.iVertStart = uint(OBJverts.size());
+				face.iVertStart = int(OBJverts.size());
 
 				while (char * pCtxVert = tokenize(pCtxToken, " \t"))
 				{
@@ -120,7 +120,7 @@ namespace Framework
 					OBJverts.push_back(vert);
 				}
 
-				face.iVertEnd = uint(OBJverts.size());
+				face.iVertEnd = int(OBJverts.size());
 				OBJfaces.push_back(face);
 			}
 			else
@@ -133,7 +133,7 @@ namespace Framework
 
 		pVerts->reserve(OBJverts.size());
 
-		for (uint iVert = 0, cVert = uint(OBJverts.size()); iVert < cVert; ++iVert)
+		for (int iVert = 0, cVert = int(OBJverts.size()); iVert < cVert; ++iVert)
 		{
 			OBJVertex objv = OBJverts[iVert];
 			Vertex v = {};
@@ -149,14 +149,14 @@ namespace Framework
 			pVerts->push_back(v);
 		}
 
-		for (uint iFace = 0, cFace = uint(OBJfaces.size()); iFace < cFace; ++iFace)
+		for (int iFace = 0, cFace = int(OBJfaces.size()); iFace < cFace; ++iFace)
 		{
 			OBJFace face = OBJfaces[iFace];
 
 			int iVertBase = face.iVertStart;
 
 			// Triangulate the face
-			for (uint iVert = face.iVertStart + 2; iVert < face.iVertEnd; ++iVert)
+			for (int iVert = face.iVertStart + 2; iVert < face.iVertEnd; ++iVert)
 			{
 				pIndices->push_back(iVertBase);
 				pIndices->push_back(iVert - 1);
@@ -165,7 +165,7 @@ namespace Framework
 		}
 
 		if (pBoxOut)
-			*pBoxOut = makebox3(uint(positions.size()), &positions[0]);
+			*pBoxOut = makebox3(int(positions.size()), &positions[0]);
 
 		if (pHasNormalsOut)
 			*pHasNormalsOut = !normals.empty();
@@ -197,13 +197,13 @@ namespace Framework
 		};
 
 		std::vector<Vertex> vertsDeduplicated;
-		std::vector<uint> remappingTable;
+		std::vector<int> remappingTable;
 		std::unordered_map<Vertex, int, VertexHasher, VertexEqualityTester> mapVertToIndex;
 
 		vertsDeduplicated.reserve(pMesh->m_verts.size());
 		remappingTable.reserve(pMesh->m_verts.size());
 
-		for (uint i = 0, cVert = uint(pMesh->m_verts.size()); i < cVert; ++i)
+		for (int i = 0, cVert = int(pMesh->m_verts.size()); i < cVert; ++i)
 		{
 			const Vertex & vert = pMesh->m_verts[i];
 			std::unordered_map<Vertex, int, VertexHasher, VertexEqualityTester>::iterator
@@ -211,7 +211,7 @@ namespace Framework
 			if (iter == mapVertToIndex.end())
 			{
 				// Found a new vertex that's not in the map yet.
-				uint newIndex = uint(vertsDeduplicated.size());
+				int newIndex = int(vertsDeduplicated.size());
 				vertsDeduplicated.push_back(vert);
 				remappingTable.push_back(newIndex);
 				mapVertToIndex[vert] = newIndex;
@@ -219,7 +219,7 @@ namespace Framework
 			else
 			{
 				// It's already in the map; re-use the previous index
-				uint newIndex = iter->second;
+				int newIndex = iter->second;
 				remappingTable.push_back(newIndex);
 			}
 		}
@@ -227,10 +227,10 @@ namespace Framework
 		ASSERT_ERR(vertsDeduplicated.size() <= pMesh->m_verts.size());
 		ASSERT_ERR(remappingTable.size() == pMesh->m_verts.size());
 
-		std::vector<uint> indicesRemapped;
+		std::vector<int> indicesRemapped;
 		indicesRemapped.reserve(pMesh->m_indices.size());
 
-		for (uint i = 0, cIndex = uint(pMesh->m_indices.size()); i < cIndex; ++i)
+		for (int i = 0, cIndex = int(pMesh->m_indices.size()); i < cIndex; ++i)
 		{
 			indicesRemapped.push_back(remappingTable[pMesh->m_indices[i]]);
 		}
@@ -244,9 +244,9 @@ namespace Framework
 		ASSERT_WARN(pMesh->m_indices.size() % 3 == 0);
 
 		// Generate a normal for each triangle, and accumulate onto vertex
-		for (uint i = 0, c = uint(pMesh->m_indices.size()); i < c; i += 3)
+		for (int i = 0, c = int(pMesh->m_indices.size()); i < c; i += 3)
 		{
-			uint indices[3] = { pMesh->m_indices[i], pMesh->m_indices[i+1], pMesh->m_indices[i+2] };
+			int indices[3] = { pMesh->m_indices[i], pMesh->m_indices[i+1], pMesh->m_indices[i+2] };
 
 			// Gather positions for this triangle
 			point3 facePositions[3] =
@@ -268,7 +268,7 @@ namespace Framework
 		}
 
 		// Normalize summed normals
-		for (uint i = 0, c = uint(pMesh->m_verts.size()); i < c; ++i)
+		for (int i = 0, c = int(pMesh->m_verts.size()); i < c; ++i)
 		{
 			pMesh->m_verts[i].m_normal = normalize(pMesh->m_verts[i].m_normal);
 		}
@@ -281,9 +281,9 @@ namespace Framework
 
 		// Generate a tangent for each triangle, based on triangle's UV mapping,
 		// and accumulate onto vertex
-		for (uint i = 0, c = uint(pMesh->m_indices.size()); i < c; i += 3)
+		for (int i = 0, c = int(pMesh->m_indices.size()); i < c; i += 3)
 		{
-			uint indices[3] = { pMesh->m_indices[i], pMesh->m_indices[i+1], pMesh->m_indices[i+2] };
+			int indices[3] = { pMesh->m_indices[i], pMesh->m_indices[i+1], pMesh->m_indices[i+2] };
 
 			// Gather positions for this triangle
 			point3 facePositions[3] =
@@ -331,7 +331,7 @@ namespace Framework
 		}
 
 		// Normalize summed tangents
-		for (uint i = 0, c = uint(pMesh->m_verts.size()); i < c; ++i)
+		for (int i = 0, c = int(pMesh->m_verts.size()); i < c; ++i)
 		{
 			pMesh->m_verts[i].m_tangent = normalize(pMesh->m_verts[i].m_tangent);
 		}
@@ -372,7 +372,7 @@ namespace Framework
 
 		D3D11_BUFFER_DESC vtxBufferDesc =
 		{
-			sizeof(Vertex) * uint(pMeshOut->m_verts.size()),
+			sizeof(Vertex) * int(pMeshOut->m_verts.size()),
 			D3D11_USAGE_IMMUTABLE,
 			D3D11_BIND_VERTEX_BUFFER,
 			0,	// no cpu access
@@ -384,7 +384,7 @@ namespace Framework
 
 		D3D11_BUFFER_DESC idxBufferDesc =
 		{
-			sizeof(uint) * uint(pMeshOut->m_indices.size()),
+			sizeof(int) * int(pMeshOut->m_indices.size()),
 			D3D11_USAGE_IMMUTABLE,
 			D3D11_BIND_INDEX_BUFFER,
 			0,	// no cpu access
@@ -395,7 +395,7 @@ namespace Framework
 		CHECK_D3D(pDevice->CreateBuffer(&idxBufferDesc, &idxBufferData, &pMeshOut->m_pIdxBuffer));
 
 		pMeshOut->m_vtxStride = sizeof(Vertex);
-		pMeshOut->m_cIdx = uint(pMeshOut->m_indices.size());
+		pMeshOut->m_cIdx = int(pMeshOut->m_indices.size());
 		pMeshOut->m_primtopo = D3D11_PRIMITIVE_TOPOLOGY_TRIANGLELIST;
 
 		return true;

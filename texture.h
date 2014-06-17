@@ -24,10 +24,10 @@ namespace Framework
 
 	ID3D11ShaderResourceView * CreateTextureFromMemory(
 		ID3D11Device * pDevice,
-		uint width, uint height,
+		int width, int height,
 		DXGI_FORMAT format,
 		const void * pPixels);
 
 	const char * NameOfFormat(DXGI_FORMAT format);
-	uint BitsPerPixel(DXGI_FORMAT format);
+	int BitsPerPixel(DXGI_FORMAT format);
 }

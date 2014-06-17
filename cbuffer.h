@@ -9,7 +9,7 @@ namespace Framework
 	public:
 		void	Init(ID3D11Device * pDevice);
 		void	Update(ID3D11DeviceContext * pCtx, const T * pData);
-		void	Bind(ID3D11DeviceContext * pCtx, uint slot);
+		void	Bind(ID3D11DeviceContext * pCtx, int slot);
 
 		comptr<ID3D11Buffer>	m_pBuf;
 	};
@@ -40,7 +40,7 @@ namespace Framework
 	}
 
 	template <typename T>
-	inline void CB<T>::Bind(ID3D11DeviceContext * pCtx, uint slot)
+	inline void CB<T>::Bind(ID3D11DeviceContext * pCtx, int slot)
 	{
 		pCtx->VSSetConstantBuffers(slot, 1, &m_pBuf);
 		pCtx->HSSetConstantBuffers(slot, 1, &m_pBuf);

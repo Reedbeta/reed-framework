@@ -6,7 +6,7 @@ namespace Framework
 	:	m_pTex(),
 		m_pRtv(),
 		m_pSrv(),
-		m_dims(makeuint2(0)),
+		m_dims(makeint2(0)),
 		m_sampleCount(0),
 		m_format(DXGI_FORMAT_UNKNOWN)
 	{
@@ -14,9 +14,9 @@ namespace Framework
 
 	void RenderTarget::Init(
 		ID3D11Device * pDevice,
-		uint2_arg dims,
+		int2_arg dims,
 		DXGI_FORMAT format,
-		uint sampleCount /* = 1 */)
+		int sampleCount /* = 1 */)
 	{
 		D3D11_TEXTURE2D_DESC texDesc =
 		{
@@ -55,7 +55,7 @@ namespace Framework
 		m_pTex.release();
 		m_pRtv.release();
 		m_pSrv.release();
-		m_dims = makeuint2(0);
+		m_dims = makeint2(0);
 		m_sampleCount = 0;
 		m_format = DXGI_FORMAT_UNKNOWN;
 	}

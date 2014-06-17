@@ -14,7 +14,7 @@ namespace Framework
 		m_period = 1.0f / float(frequency);
 
 		QueryPerformanceCounter((LARGE_INTEGER *)&m_startupTimestamp);
-		for (uint i = 0; i < dim(m_lastFrameTimestamps); ++i)
+		for (int i = 0; i < dim(m_lastFrameTimestamps); ++i)
 			m_lastFrameTimestamps[i] = m_startupTimestamp;
 	}
 
