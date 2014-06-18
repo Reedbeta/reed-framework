@@ -6,6 +6,7 @@ namespace Framework
 	:	m_pTex(),
 		m_pRtv(),
 		m_pSrv(),
+		m_pUav(),
 		m_dims(makeint2(0)),
 		m_sampleCount(0),
 		m_format(DXGI_FORMAT_UNKNOWN)
@@ -16,7 +17,8 @@ namespace Framework
 		ID3D11Device * pDevice,
 		int2_arg dims,
 		DXGI_FORMAT format,
-		int sampleCount /* = 1 */)
+		int sampleCount, /* = 1 */
+		int flags /* = RTFLAG_Default */)
 	{
 		D3D11_TEXTURE2D_DESC texDesc =
 		{
@@ -27,6 +29,10 @@ namespace Framework
 			D3D11_BIND_RENDER_TARGET | D3D11_BIND_SHADER_RESOURCE,
 			0, 0,
 		};
+		if (flags & RTFLAG_EnableUAV)
+		{
+			texDesc.BindFlags |= D3D11_BIND_UNORDERED_ACCESS;
+		}
 		CHECK_D3D(pDevice->CreateTexture2D(&texDesc, nullptr, &m_pTex));
 
 		D3D11_RENDER_TARGET_VIEW_DESC rtvDesc =
@@ -45,6 +51,12 @@ namespace Framework
 			srvDesc.Texture2D.MipLevels = 1;
 		CHECK_D3D(pDevice->CreateShaderResourceView(m_pTex, &srvDesc, &m_pSrv));
 
+		if (flags & RTFLAG_EnableUAV)
+		{
+			D3D11_UNORDERED_ACCESS_VIEW_DESC uavDesc = { format, D3D11_UAV_DIMENSION_TEXTURE2D, };
+			CHECK_D3D(pDevice->CreateUnorderedAccessView(m_pTex, &uavDesc, &m_pUav));
+		}
+
 		m_dims = dims;
 		m_sampleCount = sampleCount;
 		m_format = format;
@@ -55,6 +67,7 @@ namespace Framework
 		m_pTex.release();
 		m_pRtv.release();
 		m_pSrv.release();
+		m_pUav.release();
 		m_dims = makeint2(0);
 		m_sampleCount = 0;
 		m_format = DXGI_FORMAT_UNKNOWN;
