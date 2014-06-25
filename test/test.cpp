@@ -67,7 +67,7 @@ public:
 	virtual void		OnRender();
 
 	Mesh								m_meshSponza;
-	comptr<ID3D11ShaderResourceView>	m_pSrvStone;
+	Texture2D							m_texStone;
 	comptr<ID3D11VertexShader>			m_pVsWorld;
 	comptr<ID3D11PixelShader>			m_pPsSimple;
 	comptr<ID3D11InputLayout>			m_pInputLayout;
@@ -82,7 +82,7 @@ public:
 TestWindow::TestWindow()
 : super(),
   m_meshSponza(),
-  m_pSrvStone(),
+  m_texStone(),
   m_pVsWorld(),
   m_pPsSimple(),
   m_pInputLayout(),
@@ -103,14 +103,11 @@ bool TestWindow::Init(HINSTANCE hInstance)
 		ERR("Couldn't load Sponza mesh");
 		return false;
 	}
-	m_pSrvStone = LoadTexture(m_pDevice, "sponza\\kamen.jpg");
-	if (!m_pSrvStone)
+	if (!LoadTexture2D(m_pDevice, "sponza\\kamen.jpg", &m_texStone))
 	{
 		ERR("Couldn't load Sponza stone texture");
 		return false;
 	}
-	D3D11_SHADER_RESOURCE_VIEW_DESC srvDesc;
-	m_pSrvStone->GetDesc(&srvDesc);
 
 	// Load shaders
 	CHECK_D3D(m_pDevice->CreateVertexShader(world_vs_bytecode, dim(world_vs_bytecode), nullptr, &m_pVsWorld));
@@ -279,7 +276,7 @@ void TestWindow::OnRender()
 
 	m_pCtx->VSSetShader(m_pVsWorld, nullptr, 0);
 	m_pCtx->PSSetShader(m_pPsSimple, nullptr, 0);
-	m_pCtx->PSSetShaderResources(0, 1, &m_pSrvStone);
+	m_pCtx->PSSetShaderResources(0, 1, &m_texStone.m_pSrv);
 	m_pCtx->PSSetSamplers(0, 1, &m_pSsTrilinearRepeatAniso);
 	m_meshSponza.Draw(m_pCtx);
 

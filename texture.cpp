@@ -3,15 +3,226 @@
 
 namespace Framework
 {
-	ID3D11ShaderResourceView * LoadTexture(
+	// Texture2D implementation
+
+	Texture2D::Texture2D()
+	:	m_pTex(),
+		m_pSrv(),
+		m_pUav(),
+		m_dims(makeint2(0)),
+		m_mipLevels(0),
+		m_format(DXGI_FORMAT_UNKNOWN)
+	{
+	}
+
+	void Texture2D::Init(
+		ID3D11Device * pDevice,
+		int2_arg dims,
+		DXGI_FORMAT format,
+		int flags /* = TEXFLAG_Default */)
+	{
+		ASSERT_ERR(pDevice);
+
+		D3D11_TEXTURE2D_DESC texDesc =
+		{
+			dims.x, dims.y,
+			(flags & TEXFLAG_Mipmaps) ? log2_floor(maxComponent(dims)) + 1 : 1,
+			1,
+			format,
+			{ 1, 0 },
+			D3D11_USAGE_DEFAULT,
+			D3D11_BIND_SHADER_RESOURCE,
+			0, 0,
+		};
+		if (flags & TEXFLAG_EnableUAV)
+		{
+			texDesc.BindFlags |= D3D11_BIND_UNORDERED_ACCESS;
+		}
+		CHECK_D3D(pDevice->CreateTexture2D(&texDesc, nullptr, &m_pTex));
+
+		D3D11_SHADER_RESOURCE_VIEW_DESC srvDesc =
+		{
+			format,
+			D3D11_SRV_DIMENSION_TEXTURE2D,
+		};
+		srvDesc.Texture2D.MipLevels = texDesc.MipLevels;
+		CHECK_D3D(pDevice->CreateShaderResourceView(m_pTex, &srvDesc, &m_pSrv));
+
+		if (flags & TEXFLAG_EnableUAV)
+		{
+			D3D11_UNORDERED_ACCESS_VIEW_DESC uavDesc = { format, D3D11_UAV_DIMENSION_TEXTURE2D, };
+			CHECK_D3D(pDevice->CreateUnorderedAccessView(m_pTex, &uavDesc, &m_pUav));
+		}
+
+		m_dims = dims;
+		m_mipLevels = texDesc.MipLevels;
+		m_format = format;
+	}
+
+	void Texture2D::Release()
+	{
+		m_pTex.release();
+		m_pSrv.release();
+		m_pUav.release();
+		m_dims = makeint2(0);
+		m_mipLevels = 0;
+		m_format = DXGI_FORMAT_UNKNOWN;
+	}
+
+
+
+	// TextureCube implementation
+
+	TextureCube::TextureCube()
+	:	m_pTex(),
+		m_pSrv(),
+		m_pUav(),
+		m_cubeSize(0),
+		m_mipLevels(0),
+		m_format(DXGI_FORMAT_UNKNOWN)
+	{
+	}
+
+	void TextureCube::Init(
+		ID3D11Device * pDevice,
+		int cubeSize,
+		DXGI_FORMAT format,
+		int flags /* = TEXFLAG_Default */)
+	{
+		ASSERT_ERR(pDevice);
+
+		D3D11_TEXTURE2D_DESC texDesc =
+		{
+			cubeSize, cubeSize,
+			(flags & TEXFLAG_Mipmaps) ? log2_floor(cubeSize) + 1 : 1,
+			6,
+			format,
+			{ 1, 0 },
+			D3D11_USAGE_DEFAULT,
+			D3D11_BIND_SHADER_RESOURCE,
+			0,
+			D3D11_RESOURCE_MISC_TEXTURECUBE,
+		};
+		if (flags & TEXFLAG_EnableUAV)
+		{
+			texDesc.BindFlags |= D3D11_BIND_UNORDERED_ACCESS;
+		}
+		CHECK_D3D(pDevice->CreateTexture2D(&texDesc, nullptr, &m_pTex));
+
+		D3D11_SHADER_RESOURCE_VIEW_DESC srvDesc =
+		{
+			format,
+			D3D11_SRV_DIMENSION_TEXTURECUBE,
+		};
+		srvDesc.TextureCube.MipLevels = texDesc.MipLevels;
+		CHECK_D3D(pDevice->CreateShaderResourceView(m_pTex, &srvDesc, &m_pSrv));
+
+		if (flags & TEXFLAG_EnableUAV)
+		{
+			D3D11_UNORDERED_ACCESS_VIEW_DESC uavDesc = { format, D3D11_UAV_DIMENSION_TEXTURE2DARRAY, };
+			uavDesc.Texture2DArray.ArraySize = 6;
+			CHECK_D3D(pDevice->CreateUnorderedAccessView(m_pTex, &uavDesc, &m_pUav));
+		}
+
+		m_cubeSize = cubeSize;
+		m_mipLevels = texDesc.MipLevels;
+		m_format = format;
+	}
+
+	void TextureCube::Release()
+	{
+		m_pTex.release();
+		m_pSrv.release();
+		m_pUav.release();
+		m_cubeSize = 0;
+		m_mipLevels = 0;
+		m_format = DXGI_FORMAT_UNKNOWN;
+	}
+
+
+
+	// Texture3D implementation
+
+	Texture3D::Texture3D()
+	:	m_pTex(),
+		m_pSrv(),
+		m_pUav(),
+		m_dims(makeint3(0)),
+		m_mipLevels(0),
+		m_format(DXGI_FORMAT_UNKNOWN)
+	{
+	}
+
+	void Texture3D::Init(
+		ID3D11Device * pDevice,
+		int3_arg dims,
+		DXGI_FORMAT format,
+		int flags /* = TEXFLAG_Default */)
+	{
+		ASSERT_ERR(pDevice);
+
+		D3D11_TEXTURE3D_DESC texDesc =
+		{
+			dims.x, dims.y, dims.z,
+			(flags & TEXFLAG_Mipmaps) ? log2_floor(maxComponent(dims)) + 1 : 1,
+			format,
+			D3D11_USAGE_DEFAULT,
+			D3D11_BIND_SHADER_RESOURCE,
+			0, 0,
+		};
+		if (flags & TEXFLAG_EnableUAV)
+		{
+			texDesc.BindFlags |= D3D11_BIND_UNORDERED_ACCESS;
+		}
+		CHECK_D3D(pDevice->CreateTexture3D(&texDesc, nullptr, &m_pTex));
+
+		D3D11_SHADER_RESOURCE_VIEW_DESC srvDesc =
+		{
+			format,
+			D3D11_SRV_DIMENSION_TEXTURE3D,
+		};
+		srvDesc.Texture3D.MipLevels = texDesc.MipLevels;
+		CHECK_D3D(pDevice->CreateShaderResourceView(m_pTex, &srvDesc, &m_pSrv));
+
+		if (flags & TEXFLAG_EnableUAV)
+		{
+			D3D11_UNORDERED_ACCESS_VIEW_DESC uavDesc = { format, D3D11_UAV_DIMENSION_TEXTURE3D, };
+			uavDesc.Texture3D.WSize = dims.z;
+			CHECK_D3D(pDevice->CreateUnorderedAccessView(m_pTex, &uavDesc, &m_pUav));
+		}
+
+		m_dims = dims;
+		m_mipLevels = texDesc.MipLevels;
+		m_format = format;
+	}
+
+	void Texture3D::Release()
+	{
+		m_pTex.release();
+		m_pSrv.release();
+		m_pUav.release();
+		m_dims = makeint3(0);
+		m_mipLevels = 0;
+		m_format = DXGI_FORMAT_UNKNOWN;
+	}
+
+
+
+	// Texture loading - helper functions
+
+	bool LoadTexture2D(
 		ID3D11Device * pDevice,
 		const char * path,
-		int flags /*= LOADTEX_Mipmap | LOADTEX_SRGB*/)
+		Texture2D * pTexOut,
+		int flags /*= TEXLOADFLAG_Default*/)
 	{
-		bool mipmap = (flags & LOADTEX_Mipmap) != 0;
-		bool SRGB = (flags & LOADTEX_SRGB) != 0;
-		bool HDR = (flags & LOADTEX_HDR) != 0;
-		bool cubemap = (flags & LOADTEX_Cubemap) != 0;
+		ASSERT_ERR(pDevice);
+		ASSERT_ERR(path);
+		ASSERT_ERR(pTexOut);
+
+		bool mipmap = (flags & TEXLOADFLAG_Mipmap) != 0;
+		bool SRGB = (flags & TEXLOADFLAG_SRGB) != 0;
+		bool HDR = (flags & TEXLOADFLAG_HDR) != 0;
 
 		// HDR bitmaps are always in linear color space
 		if (HDR)
@@ -23,73 +234,159 @@ namespace Framework
 		imgLoadInfo.MipLevels = mipmap ? D3DX11_DEFAULT : 1;
 		imgLoadInfo.Usage = D3D11_USAGE_IMMUTABLE;
 		imgLoadInfo.BindFlags = D3D11_BIND_SHADER_RESOURCE;
-		imgLoadInfo.MiscFlags = cubemap ? D3D11_RESOURCE_MISC_TEXTURECUBE : 0;
 		imgLoadInfo.Format = HDR ? DXGI_FORMAT_R16G16B16A16_FLOAT :
 								(SRGB ? DXGI_FORMAT_R8G8B8A8_UNORM_SRGB : DXGI_FORMAT_R8G8B8A8_UNORM);
 		imgLoadInfo.Filter = D3DX11_FILTER_TRIANGLE | (SRGB ? D3DX11_FILTER_SRGB : 0);
 		imgLoadInfo.MipFilter = D3DX11_FILTER_TRIANGLE;
 
-		ID3D11ShaderResourceView * pSrv = nullptr;
-		CHECK_D3D(D3DX11CreateShaderResourceViewFromFile(
+		comptr<ID3D11ShaderResourceView> pSrv;
+		if (FAILED(D3DX11CreateShaderResourceViewFromFile(
 								pDevice,
 								path,
 								&imgLoadInfo,
 								nullptr,		// no thread pump
 								&pSrv,
-								nullptr));		// no async return value
-
-#if ENABLE_LOGGING
-		D3D11_SHADER_RESOURCE_VIEW_DESC srvDesc;
-		pSrv->GetDesc(&srvDesc);
-
-		UINT cMipLevels = 1;
-		const char * strDimension = "other";
-		switch (srvDesc.ViewDimension)
+								nullptr)))		// no async return value
 		{
-		case D3D11_SRV_DIMENSION_TEXTURE2D:
-			strDimension = "2D";
-			cMipLevels = srvDesc.Texture2D.MipLevels;
-			break;
-
-		case D3D11_SRV_DIMENSION_TEXTURECUBE:
-			strDimension = "cube";
-			cMipLevels = srvDesc.TextureCube.MipLevels;
-			break;
-	
-		default:
-			WARN("Unexpected SRV dimension %d", srvDesc.ViewDimension);
-			break;
+			WARN("Couldn't load texture %s", path);
+			return false;
 		}
 
-		LOG(
-			"Loaded %s - %s, format %s, %d mip levels",
-			path, strDimension, NameOfFormat(srvDesc.Format), cMipLevels);
-#endif // ENABLE_LOGGING
+		D3D11_SHADER_RESOURCE_VIEW_DESC srvDesc;
+		pSrv->GetDesc(&srvDesc);
+		if (srvDesc.ViewDimension != D3D11_SRV_DIMENSION_TEXTURE2D)
+		{
+			WARN("Loaded texture %s, but it's not a 2D texture - srvDesc.ViewDimension = %d", path, srvDesc.ViewDimension);
+			return false;
+		}
 
-		return pSrv;
+		comptr<ID3D11Resource> pRes;
+		pSrv->GetResource(&pRes);
+		comptr<ID3D11Texture2D> pTex;
+		if (FAILED(pRes->QueryInterface(IID_ID3D11Texture2D, (void **)&pTex)))
+		{
+			WARN("Loaded texture %s, but couldn't get ID3D11Texture2D interface", path);
+			return false;
+		}
+
+		D3D11_TEXTURE2D_DESC texDesc;
+		pTex->GetDesc(&texDesc);
+
+		LOG(
+			"Loaded 2D texture %s - %dx%d, format %s, %d mip levels",
+			path, texDesc.Width, texDesc.Height, NameOfFormat(texDesc.Format), texDesc.MipLevels);
+
+		pTexOut->m_pTex = pTex;
+		pTexOut->m_pSrv = pSrv;
+		pTexOut->m_dims = makeint2(texDesc.Width, texDesc.Height);
+		pTexOut->m_mipLevels = texDesc.MipLevels;
+		pTexOut->m_format = texDesc.Format;
+
+		return true;
 	}
 
-	ID3D11ShaderResourceView * Create1x1Texture(
+	bool LoadTextureCube(
 		ID3D11Device * pDevice,
-		float r, float g, float b,
-		bool linear /*= false*/)
+		const char * path,
+		TextureCube * pTexOut,
+		int flags /*= TEXLOADFLAG_Default*/)
 	{
+		ASSERT_ERR(pDevice);
+		ASSERT_ERR(path);
+		ASSERT_ERR(pTexOut);
+
+		bool mipmap = (flags & TEXLOADFLAG_Mipmap) != 0;
+		bool SRGB = (flags & TEXLOADFLAG_SRGB) != 0;
+		bool HDR = (flags & TEXLOADFLAG_HDR) != 0;
+
+		// HDR bitmaps are always in linear color space
+		if (HDR)
+			ASSERT_WARN_MSG(!SRGB, "HDR bitmaps cannot be in SRGB space");
+
+		// Load the texture, generating mipmaps if requested
+
+		D3DX11_IMAGE_LOAD_INFO imgLoadInfo;
+		imgLoadInfo.MipLevels = mipmap ? D3DX11_DEFAULT : 1;
+		imgLoadInfo.Usage = D3D11_USAGE_IMMUTABLE;
+		imgLoadInfo.BindFlags = D3D11_BIND_SHADER_RESOURCE;
+		imgLoadInfo.MiscFlags = D3D11_RESOURCE_MISC_TEXTURECUBE;
+		imgLoadInfo.Format = HDR ? DXGI_FORMAT_R16G16B16A16_FLOAT :
+								(SRGB ? DXGI_FORMAT_R8G8B8A8_UNORM_SRGB : DXGI_FORMAT_R8G8B8A8_UNORM);
+		imgLoadInfo.Filter = D3DX11_FILTER_TRIANGLE | (SRGB ? D3DX11_FILTER_SRGB : 0);
+		imgLoadInfo.MipFilter = D3DX11_FILTER_TRIANGLE;
+
+		comptr<ID3D11ShaderResourceView> pSrv;
+		if (FAILED(D3DX11CreateShaderResourceViewFromFile(
+								pDevice,
+								path,
+								&imgLoadInfo,
+								nullptr,		// no thread pump
+								&pSrv,
+								nullptr)))		// no async return value
+		{
+			WARN("Couldn't load texture %s", path);
+			return false;
+		}
+
+		D3D11_SHADER_RESOURCE_VIEW_DESC srvDesc;
+		pSrv->GetDesc(&srvDesc);
+		if (srvDesc.ViewDimension != D3D11_SRV_DIMENSION_TEXTURECUBE)
+		{
+			WARN("Loaded texture %s, but it's not a cubemap - srvDesc.ViewDimension = %d", path, srvDesc.ViewDimension);
+			return false;
+		}
+
+		comptr<ID3D11Resource> pRes;
+		pSrv->GetResource(&pRes);
+		comptr<ID3D11Texture2D> pTex;
+		if (FAILED(pRes->QueryInterface(IID_ID3D11Texture2D, (void **)&pTex)))
+		{
+			WARN("Loaded texture %s, but couldn't get ID3D11Texture2D interface", path);
+			return false;
+		}
+
+		D3D11_TEXTURE2D_DESC texDesc;
+		pTex->GetDesc(&texDesc);
+		ASSERT_ERR(texDesc.Width == texDesc.Height);
+		ASSERT_ERR(texDesc.ArraySize == 6);
+		ASSERT_ERR(texDesc.MiscFlags & D3D11_RESOURCE_MISC_TEXTURECUBE);
+
+		LOG(
+			"Loaded cubemap %s - cube size %d, format %s, %d mip levels",
+			path, texDesc.Width, NameOfFormat(texDesc.Format), texDesc.MipLevels);
+
+		pTexOut->m_pTex = pTex;
+		pTexOut->m_pSrv = pSrv;
+		pTexOut->m_cubeSize = texDesc.Width;
+		pTexOut->m_mipLevels = texDesc.MipLevels;
+		pTexOut->m_format = texDesc.Format;
+
+		return true;
+	}
+
+	void CreateTexture1x1(
+		ID3D11Device * pDevice,
+		rgba_arg color,
+		Texture2D * pTexOut,
+		DXGI_FORMAT format /*= DXGI_FORMAT_R8G8B8A8_UNORM_SRGB*/)
+	{
+		ASSERT_ERR(pDevice);
+		ASSERT_ERR(pTexOut);
+
 		// Convert floats to 8-bit format
-		byte4 rgba = makebyte4(
-						makebyte3(round(255.0f * saturate(makefloat3(r, g, b)))),
-						255);
+		byte4 colorBytes = makebyte4(round(255.0f * saturate(color)));
 
 		D3D11_TEXTURE2D_DESC texDesc = 
 		{
 			1, 1, 1, 1,
-			linear ? DXGI_FORMAT_R8G8B8A8_UNORM : DXGI_FORMAT_R8G8B8A8_UNORM_SRGB,
+			format,
 			{ 1, 0 },
 			D3D11_USAGE_DEFAULT,
 			D3D11_BIND_SHADER_RESOURCE,
 			0, 0,
 		};
 
-		D3D11_SUBRESOURCE_DATA initialData = { rgba, sizeof(byte4), };
+		D3D11_SUBRESOURCE_DATA initialData = { colorBytes, sizeof(colorBytes), };
 		comptr<ID3D11Texture2D> pTex;
 		CHECK_D3D(pDevice->CreateTexture2D(&texDesc, &initialData, &pTex));
 
@@ -103,18 +400,73 @@ namespace Framework
 		ID3D11ShaderResourceView * pSrv = nullptr;
 		CHECK_D3D(pDevice->CreateShaderResourceView(pTex, &srvDesc, &pSrv));
 
-		return pSrv;
+		pTexOut->m_pTex = pTex;
+		pTexOut->m_pSrv = pSrv;
+		pTexOut->m_dims = makeint2(1, 1);
+		pTexOut->m_mipLevels = 1;
+		pTexOut->m_format = format;
 	}
 
-	ID3D11ShaderResourceView * CreateTextureFromMemory(
+	void CreateTextureCube1x1(
 		ID3D11Device * pDevice,
-		int width, int height,
-		DXGI_FORMAT format,
-		const void * pPixels)
+		rgba_arg color,
+		TextureCube * pTexOut,
+		DXGI_FORMAT format /*= DXGI_FORMAT_R8G8B8A8_UNORM_SRGB*/)
 	{
+		ASSERT_ERR(pDevice);
+		ASSERT_ERR(pTexOut);
+
+		// Convert floats to 8-bit format
+		byte4 colorBytes[6] = { makebyte4(round(255.0f * saturate(color))) };
+		for (int i = 1; i < dim(colorBytes); ++i)
+			colorBytes[i] = colorBytes[0];
+
+		D3D11_TEXTURE2D_DESC texDesc = 
+		{
+			1, 1, 1, 6,
+			format,
+			{ 1, 0 },
+			D3D11_USAGE_DEFAULT,
+			D3D11_BIND_SHADER_RESOURCE,
+			0,
+			D3D11_RESOURCE_MISC_TEXTURECUBE,
+		};
+
+		D3D11_SUBRESOURCE_DATA initialData = { colorBytes, sizeof(colorBytes), };
+		comptr<ID3D11Texture2D> pTex;
+		CHECK_D3D(pDevice->CreateTexture2D(&texDesc, &initialData, &pTex));
+
+		D3D11_SHADER_RESOURCE_VIEW_DESC srvDesc =
+		{
+			texDesc.Format,
+			D3D11_SRV_DIMENSION_TEXTURECUBE,
+		};
+		srvDesc.TextureCube.MipLevels = 1;
+
+		ID3D11ShaderResourceView * pSrv = nullptr;
+		CHECK_D3D(pDevice->CreateShaderResourceView(pTex, &srvDesc, &pSrv));
+
+		pTexOut->m_pTex = pTex;
+		pTexOut->m_pSrv = pSrv;
+		pTexOut->m_cubeSize = 1;
+		pTexOut->m_mipLevels = 1;
+		pTexOut->m_format = format;
+	}
+
+	void CreateTexture2DFromMemory(
+		ID3D11Device * pDevice,
+		int2_arg dims,
+		DXGI_FORMAT format,
+		const void * pPixels,
+		Texture2D * pTexOut)
+	{
+		ASSERT_ERR(pDevice);
+		ASSERT_ERR(pPixels);
+		ASSERT_ERR(pTexOut);
+
 		D3D11_TEXTURE2D_DESC texDesc =
 		{
-			width, height, 1, 1,
+			dims.x, dims.y, 1, 1,
 			format,
 			{ 1, 0 },
 			D3D11_USAGE_IMMUTABLE,
@@ -122,7 +474,7 @@ namespace Framework
 			0, 0,
 		};
 
-		D3D11_SUBRESOURCE_DATA initialData = { pPixels, width * BitsPerPixel(format) / 8 };
+		D3D11_SUBRESOURCE_DATA initialData = { pPixels, dims.x * BitsPerPixel(format) / 8 };
 		comptr<ID3D11Texture2D> pTex;
 		CHECK_D3D(pDevice->CreateTexture2D(&texDesc, &initialData, &pTex));
 
@@ -136,7 +488,11 @@ namespace Framework
 		ID3D11ShaderResourceView * pSrv = nullptr;
 		CHECK_D3D(pDevice->CreateShaderResourceView(pTex, &srvDesc, &pSrv));
 
-		return pSrv;
+		pTexOut->m_pTex = pTex;
+		pTexOut->m_pSrv = pSrv;
+		pTexOut->m_dims = dims;
+		pTexOut->m_mipLevels = 1;
+		pTexOut->m_format = format;
 	}
 
 
