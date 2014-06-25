@@ -11,7 +11,7 @@ namespace Framework
 		comptr(): p(nullptr) {}
 		comptr(T * other): p(other) {}
 		comptr(const comptr<T> & other): p(other.p)
-			{ p->AddRef(); }
+			{ if (p) p->AddRef(); }
 
 		void release()
 			{ if (p) { p->Release(); p = nullptr; } }
