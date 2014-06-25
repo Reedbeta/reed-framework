@@ -32,6 +32,16 @@ namespace Framework
 		Mesh();
 		void Draw(ID3D11DeviceContext * pCtx);
 		void Release();
+
+		// These methods operate only on m_verts and m_indices stored in CPU memory
+		void DeduplicateVerts();
+		void CalculateNormals();
+#if VERTEX_TANGENT
+		void CalculateTangents();
+#endif
+
+		// Creates the vertex and index buffers on the GPU from m_verts and m_indices
+		void UploadToGPU(ID3D11Device * pDevice);
 	};
 
 	bool LoadObjMesh(

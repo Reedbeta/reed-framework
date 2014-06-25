@@ -31,6 +31,8 @@ namespace Framework
 		m_pIdxBuffer.release();
 	}
 
+
+
 	// Mesh loading - helper functions
 
 	static bool LoadObjMeshRaw(
@@ -173,7 +175,7 @@ namespace Framework
 		return true;
 	}
 
-	static void DeduplicateVerts(Mesh * pMesh)
+	void Mesh::DeduplicateVerts()
 	{
 		struct VertexHasher
 		{
@@ -200,12 +202,12 @@ namespace Framework
 		std::vector<int> remappingTable;
 		std::unordered_map<Vertex, int, VertexHasher, VertexEqualityTester> mapVertToIndex;
 
-		vertsDeduplicated.reserve(pMesh->m_verts.size());
-		remappingTable.reserve(pMesh->m_verts.size());
+		vertsDeduplicated.reserve(m_verts.size());
+		remappingTable.reserve(m_verts.size());
 
-		for (int i = 0, cVert = int(pMesh->m_verts.size()); i < cVert; ++i)
+		for (int i = 0, cVert = int(m_verts.size()); i < cVert; ++i)
 		{
-			const Vertex & vert = pMesh->m_verts[i];
+			const Vertex & vert = m_verts[i];
 			std::unordered_map<Vertex, int, VertexHasher, VertexEqualityTester>::iterator
 				iter = mapVertToIndex.find(vert);
 			if (iter == mapVertToIndex.end())
@@ -224,36 +226,36 @@ namespace Framework
 			}
 		}
 
-		ASSERT_ERR(vertsDeduplicated.size() <= pMesh->m_verts.size());
-		ASSERT_ERR(remappingTable.size() == pMesh->m_verts.size());
+		ASSERT_ERR(vertsDeduplicated.size() <= m_verts.size());
+		ASSERT_ERR(remappingTable.size() == m_verts.size());
 
 		std::vector<int> indicesRemapped;
-		indicesRemapped.reserve(pMesh->m_indices.size());
+		indicesRemapped.reserve(m_indices.size());
 
-		for (int i = 0, cIndex = int(pMesh->m_indices.size()); i < cIndex; ++i)
+		for (int i = 0, cIndex = int(m_indices.size()); i < cIndex; ++i)
 		{
-			indicesRemapped.push_back(remappingTable[pMesh->m_indices[i]]);
+			indicesRemapped.push_back(remappingTable[m_indices[i]]);
 		}
 
-		pMesh->m_verts.swap(vertsDeduplicated);
-		pMesh->m_indices.swap(indicesRemapped);
+		m_verts.swap(vertsDeduplicated);
+		m_indices.swap(indicesRemapped);
 	}
 
-	static void CalculateNormals(Mesh * pMesh)
+	void Mesh::CalculateNormals()
 	{
-		ASSERT_WARN(pMesh->m_indices.size() % 3 == 0);
+		ASSERT_WARN(m_indices.size() % 3 == 0);
 
 		// Generate a normal for each triangle, and accumulate onto vertex
-		for (int i = 0, c = int(pMesh->m_indices.size()); i < c; i += 3)
+		for (int i = 0, c = int(m_indices.size()); i < c; i += 3)
 		{
-			int indices[3] = { pMesh->m_indices[i], pMesh->m_indices[i+1], pMesh->m_indices[i+2] };
+			int indices[3] = { m_indices[i], m_indices[i+1], m_indices[i+2] };
 
 			// Gather positions for this triangle
 			point3 facePositions[3] =
 			{
-				pMesh->m_verts[indices[0]].m_pos,
-				pMesh->m_verts[indices[1]].m_pos,
-				pMesh->m_verts[indices[2]].m_pos,
+				m_verts[indices[0]].m_pos,
+				m_verts[indices[1]].m_pos,
+				m_verts[indices[2]].m_pos,
 			};
 
 			// Calculate edge and normal vectors
@@ -262,35 +264,35 @@ namespace Framework
 			float3 normal = normalize(cross(edge0, edge1));
 
 			// Accumulate onto vertices
-			pMesh->m_verts[indices[0]].m_normal += normal;
-			pMesh->m_verts[indices[1]].m_normal += normal;
-			pMesh->m_verts[indices[2]].m_normal += normal;
+			m_verts[indices[0]].m_normal += normal;
+			m_verts[indices[1]].m_normal += normal;
+			m_verts[indices[2]].m_normal += normal;
 		}
 
 		// Normalize summed normals
-		for (int i = 0, c = int(pMesh->m_verts.size()); i < c; ++i)
+		for (int i = 0, c = int(m_verts.size()); i < c; ++i)
 		{
-			pMesh->m_verts[i].m_normal = normalize(pMesh->m_verts[i].m_normal);
+			m_verts[i].m_normal = normalize(m_verts[i].m_normal);
 		}
 	}
 
 #if VERTEX_TANGENT
-	static void CalculateTangents(Mesh * pMesh)
+	void Mesh::CalculateTangents()
 	{
-		ASSERT_WARN(pMesh->m_indices.size() % 3 == 0);
+		ASSERT_WARN(m_indices.size() % 3 == 0);
 
 		// Generate a tangent for each triangle, based on triangle's UV mapping,
 		// and accumulate onto vertex
-		for (int i = 0, c = int(pMesh->m_indices.size()); i < c; i += 3)
+		for (int i = 0, c = int(m_indices.size()); i < c; i += 3)
 		{
-			int indices[3] = { pMesh->m_indices[i], pMesh->m_indices[i+1], pMesh->m_indices[i+2] };
+			int indices[3] = { m_indices[i], m_indices[i+1], m_indices[i+2] };
 
 			// Gather positions for this triangle
 			point3 facePositions[3] =
 			{
-				pMesh->m_verts[indices[0]].m_pos,
-				pMesh->m_verts[indices[1]].m_pos,
-				pMesh->m_verts[indices[2]].m_pos,
+				m_verts[indices[0]].m_pos,
+				m_verts[indices[1]].m_pos,
+				m_verts[indices[2]].m_pos,
 			};
 
 			// Calculate edge and normal vectors
@@ -304,9 +306,9 @@ namespace Framework
 			// Gather UVs for this triangle
 			float2 faceUVs[3] =
 			{
-				pMesh->m_verts[indices[0]].m_uv,
-				pMesh->m_verts[indices[1]].m_uv,
-				pMesh->m_verts[indices[2]].m_uv,
+				m_verts[indices[0]].m_uv,
+				m_verts[indices[1]].m_uv,
+				m_verts[indices[2]].m_uv,
 			};
 
 			// Calculate UV space edge vectors
@@ -325,18 +327,49 @@ namespace Framework
 			float3 tangent = normalize(matUVToPosition[0]);
 
 			// Accumulate onto vertices
-			pMesh->m_verts[indices[0]].m_tangent += tangent;
-			pMesh->m_verts[indices[1]].m_tangent += tangent;
-			pMesh->m_verts[indices[2]].m_tangent += tangent;
+			m_verts[indices[0]].m_tangent += tangent;
+			m_verts[indices[1]].m_tangent += tangent;
+			m_verts[indices[2]].m_tangent += tangent;
 		}
 
 		// Normalize summed tangents
-		for (int i = 0, c = int(pMesh->m_verts.size()); i < c; ++i)
+		for (int i = 0, c = int(m_verts.size()); i < c; ++i)
 		{
-			pMesh->m_verts[i].m_tangent = normalize(pMesh->m_verts[i].m_tangent);
+			m_verts[i].m_tangent = normalize(m_verts[i].m_tangent);
 		}
 	}
 #endif // VERTEX_TANGENT
+
+	void Mesh::UploadToGPU(ID3D11Device * pDevice)
+	{
+		D3D11_BUFFER_DESC vtxBufferDesc =
+		{
+			sizeof(Vertex) * int(m_verts.size()),
+			D3D11_USAGE_IMMUTABLE,
+			D3D11_BIND_VERTEX_BUFFER,
+			0,	// no cpu access
+			0,	// no misc flags
+			0,	// structured buffer stride
+		};
+		D3D11_SUBRESOURCE_DATA vtxBufferData = { &m_verts[0], 0, 0 };
+		CHECK_D3D(pDevice->CreateBuffer(&vtxBufferDesc, &vtxBufferData, &m_pVtxBuffer));
+
+		D3D11_BUFFER_DESC idxBufferDesc =
+		{
+			sizeof(int) * int(m_indices.size()),
+			D3D11_USAGE_IMMUTABLE,
+			D3D11_BIND_INDEX_BUFFER,
+			0,	// no cpu access
+			0,	// no misc flags
+			0,	// structured buffer stride
+		};
+		D3D11_SUBRESOURCE_DATA idxBufferData = { &m_indices[0], 0, 0 };
+		CHECK_D3D(pDevice->CreateBuffer(&idxBufferDesc, &idxBufferData, &m_pIdxBuffer));
+
+		m_vtxStride = sizeof(Vertex);
+		m_cIdx = int(m_indices.size());
+		m_primtopo = D3D11_PRIMITIVE_TOPOLOGY_TRIANGLELIST;
+	}
 
 	bool LoadObjMesh(
 		ID3D11Device * pDevice,
@@ -354,7 +387,7 @@ namespace Framework
 			return false;
 		}
 
-		DeduplicateVerts(pMeshOut);
+		pMeshOut->DeduplicateVerts();
 
 		LOG("Loaded %s - %d verts, %d indices",
 			path, pMeshOut->m_verts.size(), pMeshOut->m_indices.size());
@@ -362,42 +395,13 @@ namespace Framework
 		// !!!UNDONE: vertex cache optimization?
 
 		if (!hasNormals)
-			CalculateNormals(pMeshOut);
+			pMeshOut->CalculateNormals();
 
 #if VERTEX_TANGENT
-		CalculateTangents(pMeshOut);
+		pMeshOut->CalculateTangents();
 #endif
 
-		// Upload the mesh data to the GPU
-
-		D3D11_BUFFER_DESC vtxBufferDesc =
-		{
-			sizeof(Vertex) * int(pMeshOut->m_verts.size()),
-			D3D11_USAGE_IMMUTABLE,
-			D3D11_BIND_VERTEX_BUFFER,
-			0,	// no cpu access
-			0,	// no misc flags
-			0,	// structured buffer stride
-		};
-		D3D11_SUBRESOURCE_DATA vtxBufferData = { &pMeshOut->m_verts[0], 0, 0 };
-		CHECK_D3D(pDevice->CreateBuffer(&vtxBufferDesc, &vtxBufferData, &pMeshOut->m_pVtxBuffer));
-
-		D3D11_BUFFER_DESC idxBufferDesc =
-		{
-			sizeof(int) * int(pMeshOut->m_indices.size()),
-			D3D11_USAGE_IMMUTABLE,
-			D3D11_BIND_INDEX_BUFFER,
-			0,	// no cpu access
-			0,	// no misc flags
-			0,	// structured buffer stride
-		};
-		D3D11_SUBRESOURCE_DATA idxBufferData = { &pMeshOut->m_indices[0], 0, 0 };
-		CHECK_D3D(pDevice->CreateBuffer(&idxBufferDesc, &idxBufferData, &pMeshOut->m_pIdxBuffer));
-
-		pMeshOut->m_vtxStride = sizeof(Vertex);
-		pMeshOut->m_cIdx = int(pMeshOut->m_indices.size());
-		pMeshOut->m_primtopo = D3D11_PRIMITIVE_TOPOLOGY_TRIANGLELIST;
-
+		pMeshOut->UploadToGPU(pDevice);
 		return true;
 	}
 }
