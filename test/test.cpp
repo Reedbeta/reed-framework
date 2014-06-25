@@ -205,43 +205,21 @@ void TestWindow::Shutdown()
 
 LRESULT TestWindow::MsgProc(HWND hWnd, UINT message, WPARAM wParam, LPARAM lParam)
 {
-	// Give AntTweakBar first crack at the message
+	// Give AntTweakBar and the camera a crack at the message
 	if (TwEventWin(hWnd, message, wParam, lParam))
+		return 0;
+	if (m_camera.HandleWindowsMessage(message, wParam, lParam))
 		return 0;
 
 	switch (message)
 	{
 	case WM_KEYDOWN:
-		if (wParam == VK_ESCAPE)
+		switch (wParam)
+		{
+		case VK_ESCAPE:
 			Shutdown();
-		return 0;
-
-	case WM_LBUTTONDOWN:
-		m_camera.OnMouseDown(MBUTTON_Left);
-		return 0;
-
-	case WM_MBUTTONDOWN:
-		m_camera.OnMouseDown(MBUTTON_Middle);
-		return 0;
-
-	case WM_RBUTTONDOWN:
-		m_camera.OnMouseDown(MBUTTON_Right);
-		return 0;
-
-	case WM_LBUTTONUP:
-		m_camera.OnMouseUp(MBUTTON_Left);
-		return 0;
-
-	case WM_MBUTTONUP:
-		m_camera.OnMouseUp(MBUTTON_Middle);
-		return 0;
-
-	case WM_RBUTTONUP:
-		m_camera.OnMouseUp(MBUTTON_Right);
-		return 0;
-
-	case WM_MOUSEWHEEL:
-		m_camera.OnMouseWheel(int(short(HIWORD(wParam))));
+			break;
+		}
 		return 0;
 
 	default:

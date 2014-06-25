@@ -11,6 +11,45 @@ namespace Framework
 	{
 	}
 
+	bool Camera::HandleWindowsMessage(UINT message, WPARAM wParam, LPARAM lParam)
+	{
+		(void)lParam;
+
+		switch (message)
+		{
+		case WM_LBUTTONDOWN:
+			OnMouseDown(MBUTTON_Left);
+			return true;
+
+		case WM_MBUTTONDOWN:
+			OnMouseDown(MBUTTON_Middle);
+			return true;
+
+		case WM_RBUTTONDOWN:
+			OnMouseDown(MBUTTON_Right);
+			return true;
+
+		case WM_LBUTTONUP:
+			OnMouseUp(MBUTTON_Left);
+			return true;
+
+		case WM_MBUTTONUP:
+			OnMouseUp(MBUTTON_Middle);
+			return true;
+
+		case WM_RBUTTONUP:
+			OnMouseUp(MBUTTON_Right);
+			return true;
+
+		case WM_MOUSEWHEEL:
+			OnMouseWheel(int(short(HIWORD(wParam))));
+			return true;
+
+		default:
+			return false;
+		}
+	}
+
 	
 
 	// PerspectiveCamera implementation

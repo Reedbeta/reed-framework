@@ -24,6 +24,7 @@ namespace Framework
 								{ if (mbutton == m_mbuttonCur) m_mbuttonCur = MBUTTON_None; }
 		void				OnMouseWheel(int wheelDelta)
 								{ m_wheelDelta += wheelDelta; }
+		bool				HandleWindowsMessage(UINT message, WPARAM wParam, LPARAM lParam);
 
 		virtual void		Update(float timestep) = 0;
 
