@@ -19,6 +19,8 @@ namespace Framework
 	template <typename T>
 	inline void CB<T>::Init(ID3D11Device * pDevice)
 	{
+		ASSERT_ERR(pDevice);
+
 		D3D11_BUFFER_DESC bufDesc =
 		{
 			((sizeof(T) + 15) / 16) * 16,	// Round up to next 16 bytes
@@ -33,6 +35,9 @@ namespace Framework
 	template <typename T>
 	inline void CB<T>::Update(ID3D11DeviceContext * pCtx, const T * pData)
 	{
+		ASSERT_ERR(pCtx);
+		ASSERT_ERR(pData);
+
 		D3D11_MAPPED_SUBRESOURCE mapped = {};
 		CHECK_D3D_WARN(pCtx->Map(m_pBuf, 0, D3D11_MAP_WRITE_DISCARD, 0, &mapped));
 		memcpy(mapped.pData, pData, sizeof(T));
@@ -42,6 +47,8 @@ namespace Framework
 	template <typename T>
 	inline void CB<T>::Bind(ID3D11DeviceContext * pCtx, int slot)
 	{
+		ASSERT_ERR(pCtx);
+
 		pCtx->VSSetConstantBuffers(slot, 1, &m_pBuf);
 		pCtx->HSSetConstantBuffers(slot, 1, &m_pBuf);
 		pCtx->DSSetConstantBuffers(slot, 1, &m_pBuf);

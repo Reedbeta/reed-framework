@@ -20,6 +20,8 @@ namespace Framework
 		int sampleCount, /* = 1 */
 		int flags /* = RTFLAG_Default */)
 	{
+		ASSERT_ERR(pDevice);
+
 		D3D11_TEXTURE2D_DESC texDesc =
 		{
 			dims.x, dims.y, 1, 1,
@@ -75,6 +77,8 @@ namespace Framework
 
 	void RenderTarget::Bind(ID3D11DeviceContext * pCtx)
 	{
+		ASSERT_ERR(pCtx);
+
 		pCtx->OMSetRenderTargets(1, &m_pRtv, nullptr);
 		D3D11_VIEWPORT d3dViewport = { 0.0f, 0.0f, float(m_dims.x), float(m_dims.y), 0.0f, 1.0f, };
 		pCtx->RSSetViewports(1, &d3dViewport);
@@ -82,6 +86,8 @@ namespace Framework
 
 	void RenderTarget::Bind(ID3D11DeviceContext * pCtx, box2_arg viewport)
 	{
+		ASSERT_ERR(pCtx);
+
 		pCtx->OMSetRenderTargets(1, &m_pRtv, nullptr);
 		D3D11_VIEWPORT d3dViewport =
 		{
@@ -94,6 +100,8 @@ namespace Framework
 
 	void RenderTarget::Bind(ID3D11DeviceContext * pCtx, box3_arg viewport)
 	{
+		ASSERT_ERR(pCtx);
+
 		pCtx->OMSetRenderTargets(1, &m_pRtv, nullptr);
 		D3D11_VIEWPORT d3dViewport =
 		{

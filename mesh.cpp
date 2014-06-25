@@ -42,6 +42,10 @@ namespace Framework
 		box3 * pBoxOut,
 		bool * pHasNormalsOut)
 	{
+		ASSERT_ERR(path);
+		ASSERT_ERR(pVerts);
+		ASSERT_ERR(pIndices);
+
 		// Read the whole file into memory
 		std::vector<byte> data;
 		if (!loadFile(path, &data, true))
@@ -376,6 +380,10 @@ namespace Framework
 		const char * path,
 		Mesh * pMeshOut)
 	{
+		ASSERT_ERR(pDevice);
+		ASSERT_ERR(path);
+		ASSERT_ERR(pMeshOut);
+
 		bool hasNormals;
 		if (!LoadObjMeshRaw(
 				path,
