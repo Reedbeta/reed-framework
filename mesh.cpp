@@ -346,6 +346,11 @@ namespace Framework
 
 	void Mesh::UploadToGPU(ID3D11Device * pDevice)
 	{
+		ASSERT_ERR(pDevice);
+
+		m_pVtxBuffer.release();
+		m_pIdxBuffer.release();
+
 		D3D11_BUFFER_DESC vtxBufferDesc =
 		{
 			sizeof(Vertex) * int(m_verts.size()),
