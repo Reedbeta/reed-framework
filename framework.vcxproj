@@ -16,6 +16,7 @@
     <ClInclude Include="comptr.h" />
     <ClInclude Include="d3d11-window.h" />
     <ClInclude Include="framework.h" />
+    <ClInclude Include="gpuprofiler.h" />
     <ClInclude Include="mesh.h" />
     <ClInclude Include="rendertarget.h" />
     <ClInclude Include="texture.h" />
@@ -24,6 +25,7 @@
   <ItemGroup>
     <ClCompile Include="camera.cpp" />
     <ClCompile Include="d3d11-window.cpp" />
+    <ClCompile Include="gpuprofiler.cpp" />
     <ClCompile Include="mesh.cpp" />
     <ClCompile Include="rendertarget.cpp" />
     <ClCompile Include="texture.cpp" />

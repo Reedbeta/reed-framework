@@ -25,6 +25,7 @@ namespace Framework
 #include "camera.h"
 #include "cbuffer.h"
 #include "d3d11-window.h"
+#include "gpuprofiler.h"
 #include "mesh.h"
 #include "rendertarget.h"
 #include "texture.h"
