@@ -111,4 +111,43 @@ namespace Framework
 		};
 		pCtx->RSSetViewports(1, &d3dViewport);
 	}
+
+	void RenderTarget::Readback(
+		ID3D11DeviceContext * pCtx,
+		void * pDataOut)
+	{
+		ASSERT_ERR(m_pTex);
+		ASSERT_ERR_MSG(m_sampleCount == 1, "D3D11 doesn't support readback of multisampled render targets");
+		ASSERT_ERR(pCtx);
+		ASSERT_ERR(pDataOut);
+
+		comptr<ID3D11Device> pDevice;
+		pCtx->GetDevice(&pDevice);
+
+		int sizeInBytes = SizeInBytes();
+
+		// Create a staging resource
+		D3D11_TEXTURE2D_DESC texDesc =
+		{
+			m_dims.x, m_dims.y, 1, 1,
+			m_format,
+			{ 1, 0 },
+			D3D11_USAGE_STAGING,
+			0,
+			D3D11_CPU_ACCESS_READ,
+			0,
+		};
+		comptr<ID3D11Texture2D> pTexStaging;
+		pDevice->CreateTexture2D(&texDesc, nullptr, &pTexStaging);
+
+		// Copy the data to the staging resource
+		pCtx->CopyResource(pTexStaging, m_pTex);
+
+		// Map the staging resource and copy the data out
+		D3D11_MAPPED_SUBRESOURCE mapped = {};
+		CHECK_D3D(pCtx->Map(pTexStaging, 0, D3D11_MAP_READ, 0, &mapped));
+		ASSERT_ERR(mapped.RowPitch == UINT(m_dims.x * BitsPerPixel(m_format) / 8));
+		memcpy(pDataOut, mapped.pData, sizeInBytes);
+		pCtx->Unmap(pTexStaging, 0);
+	}
 }

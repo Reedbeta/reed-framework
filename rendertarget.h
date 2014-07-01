@@ -2,6 +2,8 @@
 
 namespace Framework
 {
+	int BitsPerPixel(DXGI_FORMAT format);
+
 	enum RTFLAG
 	{
 		RTFLAG_EnableUAV	= 0x01,
@@ -25,6 +27,14 @@ namespace Framework
 		void	Bind(ID3D11DeviceContext * pCtx);
 		void	Bind(ID3D11DeviceContext * pCtx, box2_arg viewport);
 		void	Bind(ID3D11DeviceContext * pCtx, box3_arg viewport);
+
+		int		SizeInBytes() const
+					{ return m_dims.x * m_dims.y * m_sampleCount * BitsPerPixel(m_format) / 8; }
+
+		// Read back the data to main memory - you're responsible for allocing enough
+		void	Readback(
+					ID3D11DeviceContext * pCtx,
+					void * pDataOut);
 
 		comptr<ID3D11Texture2D>				m_pTex;
 		comptr<ID3D11RenderTargetView>		m_pRtv;

@@ -26,7 +26,7 @@ namespace Framework
 		D3D11_TEXTURE2D_DESC texDesc =
 		{
 			dims.x, dims.y,
-			(flags & TEXFLAG_Mipmaps) ? log2_floor(maxComponent(dims)) + 1 : 1,
+			(flags & TEXFLAG_Mipmaps) ? CalculateMipCount(dims) : 1,
 			1,
 			format,
 			{ 1, 0 },
@@ -69,6 +69,47 @@ namespace Framework
 		m_format = DXGI_FORMAT_UNKNOWN;
 	}
 
+	void Texture2D::Readback(
+		ID3D11DeviceContext * pCtx,
+		int level,
+		void * pDataOut)
+	{
+		ASSERT_ERR(m_pTex);
+		ASSERT_ERR(pCtx);
+		ASSERT_ERR(level >= 0 && level < m_mipLevels);
+		ASSERT_ERR(pDataOut);
+
+		comptr<ID3D11Device> pDevice;
+		pCtx->GetDevice(&pDevice);
+
+		int2 mipDims = CalculateMipDims(m_dims, level);
+		int sizeInBytes = CalculateMipSizeInBytes(m_dims, level, m_format);
+
+		// Create a staging resource
+		D3D11_TEXTURE2D_DESC texDesc =
+		{
+			mipDims.x, mipDims.y, 1, 1,
+			m_format,
+			{ 1, 0 },
+			D3D11_USAGE_STAGING,
+			0,
+			D3D11_CPU_ACCESS_READ,
+			0,
+		};
+		comptr<ID3D11Texture2D> pTexStaging;
+		pDevice->CreateTexture2D(&texDesc, nullptr, &pTexStaging);
+
+		// Copy the data to the staging resource
+		pCtx->CopySubresourceRegion(pTexStaging, 0, 0, 0, 0, m_pTex, level, nullptr);
+
+		// Map the staging resource and copy the data out
+		D3D11_MAPPED_SUBRESOURCE mapped = {};
+		CHECK_D3D(pCtx->Map(pTexStaging, 0, D3D11_MAP_READ, 0, &mapped));
+		ASSERT_ERR(mapped.RowPitch == UINT(mipDims.x * BitsPerPixel(m_format) / 8));
+		memcpy(pDataOut, mapped.pData, sizeInBytes);
+		pCtx->Unmap(pTexStaging, 0);
+	}
+
 
 
 	// TextureCube implementation
@@ -94,7 +135,7 @@ namespace Framework
 		D3D11_TEXTURE2D_DESC texDesc =
 		{
 			cubeSize, cubeSize,
-			(flags & TEXFLAG_Mipmaps) ? log2_floor(cubeSize) + 1 : 1,
+			(flags & TEXFLAG_Mipmaps) ? CalculateMipCount(cubeSize) : 1,
 			6,
 			format,
 			{ 1, 0 },
@@ -139,6 +180,49 @@ namespace Framework
 		m_format = DXGI_FORMAT_UNKNOWN;
 	}
 
+	void TextureCube::Readback(
+		ID3D11DeviceContext * pCtx,
+		int face,
+		int level,
+		void * pDataOut)
+	{
+		ASSERT_ERR(m_pTex);
+		ASSERT_ERR(pCtx);
+		ASSERT_ERR(face >= 0 && face < 6);
+		ASSERT_ERR(level >= 0 && level < m_mipLevels);
+		ASSERT_ERR(pDataOut);
+
+		comptr<ID3D11Device> pDevice;
+		pCtx->GetDevice(&pDevice);
+
+		int mipDim = CalculateMipDims(m_cubeSize, level);
+		int sizeInBytes = CalculateMipSizeInBytes(m_cubeSize, level, m_format);
+
+		// Create a staging resource
+		D3D11_TEXTURE2D_DESC texDesc =
+		{
+			mipDim, mipDim, 1, 1,
+			m_format,
+			{ 1, 0 },
+			D3D11_USAGE_STAGING,
+			0,
+			D3D11_CPU_ACCESS_READ,
+			0,
+		};
+		comptr<ID3D11Texture2D> pTexStaging;
+		pDevice->CreateTexture2D(&texDesc, nullptr, &pTexStaging);
+
+		// Copy the data to the staging resource
+		pCtx->CopySubresourceRegion(pTexStaging, 0, 0, 0, 0, m_pTex, face * m_mipLevels + level, nullptr);
+
+		// Map the staging resource and copy the data out
+		D3D11_MAPPED_SUBRESOURCE mapped = {};
+		CHECK_D3D(pCtx->Map(pTexStaging, 0, D3D11_MAP_READ, 0, &mapped));
+		ASSERT_ERR(mapped.RowPitch == UINT(mipDim * BitsPerPixel(m_format) / 8));
+		memcpy(pDataOut, mapped.pData, sizeInBytes);
+		pCtx->Unmap(pTexStaging, 0);
+	}
+
 
 
 	// Texture3D implementation
@@ -164,7 +248,7 @@ namespace Framework
 		D3D11_TEXTURE3D_DESC texDesc =
 		{
 			dims.x, dims.y, dims.z,
-			(flags & TEXFLAG_Mipmaps) ? log2_floor(maxComponent(dims)) + 1 : 1,
+			(flags & TEXFLAG_Mipmaps) ? CalculateMipCount(dims) : 1,
 			format,
 			D3D11_USAGE_DEFAULT,
 			D3D11_BIND_SHADER_RESOURCE,
@@ -204,6 +288,47 @@ namespace Framework
 		m_dims = makeint3(0);
 		m_mipLevels = 0;
 		m_format = DXGI_FORMAT_UNKNOWN;
+	}
+
+	void Texture3D::Readback(
+		ID3D11DeviceContext * pCtx,
+		int level,
+		void * pDataOut)
+	{
+		ASSERT_ERR(m_pTex);
+		ASSERT_ERR(pCtx);
+		ASSERT_ERR(level >= 0 && level < m_mipLevels);
+		ASSERT_ERR(pDataOut);
+
+		comptr<ID3D11Device> pDevice;
+		pCtx->GetDevice(&pDevice);
+
+		int3 mipDims = CalculateMipDims(m_dims, level);
+		int sizeInBytes = CalculateMipSizeInBytes(m_dims, level, m_format);
+
+		// Create a staging resource
+		D3D11_TEXTURE3D_DESC texDesc =
+		{
+			mipDims.x, mipDims.y, mipDims.z, 1,
+			m_format,
+			D3D11_USAGE_STAGING,
+			0,
+			D3D11_CPU_ACCESS_READ,
+			0,
+		};
+		comptr<ID3D11Texture3D> pTexStaging;
+		pDevice->CreateTexture3D(&texDesc, nullptr, &pTexStaging);
+
+		// Copy the data to the staging resource
+		pCtx->CopySubresourceRegion(pTexStaging, 0, 0, 0, 0, m_pTex, level, nullptr);
+
+		// Map the staging resource and copy the data out
+		D3D11_MAPPED_SUBRESOURCE mapped = {};
+		CHECK_D3D(pCtx->Map(pTexStaging, 0, D3D11_MAP_READ, 0, &mapped));
+		ASSERT_ERR(mapped.RowPitch == UINT(mipDims.x * BitsPerPixel(m_format) / 8));
+		ASSERT_ERR(mapped.DepthPitch == UINT(mipDims.x * mipDims.y * BitsPerPixel(m_format) / 8));
+		memcpy(pDataOut, mapped.pData, sizeInBytes);
+		pCtx->Unmap(pTexStaging, 0);
 	}
 
 
@@ -363,6 +488,10 @@ namespace Framework
 
 		return true;
 	}
+	
+
+
+	// Texture creation - helper functions
 
 	void CreateTexture1x1(
 		ID3D11Device * pDevice,
@@ -734,7 +863,7 @@ namespace Framework
 			8,			// BC7_UNORM_SRGB
 			
 			// NOTE: I don't know what are the bit depths for the video formats;
-			// the MS docs don't specify them well.
+			// the MS docs don't seem to describe them in any detail.
 
 			0,			// AYUV
 			0,			// Y410
