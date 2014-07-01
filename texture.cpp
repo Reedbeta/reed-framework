@@ -83,7 +83,6 @@ namespace Framework
 		pCtx->GetDevice(&pDevice);
 
 		int2 mipDims = CalculateMipDims(m_dims, level);
-		int sizeInBytes = CalculateMipSizeInBytes(m_dims, level, m_format);
 
 		// Create a staging resource
 		D3D11_TEXTURE2D_DESC texDesc =
@@ -102,11 +101,21 @@ namespace Framework
 		// Copy the data to the staging resource
 		pCtx->CopySubresourceRegion(pTexStaging, 0, 0, 0, 0, m_pTex, level, nullptr);
 
-		// Map the staging resource and copy the data out
+		// Map the staging resource
 		D3D11_MAPPED_SUBRESOURCE mapped = {};
 		CHECK_D3D(pCtx->Map(pTexStaging, 0, D3D11_MAP_READ, 0, &mapped));
-		ASSERT_ERR(mapped.RowPitch == UINT(mipDims.x * BitsPerPixel(m_format) / 8));
-		memcpy(pDataOut, mapped.pData, sizeInBytes);
+
+		// Copy the data out row by row, in case the pitch is different
+		int rowSize = mipDims.x * BitsPerPixel(m_format) / 8;
+		ASSERT_ERR(mapped.RowPitch >= UINT(rowSize));
+		for (int y = 0; y < mipDims.y; ++y)
+		{
+			memcpy(
+				advanceBytes(pDataOut, y * rowSize),
+				advanceBytes(mapped.pData, y * mapped.RowPitch),
+				rowSize);
+		}
+
 		pCtx->Unmap(pTexStaging, 0);
 	}
 
@@ -196,7 +205,6 @@ namespace Framework
 		pCtx->GetDevice(&pDevice);
 
 		int mipDim = CalculateMipDims(m_cubeSize, level);
-		int sizeInBytes = CalculateMipSizeInBytes(m_cubeSize, level, m_format);
 
 		// Create a staging resource
 		D3D11_TEXTURE2D_DESC texDesc =
@@ -218,8 +226,18 @@ namespace Framework
 		// Map the staging resource and copy the data out
 		D3D11_MAPPED_SUBRESOURCE mapped = {};
 		CHECK_D3D(pCtx->Map(pTexStaging, 0, D3D11_MAP_READ, 0, &mapped));
-		ASSERT_ERR(mapped.RowPitch == UINT(mipDim * BitsPerPixel(m_format) / 8));
-		memcpy(pDataOut, mapped.pData, sizeInBytes);
+
+		// Copy the data out row by row, in case the pitch is different
+		int rowSize = mipDim * BitsPerPixel(m_format) / 8;
+		ASSERT_ERR(mapped.RowPitch >= UINT(rowSize));
+		for (int y = 0; y < mipDim; ++y)
+		{
+			memcpy(
+				advanceBytes(pDataOut, y * rowSize),
+				advanceBytes(mapped.pData, y * mapped.RowPitch),
+				rowSize);
+		}
+
 		pCtx->Unmap(pTexStaging, 0);
 	}
 
@@ -304,7 +322,6 @@ namespace Framework
 		pCtx->GetDevice(&pDevice);
 
 		int3 mipDims = CalculateMipDims(m_dims, level);
-		int sizeInBytes = CalculateMipSizeInBytes(m_dims, level, m_format);
 
 		// Create a staging resource
 		D3D11_TEXTURE3D_DESC texDesc =
@@ -325,9 +342,23 @@ namespace Framework
 		// Map the staging resource and copy the data out
 		D3D11_MAPPED_SUBRESOURCE mapped = {};
 		CHECK_D3D(pCtx->Map(pTexStaging, 0, D3D11_MAP_READ, 0, &mapped));
-		ASSERT_ERR(mapped.RowPitch == UINT(mipDims.x * BitsPerPixel(m_format) / 8));
-		ASSERT_ERR(mapped.DepthPitch == UINT(mipDims.x * mipDims.y * BitsPerPixel(m_format) / 8));
-		memcpy(pDataOut, mapped.pData, sizeInBytes);
+
+		// Copy the data out slice by slice and row by row, in case the pitches are different
+		int rowSize = mipDims.x * BitsPerPixel(m_format) / 8;
+		int sliceSize = mipDims.y * rowSize;
+		ASSERT_ERR(mapped.RowPitch >= UINT(rowSize));
+		ASSERT_ERR(mapped.DepthPitch >= UINT(sliceSize));
+		for (int z = 0; z < mipDims.z; ++z)
+		{
+			for (int y = 0; y < mipDims.y; ++y)
+			{
+				memcpy(
+					advanceBytes(pDataOut, z * sliceSize + y * rowSize),
+					advanceBytes(mapped.pData, z * mapped.DepthPitch + y * mapped.RowPitch),
+					rowSize);
+			}
+		}
+
 		pCtx->Unmap(pTexStaging, 0);
 	}
 
