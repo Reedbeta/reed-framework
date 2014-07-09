@@ -117,10 +117,20 @@ namespace Framework
 					// Note that some components may be missing and will be set to zero here
 					OBJVertex vert = {};
 
-					if (char * pIdx = tokenize(pCtxVert, "/"))
-						vert.iPos = atoi(pIdx);
-					if (char * pIdx = tokenize(pCtxVert, "/"))
-						vert.iUv = atoi(pIdx);
+					char * pIdx = pCtxVert;
+					while (*pCtxVert && *pCtxVert != '/')
+						++pCtxVert;
+					if (*pCtxVert)
+						*(pCtxVert++) = 0;
+					vert.iPos = atoi(pIdx);
+
+					pIdx = pCtxVert;
+					while (*pCtxVert && *pCtxVert != '/')
+						++pCtxVert;
+					if (*pCtxVert)
+						*(pCtxVert++) = 0;
+					vert.iUv = atoi(pIdx);
+
 					vert.iNormal = atoi(pCtxVert);
 				
 					OBJverts.push_back(vert);
