@@ -95,7 +95,7 @@ namespace Framework
 			2,
 			m_hWnd,
 			true,
-			DXGI_SWAP_EFFECT_FLIP_SEQUENTIAL,
+			DXGI_SWAP_EFFECT_DISCARD,
 		};
 		D3D_FEATURE_LEVEL featureLevel;
 		CHECK_D3D(D3D11CreateDeviceAndSwapChain(
