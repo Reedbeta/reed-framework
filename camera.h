@@ -72,6 +72,10 @@ namespace Framework
 		MBUTTON				m_mbuttonActivate;	// Which mouse button enables rotation?
 		ipoint2				m_mousePosPrev;
 
+		bool				m_controllerPresent;
+		float				m_controllerMoveSpeed;
+		float				m_controllerRotateSpeed;
+
 		float				m_yaw;				// Yaw from +X toward +Z axis, in radians
 		float				m_pitch;			// Pitch from XZ-plane toward +Y, in radians
 		point3				m_pos;
@@ -96,6 +100,11 @@ namespace Framework
 		float				m_zoomSpeed;		// Mouse zoom speed in nepers/pixel
 		float				m_zoomWheelSpeed;	// Mouse zoom speed in nepers/wheel-tick
 		ipoint2				m_mousePosPrev;
+
+		bool				m_controllerPresent;
+		float				m_controllerMoveSpeed;
+		float				m_controllerZoomSpeed;
+		float				m_controllerRotateSpeed;
 
 		float				m_yaw;				// Yaw from +X toward -Z axis, in radians
 		float				m_pitch;			// Pitch from XZ-plane toward +Y, in radians

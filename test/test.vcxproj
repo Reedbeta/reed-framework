@@ -62,7 +62,7 @@
     <Link>
       <SubSystem>Windows</SubSystem>
       <GenerateDebugInformation>true</GenerateDebugInformation>
-      <AdditionalDependencies>kernel32.lib;user32.lib;d3d11.lib;dxguid.lib;d3dcompiler.lib;AntTweakBar64.lib;d3dx11.lib</AdditionalDependencies>
+      <AdditionalDependencies>kernel32.lib;user32.lib;d3d11.lib;dxguid.lib;d3dcompiler.lib;AntTweakBar64.lib;d3dx11.lib;xinput9_1_0.lib</AdditionalDependencies>
       <AdditionalLibraryDirectories>..\d3dx11;..\..\AntTweakBar\lib</AdditionalLibraryDirectories>
     </Link>
     <FxCompile>
@@ -107,7 +107,7 @@ copy /y $(ProjectDir)d3dcompiler_46.dll $(OutDir)
       <GenerateDebugInformation>true</GenerateDebugInformation>
       <EnableCOMDATFolding>true</EnableCOMDATFolding>
       <OptimizeReferences>true</OptimizeReferences>
-      <AdditionalDependencies>kernel32.lib;user32.lib;d3d11.lib;dxguid.lib;d3dcompiler.lib;AntTweakBar64.lib;d3dx11.lib</AdditionalDependencies>
+      <AdditionalDependencies>kernel32.lib;user32.lib;d3d11.lib;dxguid.lib;d3dcompiler.lib;AntTweakBar64.lib;d3dx11.lib;xinput9_1_0.lib</AdditionalDependencies>
       <AdditionalLibraryDirectories>..\d3dx11;..\..\AntTweakBar\lib</AdditionalLibraryDirectories>
     </Link>
     <FxCompile>
