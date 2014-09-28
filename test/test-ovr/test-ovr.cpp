@@ -70,6 +70,8 @@ public:
 	virtual void		OnResize(int2_arg dimsNew);
 	virtual void		OnRender();
 
+	ovrHmd								m_hmd;
+
 	Mesh								m_meshSponza;
 	Texture2D							m_texStone;
 	comptr<ID3D11VertexShader>			m_pVsWorld;
@@ -85,6 +87,7 @@ public:
 
 TestWindow::TestWindow()
 : super(),
+  m_hmd(nullptr),
   m_meshSponza(),
   m_texStone(),
   m_pVsWorld(),
@@ -99,6 +102,26 @@ TestWindow::TestWindow()
 
 bool TestWindow::Init(HINSTANCE hInstance)
 {
+	// Init OVR stuff
+	if (!ovr_Initialize())
+	{
+		ERR("Couldn't init Oculus SDK");
+		return false;
+	}
+	m_hmd = ovrHmd_Create(0);
+	if (!m_hmd)
+	{
+		ERR("No Oculus headset detected");
+		return false;
+	}
+
+	// Init OVR head-tracking
+	CHECK_WARN(ovrHmd_ConfigureTracking(
+				m_hmd,
+				ovrTrackingCap_Orientation | ovrTrackingCap_MagYawCorrection | ovrTrackingCap_Position,
+				0));
+
+	// Init D3D
 	super::Init("TestWindow", "Test", hInstance);
 
 	// Load assets
@@ -137,9 +160,7 @@ bool TestWindow::Init(HINSTANCE hInstance)
 	// Init the camera
 	m_camera.m_moveSpeed = 3.0f;
 	m_camera.m_mbuttonActivate = MBUTTON_Left;
-	m_camera.LookAt(
-				makepoint3(-8.7f, 6.8f, 0.0f),
-				makepoint3(0.0f, 5.0f, 0.0f));
+	m_camera.m_pos = makepoint3(-8.7f, 6.8f, 0.0f);
 
 	// Init AntTweakBar
 	CHECK_ERR(TwInit(TW_DIRECT3D11, m_pDevice));
@@ -195,6 +216,9 @@ bool TestWindow::Init(HINSTANCE hInstance)
 	TwAddVarCB(pTwBarCamera, "Look Y", TW_TYPE_FLOAT, nullptr, lambdaNegate, &m_camera.m_viewToWorld.m_linear[2].y, "precision=3");
 	TwAddVarCB(pTwBarCamera, "Look Z", TW_TYPE_FLOAT, nullptr, lambdaNegate, &m_camera.m_viewToWorld.m_linear[2].z, "precision=3");
 
+	// Take initial HMD pose as centered
+	ovrHmd_RecenterPose(m_hmd);
+
 	return true;
 }
 
@@ -202,6 +226,11 @@ void TestWindow::Shutdown()
 {
 	TwTerminate();
 	super::Shutdown();
+
+	// Shutdown OVR stuff
+	if (m_hmd)
+		ovrHmd_Destroy(m_hmd);
+	ovr_Shutdown();
 }
 
 LRESULT TestWindow::MsgProc(HWND hWnd, UINT message, WPARAM wParam, LPARAM lParam)
@@ -219,6 +248,10 @@ LRESULT TestWindow::MsgProc(HWND hWnd, UINT message, WPARAM wParam, LPARAM lPara
 		{
 		case VK_ESCAPE:
 			Shutdown();
+			break;
+
+		case 'R':
+			ovrHmd_RecenterPose(m_hmd);
 			break;
 		}
 		return 0;
@@ -241,6 +274,30 @@ void TestWindow::OnRender()
 	m_timer.OnFrameStart();
 	m_camera.Update(m_timer.m_timestep);
 
+	// Hackily force camera pitch to zero, so pitch is only from HMD orientation
+	m_camera.m_pitch = 0.0f;
+	m_camera.UpdateOrientation();
+
+	// Retrieve head-tracking state
+	// !!!UNDONE: use predicted timing instead of current
+	ovrTrackingState headTracking = ovrHmd_GetTrackingState(m_hmd, ovr_GetTimeInSeconds());
+
+	// Calculate new camera matrices incorporating the head-tracking state
+	// !!!UNDONE: support this in the camera classes
+	float3 hmdOffset = makefloat3(
+							headTracking.HeadPose.ThePose.Position.x,
+							headTracking.HeadPose.ThePose.Position.y,
+							headTracking.HeadPose.ThePose.Position.z);
+	quat hmdOrientation = makequat(
+							headTracking.HeadPose.ThePose.Orientation.w,
+							headTracking.HeadPose.ThePose.Orientation.x,
+							headTracking.HeadPose.ThePose.Orientation.y,
+							headTracking.HeadPose.ThePose.Orientation.z);
+	affine3 hmdToCamera = makeaffine3(hmdOrientation, hmdOffset);
+	affine3 hmdToWorld = hmdToCamera * m_camera.m_viewToWorld;
+	affine3 worldToHmd = transpose(hmdToWorld);
+	float4x4 worldToClip = affineToHomogeneous(worldToHmd) * m_camera.m_projection;
+
 	m_pCtx->ClearState();
 	m_pCtx->IASetInputLayout(m_pInputLayout);
 	m_pCtx->RSSetState(m_pRsDefault);
@@ -250,9 +307,9 @@ void TestWindow::OnRender()
 
 	CBFrame cbFrame =
 	{
-		m_camera.m_worldToClip,
+		worldToClip,
 		float4x4::identity(),
-		m_camera.m_pos,
+		m_camera.m_pos + hmdOffset,
 		0,
 		g_vecDirectionalLight,
 		0,

@@ -51,7 +51,6 @@ namespace Framework
 		affine3				m_worldToView;
 		float4x4			m_projection;
 
-	protected:
 		void				UpdateWorldToClip();
 	};
 
@@ -80,7 +79,6 @@ namespace Framework
 		float				m_pitch;			// Pitch from XZ-plane toward +Y, in radians
 		point3				m_pos;
 
-	protected:
 		void				UpdateOrientation();
 	};
 
@@ -112,7 +110,6 @@ namespace Framework
 		float				m_radius;			// Orbital radius
 		point3				m_pos;				// Position of camera itself
 
-	protected:
 		void				UpdateOrientation();
 	};
 }
