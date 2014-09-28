@@ -1,0 +1,171 @@
+﻿<?xml version="1.0" encoding="utf-8"?>
+<Project DefaultTargets="Build" ToolsVersion="4.0" xmlns="http://schemas.microsoft.com/developer/msbuild/2003">
+  <ItemGroup Label="ProjectConfigurations">
+    <ProjectConfiguration Include="Debug|x64">
+      <Configuration>Debug</Configuration>
+      <Platform>x64</Platform>
+    </ProjectConfiguration>
+    <ProjectConfiguration Include="Release|x64">
+      <Configuration>Release</Configuration>
+      <Platform>x64</Platform>
+    </ProjectConfiguration>
+  </ItemGroup>
+  <PropertyGroup Label="Globals">
+    <ProjectGuid>{347A992A-2C87-44D7-8897-8B325F86C0D2}</ProjectGuid>
+    <Keyword>Win32Proj</Keyword>
+    <RootNamespace>test-ovr</RootNamespace>
+  </PropertyGroup>
+  <Import Project="$(VCTargetsPath)\Microsoft.Cpp.Default.props" />
+  <PropertyGroup Condition="'$(Configuration)|$(Platform)'=='Debug|x64'" Label="Configuration">
+    <ConfigurationType>Application</ConfigurationType>
+    <UseDebugLibraries>true</UseDebugLibraries>
+    <PlatformToolset>v110</PlatformToolset>
+    <CharacterSet>MultiByte</CharacterSet>
+  </PropertyGroup>
+  <PropertyGroup Condition="'$(Configuration)|$(Platform)'=='Release|x64'" Label="Configuration">
+    <ConfigurationType>Application</ConfigurationType>
+    <UseDebugLibraries>false</UseDebugLibraries>
+    <PlatformToolset>v110</PlatformToolset>
+    <WholeProgramOptimization>true</WholeProgramOptimization>
+    <CharacterSet>MultiByte</CharacterSet>
+  </PropertyGroup>
+  <Import Project="$(VCTargetsPath)\Microsoft.Cpp.props" />
+  <ImportGroup Label="ExtensionSettings">
+  </ImportGroup>
+  <ImportGroup Condition="'$(Configuration)|$(Platform)'=='Debug|x64'" Label="PropertySheets">
+    <Import Project="$(UserRootDir)\Microsoft.Cpp.$(Platform).user.props" Condition="exists('$(UserRootDir)\Microsoft.Cpp.$(Platform).user.props')" Label="LocalAppDataPlatform" />
+  </ImportGroup>
+  <ImportGroup Condition="'$(Configuration)|$(Platform)'=='Release|x64'" Label="PropertySheets">
+    <Import Project="$(UserRootDir)\Microsoft.Cpp.$(Platform).user.props" Condition="exists('$(UserRootDir)\Microsoft.Cpp.$(Platform).user.props')" Label="LocalAppDataPlatform" />
+  </ImportGroup>
+  <PropertyGroup Label="UserMacros" />
+  <PropertyGroup Condition="'$(Configuration)|$(Platform)'=='Debug|x64'">
+    <LinkIncremental>true</LinkIncremental>
+    <OutDir>$(Platform)\$(Configuration)\</OutDir>
+  </PropertyGroup>
+  <PropertyGroup Condition="'$(Configuration)|$(Platform)'=='Release|x64'">
+    <LinkIncremental>false</LinkIncremental>
+    <OutDir>$(Platform)\$(Configuration)\</OutDir>
+  </PropertyGroup>
+  <ItemDefinitionGroup Condition="'$(Configuration)|$(Platform)'=='Debug|x64'">
+    <ClCompile>
+      <PrecompiledHeader>
+      </PrecompiledHeader>
+      <WarningLevel>Level4</WarningLevel>
+      <Optimization>Disabled</Optimization>
+      <PreprocessorDefinitions>WIN32;_DEBUG;_WINDOWS;%(PreprocessorDefinitions)</PreprocessorDefinitions>
+      <SDLCheck>true</SDLCheck>
+      <AdditionalIncludeDirectories>..;..\..;..\..\..\reed-util;..\..\..\AntTweakBar\include;LibOVR\Include;LibOVR\Src;$(Platform)\$(Configuration)\shaders</AdditionalIncludeDirectories>
+      <TreatWarningAsError>true</TreatWarningAsError>
+      <AdditionalOptions>/d2Zi+</AdditionalOptions>
+    </ClCompile>
+    <Link>
+      <SubSystem>Windows</SubSystem>
+      <GenerateDebugInformation>true</GenerateDebugInformation>
+      <AdditionalDependencies>kernel32.lib;user32.lib;d3d11.lib;dxguid.lib;d3dcompiler.lib;AntTweakBar64.lib;d3dx11.lib;xinput9_1_0.lib;libovr64.lib</AdditionalDependencies>
+      <AdditionalLibraryDirectories>..\..\d3dx11;..\..\..\AntTweakBar\lib;LibOVR\Lib</AdditionalLibraryDirectories>
+    </Link>
+    <FxCompile>
+      <ShaderModel>5.0</ShaderModel>
+      <TreatWarningAsError>true</TreatWarningAsError>
+      <VariableName>%(Filename)_bytecode</VariableName>
+      <HeaderFileOutput>$(Platform)\$(Configuration)\shaders\%(Filename).h</HeaderFileOutput>
+      <ObjectFileOutput />
+      <AdditionalOptions>/Gfp</AdditionalOptions>
+    </FxCompile>
+    <CustomBuildStep>
+      <Command>copy /y $(ProjectDir)..\AntTweakBar64.dll $(OutDir)
+copy /y $(ProjectDir)..\d3dcompiler_46.dll $(OutDir)
+</Command>
+    </CustomBuildStep>
+    <CustomBuildStep>
+      <Message>Copying .dlls to output directory</Message>
+    </CustomBuildStep>
+    <CustomBuildStep>
+      <Outputs>$(OutDir)AntTweakBar64.dll;$(OutDir)d3dcompiler_46.dll;%(Outputs)</Outputs>
+    </CustomBuildStep>
+    <CustomBuildStep>
+      <Inputs>$(ProjectDir)..\AntTweakBar64.dll;$(ProjectDir)..\d3dcompiler_46.dll;%(Inputs)</Inputs>
+    </CustomBuildStep>
+  </ItemDefinitionGroup>
+  <ItemDefinitionGroup Condition="'$(Configuration)|$(Platform)'=='Release|x64'">
+    <ClCompile>
+      <WarningLevel>Level4</WarningLevel>
+      <PrecompiledHeader>
+      </PrecompiledHeader>
+      <Optimization>MaxSpeed</Optimization>
+      <FunctionLevelLinking>true</FunctionLevelLinking>
+      <IntrinsicFunctions>true</IntrinsicFunctions>
+      <PreprocessorDefinitions>WIN32;NDEBUG;_WINDOWS;%(PreprocessorDefinitions)</PreprocessorDefinitions>
+      <SDLCheck>true</SDLCheck>
+      <AdditionalIncludeDirectories>..;..\..;..\..\..\reed-util;..\..\..\AntTweakBar\include;LibOVR\Include;LibOVR\Src;$(Platform)\$(Configuration)\shaders</AdditionalIncludeDirectories>
+      <TreatWarningAsError>true</TreatWarningAsError>
+      <AdditionalOptions>/d2Zi+</AdditionalOptions>
+    </ClCompile>
+    <Link>
+      <SubSystem>Windows</SubSystem>
+      <GenerateDebugInformation>true</GenerateDebugInformation>
+      <EnableCOMDATFolding>true</EnableCOMDATFolding>
+      <OptimizeReferences>true</OptimizeReferences>
+      <AdditionalDependencies>kernel32.lib;user32.lib;d3d11.lib;dxguid.lib;d3dcompiler.lib;AntTweakBar64.lib;d3dx11.lib;xinput9_1_0.lib;libovr64.lib</AdditionalDependencies>
+      <AdditionalLibraryDirectories>..\..\d3dx11;..\..\..\AntTweakBar\lib;LibOVR\Lib</AdditionalLibraryDirectories>
+    </Link>
+    <FxCompile>
+      <DisableOptimizations>true</DisableOptimizations>
+    </FxCompile>
+    <FxCompile>
+      <EnableDebuggingInformation>true</EnableDebuggingInformation>
+    </FxCompile>
+    <FxCompile>
+      <ShaderModel>5.0</ShaderModel>
+      <TreatWarningAsError>true</TreatWarningAsError>
+      <VariableName>%(Filename)_bytecode</VariableName>
+      <HeaderFileOutput>$(Platform)\$(Configuration)\shaders\%(Filename).h</HeaderFileOutput>
+      <ObjectFileOutput />
+      <AdditionalOptions>/Gfp</AdditionalOptions>
+    </FxCompile>
+    <CustomBuildStep>
+      <Command>copy /y $(ProjectDir)..\AntTweakBar64.dll $(OutDir)
+copy /y $(ProjectDir)..\d3dcompiler_46.dll $(OutDir)
+</Command>
+    </CustomBuildStep>
+    <CustomBuildStep>
+      <Message>Copying .dlls to output directory</Message>
+    </CustomBuildStep>
+    <CustomBuildStep>
+      <Outputs>$(OutDir)AntTweakBar64.dll;$(OutDir)d3dcompiler_46.dll;%(Outputs)</Outputs>
+    </CustomBuildStep>
+    <CustomBuildStep>
+      <Inputs>$(ProjectDir)..\AntTweakBar64.dll;$(ProjectDir)..\d3dcompiler_46.dll;%(Inputs)</Inputs>
+    </CustomBuildStep>
+  </ItemDefinitionGroup>
+  <ItemGroup>
+    <ClCompile Include="test-ovr.cpp" />
+  </ItemGroup>
+  <ItemGroup>
+    <ProjectReference Include="..\..\..\reed-util\util.vcxproj">
+      <Project>{059adadd-603c-4508-b2c6-8b0ba87ba4c9}</Project>
+    </ProjectReference>
+    <ProjectReference Include="..\..\framework.vcxproj">
+      <Project>{6d779109-842e-4c23-a10d-2345ffccea60}</Project>
+    </ProjectReference>
+  </ItemGroup>
+  <ItemGroup>
+    <ClInclude Include="../shader-common.h" />
+  </ItemGroup>
+  <ItemGroup>
+    <FxCompile Include="../simple_ps.hlsl">
+      <FileType>Document</FileType>
+      <ShaderType Condition="'$(Configuration)|$(Platform)'=='Debug|x64'">Pixel</ShaderType>
+      <ShaderType Condition="'$(Configuration)|$(Platform)'=='Release|x64'">Pixel</ShaderType>
+    </FxCompile>
+    <FxCompile Include="../world_vs.hlsl">
+      <FileType>Document</FileType>
+      <ShaderType Condition="'$(Configuration)|$(Platform)'=='Debug|x64'">Vertex</ShaderType>
+      <ShaderType Condition="'$(Configuration)|$(Platform)'=='Release|x64'">Vertex</ShaderType>
+    </FxCompile>
+  </ItemGroup>
+  <Import Project="$(VCTargetsPath)\Microsoft.Cpp.targets" />
+  <ImportGroup Label="ExtensionTargets">
+  </ImportGroup>
+</Project>
