@@ -125,8 +125,9 @@ bool TestWindow::Init(HINSTANCE hInstance)
 	m_hmd = ovrHmd_Create(0);
 	if (!m_hmd)
 	{
-		ERR("No Oculus headset detected");
-		return false;
+		// If no HMD connected, just fake a DK2 so the app can still run
+		m_hmd = ovrHmd_CreateDebug(ovrHmd_DK2);
+		ASSERT_ERR(m_hmd);
 	}
 
 	// Init OVR head-tracking
