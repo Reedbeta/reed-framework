@@ -353,7 +353,7 @@ namespace Framework
 
 	void D3D11Window::OnResize(int2_arg dimsNew)
 	{
-		LOG("Window resized to %d x %d", dimsNew.x, dimsNew.y);
+		LOG("Resizing swap chain to %d x %d", dimsNew.x, dimsNew.y);
 
 		m_dims = dimsNew;
 
@@ -365,7 +365,7 @@ namespace Framework
 
 		// Resize the swap chain to fit the window again
 		ASSERT_ERR(m_pSwapChain);
-		CHECK_D3D(m_pSwapChain->ResizeBuffers(0, 0, 0, DXGI_FORMAT_UNKNOWN, 0));
+		CHECK_D3D(m_pSwapChain->ResizeBuffers(0, dimsNew.x, dimsNew.y, DXGI_FORMAT_UNKNOWN, 0));
 
 		{
 			// Retrieve the back buffer
