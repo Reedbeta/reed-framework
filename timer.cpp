@@ -7,6 +7,7 @@ namespace Framework
 	Timer::Timer()
 	:	m_timestep(0.0f),
 		m_time(0.0f),
+		m_frameCount(0),
 		m_iFrameCur(0)
 	{
 		i64 frequency;
@@ -20,6 +21,8 @@ namespace Framework
 
 	void Timer::OnFrameStart()
 	{
+		++m_frameCount;
+
 		i64 timestamp;
 		QueryPerformanceCounter((LARGE_INTEGER *)&timestamp);
 

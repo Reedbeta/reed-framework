@@ -10,6 +10,7 @@ namespace Framework
 
 		float	m_timestep;
 		float	m_time;
+		int		m_frameCount;
 
 		i64		m_startupTimestamp;
 		i64		m_lastFrameTimestamps[3];
