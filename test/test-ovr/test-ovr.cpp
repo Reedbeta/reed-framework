@@ -10,6 +10,8 @@
 #include "world_vs.h"
 #include "simple_ps.h"
 
+#pragma warning(disable: 4351)	// "new behavior: elements of array will be default initialized"
+
 using namespace util;
 using namespace Framework;
 
@@ -19,7 +21,7 @@ using namespace Framework;
 
 float3 g_vecDirectionalLight = normalize(makefloat3(1, 1, 1));
 rgb g_rgbDirectionalLight = makergb(1.0f, 1.0f, 0.77f);
-rgb g_rgbSky = makergb(0.44f, 0.56f, 1.0f);
+srgb g_srgbSky = makergb(0.44f, 0.56f, 1.0f);
 
 float g_debugSlider0 = 0.0f;
 float g_debugSlider1 = 0.0f;
@@ -71,6 +73,12 @@ public:
 	virtual void		OnRender();
 
 	ovrHmd								m_hmd;
+	RenderTarget						m_rtEyes;
+	DepthStencilTarget					m_dstEyes;
+	float3								m_eyeOffsets[2];
+	float4x4							m_eyeProjections[2];
+	ibox2								m_eyeViewports[2];
+	ovrD3D11Texture						m_ovrEyeTextures[2];
 
 	Mesh								m_meshSponza;
 	Texture2D							m_texStone;
@@ -88,6 +96,12 @@ public:
 TestWindow::TestWindow()
 : super(),
   m_hmd(nullptr),
+  m_rtEyes(),
+  m_dstEyes(),
+  m_eyeOffsets(),
+  m_eyeProjections(),
+  m_eyeViewports(),
+  m_ovrEyeTextures(),
   m_meshSponza(),
   m_texStone(),
   m_pVsWorld(),
@@ -102,7 +116,7 @@ TestWindow::TestWindow()
 
 bool TestWindow::Init(HINSTANCE hInstance)
 {
-	// Init OVR stuff
+	// Init libovr
 	if (!ovr_Initialize())
 	{
 		ERR("Couldn't init Oculus SDK");
@@ -116,7 +130,7 @@ bool TestWindow::Init(HINSTANCE hInstance)
 	}
 
 	// Init OVR head-tracking
-	CHECK_WARN(ovrHmd_ConfigureTracking(
+	CHECK_ERR(ovrHmd_ConfigureTracking(
 				m_hmd,
 				ovrTrackingCap_Orientation | ovrTrackingCap_MagYawCorrection | ovrTrackingCap_Position,
 				0));
@@ -124,6 +138,71 @@ bool TestWindow::Init(HINSTANCE hInstance)
 	// Init D3D
 	super::Init("TestWindow", "Test", hInstance);
 
+	// Resize swap chain to the size of the HMD (note, swap chain size does not match window size)
+	// Don't create depth buffer, as we're going to do that with our offscreen RT
+	m_hasDepthBuffer = false;
+	super::OnResize(makeint2(m_hmd->Resolution.w, m_hmd->Resolution.h));
+
+	// Hook up OVR to the swap chain
+	ovrD3D11Config oculusConfig = {};
+	oculusConfig.D3D11.Header.API = ovrRenderAPI_D3D11;
+	oculusConfig.D3D11.Header.RTSize.w = m_dims.x;
+	oculusConfig.D3D11.Header.RTSize.h = m_dims.y;
+	oculusConfig.D3D11.Header.Multisample = 1;
+	oculusConfig.D3D11.pDevice = m_pDevice;
+	oculusConfig.D3D11.pDeviceContext = m_pCtx;
+	oculusConfig.D3D11.pBackBufferRT = m_pRtvRaw;
+	oculusConfig.D3D11.pSwapChain = m_pSwapChain;
+	ovrEyeRenderDesc oculusEyeDescs[2];
+	CHECK_ERR(ovrHmd_ConfigureRendering(
+				m_hmd,
+				&oculusConfig.Config,
+				ovrDistortionCap_Chromatic | ovrDistortionCap_TimeWarp | ovrDistortionCap_SRGB | ovrDistortionCap_Overdrive,
+				m_hmd->DefaultEyeFov,
+				oculusEyeDescs));
+	CHECK_ERR(ovrHmd_AttachToWindow(m_hmd, m_hWnd, nullptr, nullptr));
+
+	// Calculate size for internal eye render target
+	ovrSizei leftEyeSize = ovrHmd_GetFovTextureSize(m_hmd, ovrEye_Left, m_hmd->DefaultEyeFov[0], 1.0f);
+	ovrSizei rightEyeSize = ovrHmd_GetFovTextureSize(m_hmd, ovrEye_Right, m_hmd->DefaultEyeFov[1], 1.0f);
+	int2 eyeDims = { leftEyeSize.w + rightEyeSize.w, max(leftEyeSize.h, rightEyeSize.h) };
+	// Round off dims to the next highest 32, just for sanity's sake
+	eyeDims = makeint2(roundUp(eyeDims.x, 32), roundUp(eyeDims.y, 32));
+
+	// Create the render target
+	m_rtEyes.Init(m_pDevice, eyeDims, DXGI_FORMAT_R8G8B8A8_UNORM_SRGB);
+	m_dstEyes.Init(m_pDevice, eyeDims, DXGI_FORMAT_D32_FLOAT);
+
+	// Calculate per-eye offset vectors, projection matrices, and viewports,
+	// and setup OVR texture structs
+	float zNear = 0.01f;
+	float zFar = 1000.0f;
+	for (int i = 0; i < 2; ++i)
+	{
+		// Negate the offset vector from the SDK, since it's given to us reversed
+		m_eyeOffsets[i] = -makefloat3(oculusEyeDescs[i].ViewAdjust.x, oculusEyeDescs[i].ViewAdjust.y, oculusEyeDescs[i].ViewAdjust.z);
+
+		m_eyeProjections[i] = perspProjD3DStyle(
+									-oculusEyeDescs[i].Fov.LeftTan * zNear,
+									oculusEyeDescs[i].Fov.RightTan * zNear,
+									-oculusEyeDescs[i].Fov.DownTan * zNear,
+									oculusEyeDescs[i].Fov.UpTan * zNear,
+									zNear,
+									zFar);
+
+		m_eyeViewports[i] = makeibox2(eyeDims.x / 2 * i, 0, eyeDims.x / 2 * (i + 1), eyeDims.y);
+
+		m_ovrEyeTextures[i].D3D11.Header.API = ovrRenderAPI_D3D11;
+		m_ovrEyeTextures[i].D3D11.Header.TextureSize.w = m_rtEyes.m_dims.x;
+		m_ovrEyeTextures[i].D3D11.Header.TextureSize.h = m_rtEyes.m_dims.y;
+		m_ovrEyeTextures[i].D3D11.Header.RenderViewport.Pos.x = m_eyeViewports[i].m_mins.x;
+		m_ovrEyeTextures[i].D3D11.Header.RenderViewport.Pos.y = m_eyeViewports[i].m_mins.y;
+		m_ovrEyeTextures[i].D3D11.Header.RenderViewport.Size.w = m_eyeViewports[i].diagonal().x;
+		m_ovrEyeTextures[i].D3D11.Header.RenderViewport.Size.h = m_eyeViewports[i].diagonal().y;
+		m_ovrEyeTextures[i].D3D11.pTexture = m_rtEyes.m_pTex;
+		m_ovrEyeTextures[i].D3D11.pSRView = m_rtEyes.m_pSrv;
+	}
+	
 	// Load assets
 	if (!LoadObjMesh(m_pDevice, "..\\sponza\\sponza_cracksFilled.obj", &m_meshSponza))
 	{
@@ -162,6 +241,8 @@ bool TestWindow::Init(HINSTANCE hInstance)
 	m_camera.m_mbuttonActivate = MBUTTON_Left;
 	m_camera.m_pos = makepoint3(-8.7f, 6.8f, 0.0f);
 
+#define ANT_TWEAK_BAR 0
+#if ANT_TWEAK_BAR
 	// Init AntTweakBar
 	CHECK_ERR(TwInit(TW_DIRECT3D11, m_pDevice));
 
@@ -201,7 +282,7 @@ bool TestWindow::Init(HINSTANCE hInstance)
 	TwDefine("Lighting position='15 240' size='275 355' valueswidth=130");
 	TwAddVarRW(pTwBarLight, "Light direction", TW_TYPE_DIR3F, &g_vecDirectionalLight, nullptr);
 	TwAddVarRW(pTwBarLight, "Light color", TW_TYPE_COLOR3F, &g_rgbDirectionalLight, nullptr);
-	TwAddVarRW(pTwBarLight, "Sky color", TW_TYPE_COLOR3F, &g_rgbSky, nullptr);
+	TwAddVarRW(pTwBarLight, "Sky color", TW_TYPE_COLOR3F, &g_srgbSky, nullptr);
 
 	// Create bar for camera position and orientation
 	TwBar * pTwBarCamera = TwNewBar("Camera");
@@ -215,6 +296,7 @@ bool TestWindow::Init(HINSTANCE hInstance)
 	TwAddVarCB(pTwBarCamera, "Look X", TW_TYPE_FLOAT, nullptr, lambdaNegate, &m_camera.m_viewToWorld.m_linear[2].x, "precision=3");
 	TwAddVarCB(pTwBarCamera, "Look Y", TW_TYPE_FLOAT, nullptr, lambdaNegate, &m_camera.m_viewToWorld.m_linear[2].y, "precision=3");
 	TwAddVarCB(pTwBarCamera, "Look Z", TW_TYPE_FLOAT, nullptr, lambdaNegate, &m_camera.m_viewToWorld.m_linear[2].z, "precision=3");
+#endif // ANT_TWEAK_BAR
 
 	// Take initial HMD pose as centered
 	ovrHmd_RecenterPose(m_hmd);
@@ -224,20 +306,28 @@ bool TestWindow::Init(HINSTANCE hInstance)
 
 void TestWindow::Shutdown()
 {
+#if ANT_TWEAK_BAR
 	TwTerminate();
-	super::Shutdown();
+#endif
 
 	// Shutdown OVR stuff
 	if (m_hmd)
+	{
 		ovrHmd_Destroy(m_hmd);
+		m_hmd = nullptr;
+	}
 	ovr_Shutdown();
+
+	super::Shutdown();
 }
 
 LRESULT TestWindow::MsgProc(HWND hWnd, UINT message, WPARAM wParam, LPARAM lParam)
 {
 	// Give AntTweakBar and the camera a crack at the message
+#if ANT_TWEAK_BAR
 	if (TwEventWin(hWnd, message, wParam, lParam))
 		return 0;
+#endif
 	if (m_camera.HandleWindowsMessage(message, wParam, lParam))
 		return 0;
 
@@ -263,14 +353,16 @@ LRESULT TestWindow::MsgProc(HWND hWnd, UINT message, WPARAM wParam, LPARAM lPara
 
 void TestWindow::OnResize(int2_arg dimsNew)
 {
-	super::OnResize(dimsNew);
-
-	// Update projection matrix for new aspect ratio
-	m_camera.SetProjection(1.0f, float(dimsNew.x) / float(dimsNew.y), 0.1f, 1000.0f);
+	// Do nothing!
+	(void) dimsNew;
 }
 
 void TestWindow::OnRender()
 {
+	// HMD goes away on shutdown
+	if (!m_hmd)
+		return;
+
 	m_timer.OnFrameStart();
 	m_camera.Update(m_timer.m_timestep);
 
@@ -278,45 +370,32 @@ void TestWindow::OnRender()
 	m_camera.m_pitch = 0.0f;
 	m_camera.UpdateOrientation();
 
-	// Retrieve head-tracking state
-	// !!!UNDONE: use predicted timing instead of current
-	ovrTrackingState headTracking = ovrHmd_GetTrackingState(m_hmd, ovr_GetTimeInSeconds());
+	// Dismiss health & safety warning as soon as possible
+	ovrHmd_DismissHSWDisplay(m_hmd);
 
-	// Calculate new camera matrices incorporating the head-tracking state
-	// !!!UNDONE: support this in the camera classes
-	float3 hmdOffset = makefloat3(
-							headTracking.HeadPose.ThePose.Position.x,
-							headTracking.HeadPose.ThePose.Position.y,
-							headTracking.HeadPose.ThePose.Position.z);
-	quat hmdOrientation = makequat(
-							headTracking.HeadPose.ThePose.Orientation.w,
-							headTracking.HeadPose.ThePose.Orientation.x,
-							headTracking.HeadPose.ThePose.Orientation.y,
-							headTracking.HeadPose.ThePose.Orientation.z);
-	affine3 hmdToCamera = makeaffine3(hmdOrientation, hmdOffset);
-	affine3 hmdToWorld = hmdToCamera * m_camera.m_viewToWorld;
-	affine3 worldToHmd = transpose(hmdToWorld);
-	float4x4 worldToClip = affineToHomogeneous(worldToHmd) * m_camera.m_projection;
+	// Predict timings at which rendered frame will be displayed
+	ovrFrameTiming timing = ovrHmd_BeginFrame(m_hmd, 0);
+	(void) timing;
 
+	// Init D3D state
 	m_pCtx->ClearState();
 	m_pCtx->IASetInputLayout(m_pInputLayout);
 	m_pCtx->RSSetState(m_pRsDefault);
 	m_pCtx->OMSetDepthStencilState(m_pDssDepthTest, 0);
 
-	// Set up whole-frame constant buffers
+	// Set up whole-frame constant buffers (except for eye-specific stuff)
 
 	CBFrame cbFrame =
 	{
-		worldToClip,
 		float4x4::identity(),
-		m_camera.m_pos + hmdOffset,
+		float4x4::identity(),
+		{},
 		0,
 		g_vecDirectionalLight,
 		0,
 		g_rgbDirectionalLight,
 		1.0f,
 	};
-	m_cbFrame.Update(m_pCtx, &cbFrame);
 	m_cbFrame.Bind(m_pCtx, CB_FRAME);
 
 	CBDebug cbDebug =
@@ -331,18 +410,68 @@ void TestWindow::OnRender()
 	m_cbDebug.Update(m_pCtx, &cbDebug);
 	m_cbDebug.Bind(m_pCtx, CB_DEBUG);
 
-	m_pCtx->ClearRenderTargetView(m_pRtvRaw, makergba(g_rgbSky, 1.0f));
-	m_pCtx->ClearDepthStencilView(m_pDsv, D3D11_CLEAR_DEPTH, 1.0f, 0);
-	BindSRGBBackBuffer(m_pCtx);
+	// Init render targets
+	m_pCtx->ClearRenderTargetView(m_rtEyes.m_pRtv, makergba(toLinear(g_srgbSky), 1.0f));
+	m_pCtx->ClearDepthStencilView(m_dstEyes.m_pDsv, D3D11_CLEAR_DEPTH, 1.0f, 0);
+	BindRenderTargets(m_pCtx, &m_rtEyes, &m_dstEyes);
 
+	// Init shaders
 	m_pCtx->VSSetShader(m_pVsWorld, nullptr, 0);
 	m_pCtx->PSSetShader(m_pPsSimple, nullptr, 0);
 	m_pCtx->PSSetShaderResources(0, 1, &m_texStone.m_pSrv);
 	m_pCtx->PSSetSamplers(0, 1, &m_pSsTrilinearRepeatAniso);
-	m_meshSponza.Draw(m_pCtx);
 
+	// Render each eye, in the order that's best for the HMD scan order
+	ovrPosef renderedEyePoses[2] = {};
+	for (int i = 0; i < 2; ++i)
+	{
+		ovrEyeType currentEye = m_hmd->EyeRenderOrder[i];
+
+		// Retrieve pose for the eye (predicted head-tracking state at
+		// predicted time at which this eye will be scanned out)
+		ovrPosef eyePose = ovrHmd_GetEyePose(m_hmd, currentEye);
+		renderedEyePoses[currentEye] = eyePose;
+
+		// Calculate new camera matrices incorporating the head-tracking pose and eye offsets
+		// !!!UNDONE: support this in the camera classes
+		float3 hmdOffset = makefloat3(
+								eyePose.Position.x,
+								eyePose.Position.y,
+								eyePose.Position.z);
+		quat hmdOrientation = makequat(
+								eyePose.Orientation.w,
+								eyePose.Orientation.x,
+								eyePose.Orientation.y,
+								eyePose.Orientation.z);
+		affine3 hmdToCamera = makeaffine3(hmdOrientation, hmdOffset);
+		affine3 eyeToWorld = translation(m_eyeOffsets[currentEye]) * hmdToCamera * m_camera.m_viewToWorld;
+		affine3 worldToEye = transpose(eyeToWorld);
+		float4x4 worldToClip = affineToHomogeneous(worldToEye) * m_eyeProjections[currentEye];
+
+		// Update constant buffer data for the new matrices
+		cbFrame.m_matWorldToClip = worldToClip;
+		cbFrame.m_posCamera = makepoint3(eyeToWorld.m_translation);
+		m_cbFrame.Update(m_pCtx, &cbFrame);
+
+		// Set the viewport
+		ibox2 viewport = m_eyeViewports[currentEye];
+		D3D11_VIEWPORT d3dViewport =
+		{
+			float(viewport.m_mins.x), float(viewport.m_mins.y),
+			float(viewport.diagonal().x), float(viewport.diagonal().y),
+			0.0f, 1.0f,
+		};
+		m_pCtx->RSSetViewports(1, &d3dViewport);
+
+		// Draw the world
+		m_meshSponza.Draw(m_pCtx);
+	}
+
+#if ANT_TWEAK_BAR
 	CHECK_WARN(TwDraw());
-	CHECK_D3D(m_pSwapChain->Present(1, 0));
+#endif
+
+	ovrHmd_EndFrame(m_hmd, renderedEyePoses, &m_ovrEyeTextures[0].Texture);
 }
 
 
