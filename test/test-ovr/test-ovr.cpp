@@ -359,10 +359,6 @@ void TestWindow::OnResize(int2_arg dimsNew)
 
 void TestWindow::OnRender()
 {
-	// HMD goes away on shutdown
-	if (!m_hmd)
-		return;
-
 	m_timer.OnFrameStart();
 	m_camera.Update(m_timer.m_timestep);
 
@@ -374,7 +370,7 @@ void TestWindow::OnRender()
 	ovrHmd_DismissHSWDisplay(m_hmd);
 
 	// Predict timings at which rendered frame will be displayed
-	ovrFrameTiming timing = ovrHmd_BeginFrame(m_hmd, 0);
+	ovrFrameTiming timing = ovrHmd_BeginFrame(m_hmd, m_timer.m_frameCount);
 	(void) timing;
 
 	// Init D3D state
@@ -491,5 +487,6 @@ int WINAPI WinMain(HINSTANCE hInstance, HINSTANCE hPrevInstance, LPSTR lpCmdLine
 		return 1;
 	}
 
-	return w.MainLoop(SW_SHOWMAXIMIZED);
+	w.MainLoop(SW_SHOWMAXIMIZED);
+	return 0;
 }

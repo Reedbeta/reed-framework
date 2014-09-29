@@ -301,5 +301,6 @@ int WINAPI WinMain(HINSTANCE hInstance, HINSTANCE hPrevInstance, LPSTR lpCmdLine
 		return 1;
 	}
 
-	return w.MainLoop(SW_SHOWMAXIMIZED);
+	w.MainLoop(SW_SHOWMAXIMIZED);
+	return 0;
 }

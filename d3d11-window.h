@@ -19,7 +19,7 @@ namespace Framework
 								const char * windowTitle,
 								HINSTANCE hInstance);
 		virtual void		Shutdown();
-		int					MainLoop(int nShowCmd);
+		void				MainLoop(int nShowCmd);
 
 		virtual LRESULT		MsgProc(HWND hWnd, UINT message, WPARAM wParam, LPARAM lParam);
 		virtual void		OnResize(int2_arg dimsNew);

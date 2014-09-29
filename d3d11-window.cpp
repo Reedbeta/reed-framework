@@ -250,10 +250,11 @@ namespace Framework
 		if (m_hWnd)
 		{
 			DestroyWindow(m_hWnd);
+			m_hWnd = nullptr;
 		}
 	}
 
-	int D3D11Window::MainLoop(int nShowCmd)
+	void D3D11Window::MainLoop(int nShowCmd)
 	{
 		// Show the window.  This sends the initial WM_SIZE message which results in
 		// calling OnRender(); we don't want to do this until all initialization 
@@ -272,16 +273,13 @@ namespace Framework
 				DispatchMessage(&msg);
 			}
 
-			// Quit if necessary
-			if (msg.message == WM_QUIT)
+			// Quit if the window has been destroyed
+			if (!m_hWnd)
 				break;
 
 			// Render a new frame
 			OnRender();
 		}
-
-		// Return code specified in PostQuitMessage() ends up in wParam of WM_QUIT
-		return int(msg.wParam);
 	}
 
 	static LRESULT CALLBACK StaticMsgProc(HWND hWnd, UINT message, WPARAM wParam, LPARAM lParam)
