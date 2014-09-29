@@ -2,6 +2,8 @@
 
 namespace Framework
 {
+	// RenderTarget implementation
+
 	RenderTarget::RenderTarget()
 	:	m_pTex(),
 		m_pRtv(),
@@ -124,8 +126,6 @@ namespace Framework
 		comptr<ID3D11Device> pDevice;
 		pCtx->GetDevice(&pDevice);
 
-		int sizeInBytes = SizeInBytes();
-
 		// Create a staging resource
 		D3D11_TEXTURE2D_DESC texDesc =
 		{
@@ -143,11 +143,272 @@ namespace Framework
 		// Copy the data to the staging resource
 		pCtx->CopyResource(pTexStaging, m_pTex);
 
-		// Map the staging resource and copy the data out
+		// Map the staging resource
 		D3D11_MAPPED_SUBRESOURCE mapped = {};
 		CHECK_D3D(pCtx->Map(pTexStaging, 0, D3D11_MAP_READ, 0, &mapped));
-		ASSERT_ERR(mapped.RowPitch == UINT(m_dims.x * BitsPerPixel(m_format) / 8));
-		memcpy(pDataOut, mapped.pData, sizeInBytes);
+
+		// Copy the data out row by row, in case the pitch is different
+		int rowSize = m_dims.x * BitsPerPixel(m_format) / 8;
+		ASSERT_ERR(mapped.RowPitch >= UINT(rowSize));
+		for (int y = 0; y < m_dims.y; ++y)
+		{
+			memcpy(
+				advanceBytes(pDataOut, y * rowSize),
+				advanceBytes(mapped.pData, y * mapped.RowPitch),
+				rowSize);
+		}
+
 		pCtx->Unmap(pTexStaging, 0);
+	}
+
+
+
+	// DepthStencilTarget implementation
+
+	struct DepthStencilFormats
+	{
+		DXGI_FORMAT		m_formatTypeless;
+		DXGI_FORMAT		m_formatDsv;
+		DXGI_FORMAT		m_formatSrvDepth;
+		DXGI_FORMAT		m_formatSrvStencil;
+	};
+
+	static const DepthStencilFormats s_depthStencilFormats[] =
+	{
+		// 32-bit float depth + 8-bit stencil
+		{
+			DXGI_FORMAT_R32G8X24_TYPELESS,
+			DXGI_FORMAT_D32_FLOAT_S8X24_UINT,
+			DXGI_FORMAT_R32_FLOAT_X8X24_TYPELESS,
+			DXGI_FORMAT_X32_TYPELESS_G8X24_UINT,
+		},
+		// 32-bit float depth, no stencil
+		{
+			DXGI_FORMAT_R32_TYPELESS,
+			DXGI_FORMAT_D32_FLOAT,
+			DXGI_FORMAT_R32_FLOAT,
+			DXGI_FORMAT_UNKNOWN,
+		},
+		// 24-bit fixed-point depth + 8-bit stencil
+		{
+			DXGI_FORMAT_R24G8_TYPELESS,
+			DXGI_FORMAT_D24_UNORM_S8_UINT,
+			DXGI_FORMAT_R24_UNORM_X8_TYPELESS,
+			DXGI_FORMAT_X24_TYPELESS_G8_UINT,
+		},
+		// 16-bit fixed-point depth, no stencil
+		{
+			DXGI_FORMAT_R16_TYPELESS,
+			DXGI_FORMAT_D16_UNORM,
+			DXGI_FORMAT_R16_UNORM,
+			DXGI_FORMAT_UNKNOWN,
+		},
+	};
+
+	DepthStencilTarget::DepthStencilTarget()
+	:	m_pTex(),
+		m_pDsv(),
+		m_pSrvDepth(),
+		m_pSrvStencil(),
+		m_pUavDepth(),
+		m_pUavStencil(),
+		m_dims(makeint2(0)),
+		m_sampleCount(0),
+		m_formatDsv(DXGI_FORMAT_UNKNOWN),
+		m_formatSrvDepth(DXGI_FORMAT_UNKNOWN),
+		m_formatSrvStencil(DXGI_FORMAT_UNKNOWN)
+	{
+	}
+
+	void DepthStencilTarget::Init(
+		ID3D11Device * pDevice,
+		int2_arg dims,
+		DXGI_FORMAT format,
+		int sampleCount, /* = 1 */
+		int flags /* = DSFLAG_Default */)
+	{
+		ASSERT_ERR(pDevice);
+
+		// Check that the format matches one of our known depth-stencil formats
+		DepthStencilFormats formats = {};
+		for (int i = 0; i < dim(s_depthStencilFormats); ++i)
+		{
+			if (s_depthStencilFormats[i].m_formatDsv == format)
+				formats = s_depthStencilFormats[i];
+		}
+		ASSERT_ERR_MSG(
+			formats.m_formatDsv == format,
+			"Depth-stencil format must be one of those listed in s_depthStencilFormats; found %s instead",
+			NameOfFormat(format));
+
+		D3D11_TEXTURE2D_DESC texDesc =
+		{
+			dims.x, dims.y, 1, 1,
+			formats.m_formatTypeless,
+			{ sampleCount, 0 },
+			D3D11_USAGE_DEFAULT,
+			D3D11_BIND_DEPTH_STENCIL | D3D11_BIND_SHADER_RESOURCE,
+			0, 0,
+		};
+		if (flags & RTFLAG_EnableUAV)
+		{
+			texDesc.BindFlags |= D3D11_BIND_UNORDERED_ACCESS;
+		}
+		CHECK_D3D(pDevice->CreateTexture2D(&texDesc, nullptr, &m_pTex));
+
+		D3D11_DEPTH_STENCIL_VIEW_DESC dsvDesc =
+		{
+			formats.m_formatDsv,
+			(sampleCount > 1) ? D3D11_DSV_DIMENSION_TEXTURE2DMS : D3D11_DSV_DIMENSION_TEXTURE2D,
+		};
+		CHECK_D3D(pDevice->CreateDepthStencilView(m_pTex, &dsvDesc, &m_pDsv));
+
+		D3D11_SHADER_RESOURCE_VIEW_DESC srvDesc =
+		{
+			formats.m_formatSrvDepth,
+			(sampleCount > 1) ? D3D11_SRV_DIMENSION_TEXTURE2DMS : D3D11_SRV_DIMENSION_TEXTURE2D,
+		};
+		if (sampleCount == 1)
+			srvDesc.Texture2D.MipLevels = 1;
+		CHECK_D3D(pDevice->CreateShaderResourceView(m_pTex, &srvDesc, &m_pSrvDepth));
+
+		if (formats.m_formatSrvStencil != DXGI_FORMAT_UNKNOWN)
+		{
+			srvDesc.Format = formats.m_formatSrvStencil;
+			CHECK_D3D(pDevice->CreateShaderResourceView(m_pTex, &srvDesc, &m_pSrvStencil));
+		}
+
+		if (flags & DSFLAG_EnableUAV)
+		{
+			D3D11_UNORDERED_ACCESS_VIEW_DESC uavDesc = { formats.m_formatSrvDepth, D3D11_UAV_DIMENSION_TEXTURE2D, };
+			CHECK_D3D(pDevice->CreateUnorderedAccessView(m_pTex, &uavDesc, &m_pUavDepth));
+
+			if (formats.m_formatSrvStencil != DXGI_FORMAT_UNKNOWN)
+			{
+				uavDesc.Format = formats.m_formatSrvStencil;
+				CHECK_D3D(pDevice->CreateUnorderedAccessView(m_pTex, &uavDesc, &m_pUavStencil));
+			}
+		}
+
+		m_dims = dims;
+		m_sampleCount = sampleCount;
+		m_formatDsv = format;
+		m_formatSrvDepth = formats.m_formatSrvDepth;
+		m_formatSrvStencil = formats.m_formatSrvStencil;
+	}
+
+	void DepthStencilTarget::Release()
+	{
+		m_pTex.release();
+		m_pDsv.release();
+		m_pSrvDepth.release();
+		m_pSrvStencil.release();
+		m_pUavDepth.release();
+		m_pUavStencil.release();
+		m_dims = makeint2(0);
+		m_sampleCount = 0;
+		m_formatDsv = DXGI_FORMAT_UNKNOWN;
+		m_formatSrvDepth = DXGI_FORMAT_UNKNOWN;
+		m_formatSrvStencil = DXGI_FORMAT_UNKNOWN;
+	}
+
+	void DepthStencilTarget::Readback(
+		ID3D11DeviceContext * pCtx,
+		void * pDataOut)
+	{
+		ASSERT_ERR(m_pTex);
+		ASSERT_ERR_MSG(m_sampleCount == 1, "D3D11 doesn't support readback of multisampled render targets");
+		ASSERT_ERR(pCtx);
+		ASSERT_ERR(pDataOut);
+
+		comptr<ID3D11Device> pDevice;
+		pCtx->GetDevice(&pDevice);
+
+		// Create a staging resource
+		D3D11_TEXTURE2D_DESC texDesc =
+		{
+			m_dims.x, m_dims.y, 1, 1,
+			m_formatDsv,
+			{ 1, 0 },
+			D3D11_USAGE_STAGING,
+			0,
+			D3D11_CPU_ACCESS_READ,
+			0,
+		};
+		comptr<ID3D11Texture2D> pTexStaging;
+		pDevice->CreateTexture2D(&texDesc, nullptr, &pTexStaging);
+
+		// Copy the data to the staging resource
+		pCtx->CopyResource(pTexStaging, m_pTex);
+
+		// Map the staging resource
+		D3D11_MAPPED_SUBRESOURCE mapped = {};
+		CHECK_D3D(pCtx->Map(pTexStaging, 0, D3D11_MAP_READ, 0, &mapped));
+
+		// Copy the data out row by row, in case the pitch is different
+		int rowSize = m_dims.x * BitsPerPixel(m_formatDsv) / 8;
+		ASSERT_ERR(mapped.RowPitch >= UINT(rowSize));
+		for (int y = 0; y < m_dims.y; ++y)
+		{
+			memcpy(
+				advanceBytes(pDataOut, y * rowSize),
+				advanceBytes(mapped.pData, y * mapped.RowPitch),
+				rowSize);
+		}
+
+		pCtx->Unmap(pTexStaging, 0);
+	}
+
+
+
+	// Utility functions for binding multiple render targets
+
+	void BindRenderTargets(ID3D11DeviceContext * pCtx, RenderTarget * pRt, DepthStencilTarget * pDst)
+	{
+		ASSERT_ERR(pCtx);
+		ASSERT_ERR(pRt);
+		ASSERT_ERR(pRt->m_pRtv);
+		if (pDst)
+			ASSERT_ERR(all(pRt->m_dims == pDst->m_dims));
+
+		pCtx->OMSetRenderTargets(1, &pRt->m_pRtv, pDst ? pDst->m_pDsv : nullptr);
+		D3D11_VIEWPORT d3dViewport = { 0.0f, 0.0f, float(pRt->m_dims.x), float(pRt->m_dims.y), 0.0f, 1.0f, };
+		pCtx->RSSetViewports(1, &d3dViewport);
+	}
+
+	void BindRenderTargets(ID3D11DeviceContext * pCtx, RenderTarget * pRt, DepthStencilTarget * pDst, box2_arg viewport)
+	{
+		ASSERT_ERR(pCtx);
+		ASSERT_ERR(pRt);
+		ASSERT_ERR(pRt->m_pRtv);
+		if (pDst)
+			ASSERT_ERR(all(pRt->m_dims == pDst->m_dims));
+
+		pCtx->OMSetRenderTargets(1, &pRt->m_pRtv, pDst ? pDst->m_pDsv : nullptr);
+		D3D11_VIEWPORT d3dViewport =
+		{
+			viewport.m_mins.x, viewport.m_mins.y,
+			viewport.diagonal().x, viewport.diagonal().y,
+			0.0f, 1.0f,
+		};
+		pCtx->RSSetViewports(1, &d3dViewport);
+	}
+
+	void BindRenderTargets(ID3D11DeviceContext * pCtx, RenderTarget * pRt, DepthStencilTarget * pDst, box3_arg viewport)
+	{
+		ASSERT_ERR(pCtx);
+		ASSERT_ERR(pRt);
+		ASSERT_ERR(pRt->m_pRtv);
+		if (pDst)
+			ASSERT_ERR(all(pRt->m_dims == pDst->m_dims));
+
+		pCtx->OMSetRenderTargets(1, &pRt->m_pRtv, pDst ? pDst->m_pDsv : nullptr);
+		D3D11_VIEWPORT d3dViewport =
+		{
+			viewport.m_mins.x, viewport.m_mins.y,
+			viewport.diagonal().x, viewport.diagonal().y,
+			viewport.m_mins.z, viewport.m_maxs.z,
+		};
+		pCtx->RSSetViewports(1, &d3dViewport);
 	}
 }
