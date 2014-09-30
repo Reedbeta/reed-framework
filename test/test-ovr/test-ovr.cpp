@@ -75,6 +75,7 @@ public:
 	ovrHmd								m_hmd;
 	RenderTarget						m_rtEyes;
 	DepthStencilTarget					m_dstEyes;
+	comptr<ID3D11ShaderResourceView>	m_pSrvEyesRaw;
 	float3								m_eyeOffsets[2];
 	float4x4							m_eyeProjections[2];
 	ibox2								m_eyeViewports[2];
@@ -98,6 +99,7 @@ TestWindow::TestWindow()
   m_hmd(nullptr),
   m_rtEyes(),
   m_dstEyes(),
+  m_pSrvEyesRaw(),
   m_eyeOffsets(),
   m_eyeProjections(),
   m_eyeViewports(),
@@ -174,6 +176,15 @@ bool TestWindow::Init(HINSTANCE hInstance)
 	m_rtEyes.Init(m_pDevice, eyeDims, DXGI_FORMAT_R8G8B8A8_UNORM_SRGB);
 	m_dstEyes.Init(m_pDevice, eyeDims, DXGI_FORMAT_D32_FLOAT);
 
+	// Create a raw-format (not SRGB) view of the render target
+	D3D11_SHADER_RESOURCE_VIEW_DESC srvDesc =
+	{
+		DXGI_FORMAT_R8G8B8A8_UNORM,
+		D3D11_SRV_DIMENSION_TEXTURE2D,
+	};
+	srvDesc.Texture2D.MipLevels = 1;
+	CHECK_D3D(m_pDevice->CreateShaderResourceView(m_rtEyes.m_pTex, &srvDesc, &m_pSrvEyesRaw));
+
 	// Calculate per-eye offset vectors, projection matrices, and viewports,
 	// and setup OVR texture structs
 	float zNear = 0.01f;
@@ -201,7 +212,7 @@ bool TestWindow::Init(HINSTANCE hInstance)
 		m_ovrEyeTextures[i].D3D11.Header.RenderViewport.Size.w = m_eyeViewports[i].diagonal().x;
 		m_ovrEyeTextures[i].D3D11.Header.RenderViewport.Size.h = m_eyeViewports[i].diagonal().y;
 		m_ovrEyeTextures[i].D3D11.pTexture = m_rtEyes.m_pTex;
-		m_ovrEyeTextures[i].D3D11.pSRView = m_rtEyes.m_pSrv;
+		m_ovrEyeTextures[i].D3D11.pSRView = m_pSrvEyesRaw;
 	}
 	
 	// Load assets
