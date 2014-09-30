@@ -24,10 +24,16 @@ namespace Framework
 	{
 		ASSERT_ERR(pDevice);
 
+		// Always map the format to its typeless version, if possible;
+		// enables views of other formats to be created if desired
+		DXGI_FORMAT formatTex = FindTypelessFormat(format);
+		if (formatTex == DXGI_FORMAT_UNKNOWN)
+			formatTex = format;
+
 		D3D11_TEXTURE2D_DESC texDesc =
 		{
 			dims.x, dims.y, 1, 1,
-			format,
+			formatTex,
 			{ sampleCount, 0 },
 			D3D11_USAGE_DEFAULT,
 			D3D11_BIND_RENDER_TARGET | D3D11_BIND_SHADER_RESOURCE,

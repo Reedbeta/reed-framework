@@ -5,6 +5,7 @@ namespace Framework
 	// Utility functions for working with texture formats
 	const char * NameOfFormat(DXGI_FORMAT format);
 	int BitsPerPixel(DXGI_FORMAT format);
+	DXGI_FORMAT FindTypelessFormat(DXGI_FORMAT format);
 
 	// Utility functions for counting mips
 	// Note: these don't take into account minimum block sizes for compressed formats.
