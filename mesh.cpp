@@ -47,7 +47,7 @@ namespace Framework
 
 		// Read the whole file into memory
 		std::vector<byte> data;
-		if (!loadFile(path, &data, true))
+		if (!LoadFile(path, &data, LFK_Text))
 		{
 			return false;
 		}
