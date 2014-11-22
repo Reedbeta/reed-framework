@@ -186,15 +186,25 @@ namespace Framework
 		// !!!UNDONE: not nicely generating entries in the .zip for directories in the internal paths.
 		// Doesn't seem to matter as other .zip viewers handle it, but maybe we should do that anyway?
 
+		int numErrors = 0;
 		for (int iAsset = 0; iAsset < numAssets; ++iAsset)
 		{
 			const AssetCompileInfo * pACI = &assets[iAsset];
 			ACK ack = pACI->m_ack;
 
 			ASSERT_ERR(ack >= 0 && ack < ACK_Count);
-			s_assetCompileFuncs[ack](pACI, &zip);
+			if (!s_assetCompileFuncs[ack](pACI, &zip))
+			{
+				WARN("Couldn't compile asset %s", pACI->m_pathSrc);
+				++numErrors;
+			}
 		}
-		
+
+		if (numErrors > 0)
+		{
+			WARN("Failed to compile %d of %d assets", numErrors, numAssets);
+		}
+
 		if (!mz_zip_writer_finalize_archive(&zip))
 		{
 			ERR("Couldn't finalize archive %s", packPath);
@@ -203,7 +213,8 @@ namespace Framework
 		}
 
 		mz_zip_writer_end(&zip);
-		return true;
+
+		return (numErrors == 0);
 	}
 
 	// Update an asset pack by compiling the assets that are out of date or missing from it.

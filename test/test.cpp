@@ -97,15 +97,14 @@ bool TestWindow::Init(HINSTANCE hInstance)
 {
 	super::Init("TestWindow", "Test", hInstance);
 
-	// !!!TEMP Load assets using new pipeline
+	// !!!TEMP Test compiling/loading assets using new pipeline
 	static const AssetCompileInfo s_assets[] =
 	{
 		{ "sponza/sponza_cracksFilled.obj", ACK_OBJMesh, },
 		{ "sponza/kamen.jpg", ACK_TextureWithMips, },
 	};
 	AssetPack pack;
-	if (!LoadAssetPackOrCompileIfOutOfDate("sponza-assets.zip", s_assets, dim(s_assets), &pack))
-		return false;
+	LoadAssetPackOrCompileIfOutOfDate("sponza-assets.zip", s_assets, dim(s_assets), &pack);
 
 	// Load assets
 	if (!LoadObjMesh(m_pDevice, "sponza\\sponza_cracksFilled.obj", &m_meshSponza))
