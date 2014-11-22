@@ -23,7 +23,7 @@ namespace Framework
 
 	enum ACK					// Asset Compile Kind
 	{
-		ACK_OBJMeshes,			// Meshes from an .obj file, compiled to vtx/idx buffers
+		ACK_OBJMesh,			// .obj mesh, compiled to vtx/idx buffers and mtl map
 		ACK_TextureRaw,			// Single RGBA8 image
 		ACK_TextureWithMips,	// RGBA8 image, resampled up to pow2 and mips generated
 

@@ -1,14 +1,8 @@
 #include "framework.h"
+#include "miniz.h"
 
 #include <sys/types.h>
 #include <sys/stat.h>
-
-#include "stb_image.h"
-#include "stb_image_resize.h"
-#include "stb_image_write.h"
-
-#define MINIZ_HEADER_FILE_ONLY
-#include "miniz.c"
 
 namespace Framework
 {
@@ -16,6 +10,7 @@ namespace Framework
 
 	AssetPack::AssetPack()
 	:	m_data(),
+		m_files(),
 		m_directory()
 	{
 	}
@@ -46,7 +41,7 @@ namespace Framework
 
 	// Prototype individual compilation functions for different asset types
 
-	bool CompileOBJMeshesAsset(
+	bool CompileOBJMeshAsset(
 		const AssetCompileInfo * pACI,
 		mz_zip_archive * pZipOut);
 	bool CompileTextureRawAsset(
@@ -59,7 +54,7 @@ namespace Framework
 	typedef bool (*AssetCompileFunc)(const AssetCompileInfo *, mz_zip_archive *);
 	static const AssetCompileFunc s_assetCompileFuncs[] =
 	{
-		&CompileOBJMeshesAsset,				// ACK_OBJMeshes
+		&CompileOBJMeshAsset,				// ACK_OBJMesh
 		&CompileTextureRawAsset,			// ACK_TextureRaw
 		&CompileTextureWithMipsAsset,		// ACK_TextureWithMips
 	};
@@ -238,26 +233,6 @@ namespace Framework
 
 
 	// Individual compilation functions for different asset types
-
-	bool CompileOBJMeshesAsset(
-		const AssetCompileInfo * pACI,
-		mz_zip_archive * pZipOut)
-	{
-		ASSERT_ERR(pACI);
-		ASSERT_ERR(pACI->m_pathSrc);
-		ASSERT_ERR(pACI->m_ack == ACK_OBJMeshes);
-		ASSERT_ERR(pZipOut);
-
-		// !!!TEMP
-		if (!mz_zip_writer_add_mem(pZipOut, pACI->m_pathSrc, nullptr, 0, MZ_DEFAULT_LEVEL))
-		{
-			ERR("Couldn't add file %s to archive", pACI->m_pathSrc);
-			return false;
-		}
-
-		// !!!UNDONE
-		return false;
-	}
 
 	bool CompileTextureRawAsset(
 		const AssetCompileInfo * pACI,
