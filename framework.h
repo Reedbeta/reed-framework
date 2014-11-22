@@ -1,8 +1,10 @@
 #pragma once
 
 #include <util-all.h>
-#include <vector>
+
+#include <string>
 #include <unordered_map>
+#include <vector>
 
 #define NOMINMAX
 #include <windows.h>
@@ -30,3 +32,5 @@ namespace Framework
 #include "rendertarget.h"
 #include "texture.h"
 #include "timer.h"
+
+#include "asset.h"
