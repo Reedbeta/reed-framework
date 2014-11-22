@@ -8,7 +8,6 @@ namespace Framework
 		m_pVtxBuffer(),
 		m_pIdxBuffer(),
 		m_vtxStride(0),
-		m_cIdx(0),
 		m_primtopo(D3D11_PRIMITIVE_TOPOLOGY_UNDEFINED),
 		m_box(makebox3Empty())
 	{
@@ -20,7 +19,7 @@ namespace Framework
 		pCtx->IASetVertexBuffers(0, 1, &m_pVtxBuffer, (UINT *)&m_vtxStride, &zero);
 		pCtx->IASetIndexBuffer(m_pIdxBuffer, DXGI_FORMAT_R32_UINT, 0);
 		pCtx->IASetPrimitiveTopology(m_primtopo);
-		pCtx->DrawIndexed(m_cIdx, 0, 0);
+		pCtx->DrawIndexed(int(m_indices.size()), 0, 0);
 	}
 
 	void Mesh::Release()
@@ -386,7 +385,6 @@ namespace Framework
 		CHECK_D3D(pDevice->CreateBuffer(&idxBufferDesc, &idxBufferData, &m_pIdxBuffer));
 
 		m_vtxStride = sizeof(Vertex);
-		m_cIdx = int(m_indices.size());
 		m_primtopo = D3D11_PRIMITIVE_TOPOLOGY_TRIANGLELIST;
 	}
 
@@ -412,9 +410,6 @@ namespace Framework
 
 		pMeshOut->DeduplicateVerts();
 
-		LOG("Loaded %s - %d verts, %d indices",
-			path, pMeshOut->m_verts.size(), pMeshOut->m_indices.size());
-
 		// !!!UNDONE: vertex cache optimization?
 
 		if (!hasNormals)
@@ -425,6 +420,10 @@ namespace Framework
 #endif
 
 		pMeshOut->UploadToGPU(pDevice);
+
+		LOG("Loaded %s - %d verts, %d indices",
+			path, pMeshOut->m_verts.size(), pMeshOut->m_indices.size());
+
 		return true;
 	}
 }

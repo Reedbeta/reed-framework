@@ -25,7 +25,6 @@ namespace Framework
 		comptr<ID3D11Buffer>		m_pVtxBuffer;
 		comptr<ID3D11Buffer>		m_pIdxBuffer;
 		int							m_vtxStride;	// Vertex stride for IASetVertexBuffers
-		int							m_cIdx;			// Index count for DrawIndexed
 		D3D11_PRIMITIVE_TOPOLOGY	m_primtopo;
 		box3						m_box;			// Bounding box in local space
 
