@@ -44,29 +44,54 @@ namespace Framework
 	
 	// Asset loading & compilation
 
+	// Prototype individual compilation functions for different asset types
+
+	bool CompileOBJMeshesAsset(
+		const AssetCompileInfo * pACI,
+		mz_zip_archive * pZipOut);
+	bool CompileTextureRawAsset(
+		const AssetCompileInfo * pACI,
+		mz_zip_archive * pZipOut);
+	bool CompileTextureWithMipsAsset(
+		const AssetCompileInfo * pACI,
+		mz_zip_archive * pZipOut);
+
+	typedef bool (*AssetCompileFunc)(const AssetCompileInfo *, mz_zip_archive *);
+	static const AssetCompileFunc s_assetCompileFuncs[] =
+	{
+		&CompileOBJMeshesAsset,				// ACK_OBJMeshes
+		&CompileTextureRawAsset,			// ACK_TextureRaw
+		&CompileTextureWithMipsAsset,		// ACK_TextureWithMips
+	};
+	cassert(dim(s_assetCompileFuncs) == ACK_Count);
+
 	// Load an asset pack file, checking that all its assets are present and up to date,
 	// and compiling any that aren't.
 	bool LoadAssetPackOrCompileIfOutOfDate(
 		const char * packPath,
-		const char ** assetPaths,
+		const AssetCompileInfo * assets,
 		int numAssets,
 		AssetPack * pPackOut)
 	{
 		ASSERT_ERR(packPath);
+		ASSERT_ERR(assets);
+		ASSERT_ERR(numAssets > 0);
 		ASSERT_ERR(pPackOut);
 
+#if LATER
 		// Does the asset pack already exist?
 		struct _stat packStat;
 		if (_stat(packPath, &packStat) == 0)
 		{
 			// Ensure all assets are up to date
-			if (!UpdateAssetPack(packPath, assetPaths, numAssets))
+			if (!UpdateAssetPack(packPath, assets, numAssets))
 				return false;
 		}
 		else
+#endif
 		{
 			// The pack file doesn't exist.  Compile it from the source assets.
-			if (!CompileFullAssetPack(packPath, assetPaths, numAssets))
+			if (!CompileFullAssetPack(packPath, assets, numAssets))
 				return false;
 		}
 
@@ -125,6 +150,10 @@ namespace Framework
 		{
 			AssetPack::FileInfo * pFileInfo = &pPackOut->m_files[i];
 
+			// Skip zero size files (trailing ones will cause an std::vector assert)
+			if (pFileInfo->m_size == 0)
+				continue;
+
 			if (!mz_zip_reader_extract_to_mem(
 					&zip, i,
 					&pPackOut->m_data[pFileInfo->m_offset],
@@ -145,30 +174,126 @@ namespace Framework
 	// Compile an entire asset pack from scratch.
 	bool CompileFullAssetPack(
 		const char * packPath,
-		const char ** assetPaths,
+		const AssetCompileInfo * assets,
 		int numAssets)
 	{
 		ASSERT_ERR(packPath);
-		ASSERT_ERR(assetPaths);
+		ASSERT_ERR(assets);
 		ASSERT_ERR(numAssets > 0);
+
+		mz_zip_archive zip = {};
+		if (!mz_zip_writer_init_file(&zip, packPath, 0))
+		{
+			ERR("Couldn't open %s for writing", packPath);
+			return false;
+		}
+
+		// !!!UNDONE: not nicely generating entries in the .zip for directories in the internal paths.
+		// Doesn't seem to matter as other .zip viewers handle it, but maybe we should do that anyway?
+
+		for (int iAsset = 0; iAsset < numAssets; ++iAsset)
+		{
+			const AssetCompileInfo * pACI = &assets[iAsset];
+			ACK ack = pACI->m_ack;
+
+			ASSERT_ERR(ack >= 0 && ack < ACK_Count);
+			s_assetCompileFuncs[ack](pACI, &zip);
+		}
 		
-		// !!!UNDONE
-		return false;
+		if (!mz_zip_writer_finalize_archive(&zip))
+		{
+			ERR("Couldn't finalize archive %s", packPath);
+			mz_zip_writer_end(&zip);
+			return false;
+		}
+
+		mz_zip_writer_end(&zip);
+		return true;
 	}
 
 	// Update an asset pack by compiling the assets that are out of date or missing from it.
 	bool UpdateAssetPack(
 		const char * packPath,
-		const char ** assetPaths,
+		const AssetCompileInfo * assets,
 		int numAssets)
 	{
 		ASSERT_ERR(packPath);
-		ASSERT_ERR(assetPaths);
+		ASSERT_ERR(assets);
 		ASSERT_ERR(numAssets > 0);
 		
 		// Load the archive directory
-		mz_zip_archive zip;
-		CHECK_ERR(mz_zip_reader_init_file(&zip, packPath, 0));
+		mz_zip_archive zip = {};
+		if (!mz_zip_reader_init_file(&zip, packPath, 0))
+		{
+			ERR("Couldn't load asset pack %s", packPath);
+			return false;
+		}
+
+		// !!!UNDONE
+
+		mz_zip_reader_end(&zip);
+		return true;
+	}
+
+
+
+	// Individual compilation functions for different asset types
+
+	bool CompileOBJMeshesAsset(
+		const AssetCompileInfo * pACI,
+		mz_zip_archive * pZipOut)
+	{
+		ASSERT_ERR(pACI);
+		ASSERT_ERR(pACI->m_pathSrc);
+		ASSERT_ERR(pACI->m_ack == ACK_OBJMeshes);
+		ASSERT_ERR(pZipOut);
+
+		// !!!TEMP
+		if (!mz_zip_writer_add_mem(pZipOut, pACI->m_pathSrc, nullptr, 0, MZ_DEFAULT_LEVEL))
+		{
+			ERR("Couldn't add file %s to archive", pACI->m_pathSrc);
+			return false;
+		}
+
+		// !!!UNDONE
+		return false;
+	}
+
+	bool CompileTextureRawAsset(
+		const AssetCompileInfo * pACI,
+		mz_zip_archive * pZipOut)
+	{
+		ASSERT_ERR(pACI);
+		ASSERT_ERR(pACI->m_pathSrc);
+		ASSERT_ERR(pACI->m_ack == ACK_TextureRaw);
+		ASSERT_ERR(pZipOut);
+
+		// !!!TEMP
+		if (!mz_zip_writer_add_mem(pZipOut, pACI->m_pathSrc, nullptr, 0, MZ_DEFAULT_LEVEL))
+		{
+			ERR("Couldn't add file %s to archive", pACI->m_pathSrc);
+			return false;
+		}
+
+		// !!!UNDONE
+		return false;
+	}
+
+	bool CompileTextureWithMipsAsset(
+		const AssetCompileInfo * pACI,
+		mz_zip_archive * pZipOut)
+	{
+		ASSERT_ERR(pACI);
+		ASSERT_ERR(pACI->m_pathSrc);
+		ASSERT_ERR(pACI->m_ack == ACK_TextureWithMips);
+		ASSERT_ERR(pZipOut);
+
+		// !!!TEMP
+		if (!mz_zip_writer_add_mem(pZipOut, pACI->m_pathSrc, nullptr, 0, MZ_DEFAULT_LEVEL))
+		{
+			ERR("Couldn't add file %s to archive", pACI->m_pathSrc);
+			return false;
+		}
 
 		// !!!UNDONE
 		return false;
