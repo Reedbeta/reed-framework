@@ -254,6 +254,8 @@ namespace Framework
 		ASSERT_ERR(pACI->m_ack == ACK_TextureRaw);
 		ASSERT_ERR(pZipOut);
 
+		LOG("Compiling raw texture asset %s...", pACI->m_pathSrc);
+
 		// !!!TEMP
 		if (!mz_zip_writer_add_mem(pZipOut, pACI->m_pathSrc, nullptr, 0, MZ_DEFAULT_LEVEL))
 		{
@@ -273,6 +275,8 @@ namespace Framework
 		ASSERT_ERR(pACI->m_pathSrc);
 		ASSERT_ERR(pACI->m_ack == ACK_TextureWithMips);
 		ASSERT_ERR(pZipOut);
+
+		LOG("Compiling mipmapped texture asset %s...", pACI->m_pathSrc);
 
 		// !!!TEMP
 		if (!mz_zip_writer_add_mem(pZipOut, pACI->m_pathSrc, nullptr, 0, MZ_DEFAULT_LEVEL))
