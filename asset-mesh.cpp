@@ -1,5 +1,6 @@
 #include "framework.h"
 #include "miniz.h"
+#include <algorithm>
 
 namespace Framework
 {
@@ -19,7 +20,7 @@ namespace Framework
 		struct MtlRange
 		{
 			std::string		m_mtlName;
-			int				m_iIdxStart, m_iIdxEnd;
+			int				m_iIdxStart, m_cIdx;
 		};
 
 		struct Context
@@ -38,7 +39,10 @@ namespace Framework
 #if VERTEX_TANGENT
 		static void CalculateTangents(Context * pCtx);
 #endif
+		static void SortMaterials(Context * pCtx);
 	}
+
+
 
 	// Compiler entry point
 
@@ -65,6 +69,7 @@ namespace Framework
 #if VERTEX_TANGENT
 		CalculateTangents(&ctx);
 #endif
+		SortMaterials(&ctx);
 
 		// !!!TEMP
 		if (!mz_zip_writer_add_mem(pZipOut, pACI->m_pathSrc, nullptr, 0, MZ_DEFAULT_LEVEL))
@@ -289,12 +294,9 @@ namespace Framework
 			for (int iRange = 0, cRange = int(OBJMtlRanges.size()); iRange < cRange; ++iRange)
 			{
 				OBJMtlRange & objrange = OBJMtlRanges[iRange];
-				MtlRange range =
-				{
-					objrange.mtlName,
-					OBJfaces[objrange.iFaceStart].iIdxStart,
-					OBJfaces[objrange.iFaceEnd].iIdxStart,
-				};
+				int iIdxStart = OBJfaces[objrange.iFaceStart].iIdxStart;
+				int iIdxEnd = OBJfaces[objrange.iFaceEnd].iIdxStart;
+				MtlRange range = { objrange.mtlName, iIdxStart, iIdxEnd - iIdxStart, };
 				pCtxOut->m_mtlRanges.push_back(range);
 			}
 
@@ -308,23 +310,241 @@ namespace Framework
 		{
 			ASSERT_ERR(pCtx);
 
-			// !!!UNDONE
+			struct VertexHasher
+			{
+				std::hash<float> fh;
+				size_t operator () (const Vertex & v) const
+				{
+					return fh(v.m_pos.x) ^ fh(v.m_pos.y) ^ fh(v.m_pos.z) ^
+						   fh(v.m_normal.x) ^ fh(v.m_normal.y) ^ fh(v.m_normal.z) ^
+						   fh(v.m_uv.x) ^ fh(v.m_uv.y);
+				}
+			};
+
+			struct VertexEqualityTester
+			{
+				bool operator () (const Vertex & u, const Vertex & v) const
+				{
+					return (all(u.m_pos == v.m_pos) &&
+							all(u.m_normal == v.m_normal) &&
+							all(u.m_uv == v.m_uv));
+				}
+			};
+
+			std::vector<Vertex> vertsDeduplicated;
+			std::vector<int> remappingTable;
+			std::unordered_map<Vertex, int, VertexHasher, VertexEqualityTester> mapVertToIndex;
+
+			vertsDeduplicated.reserve(pCtx->m_verts.size());
+			remappingTable.reserve(pCtx->m_verts.size());
+
+			for (int i = 0, cVert = int(pCtx->m_verts.size()); i < cVert; ++i)
+			{
+				const Vertex & vert = pCtx->m_verts[i];
+				auto iter = mapVertToIndex.find(vert);
+				if (iter == mapVertToIndex.end())
+				{
+					// Found a new vertex that's not in the map yet.
+					int newIndex = int(vertsDeduplicated.size());
+					vertsDeduplicated.push_back(vert);
+					remappingTable.push_back(newIndex);
+					mapVertToIndex.insert(std::make_pair(vert, newIndex));
+				}
+				else
+				{
+					// It's already in the map; re-use the previous index
+					int newIndex = iter->second;
+					remappingTable.push_back(newIndex);
+				}
+			}
+
+			ASSERT_ERR(vertsDeduplicated.size() <= pCtx->m_verts.size());
+			ASSERT_ERR(remappingTable.size() == pCtx->m_verts.size());
+
+			std::vector<int> indicesRemapped;
+			indicesRemapped.resize(pCtx->m_indices.size());
+
+			for (int i = 0, cIndex = int(pCtx->m_indices.size()); i < cIndex; ++i)
+			{
+				indicesRemapped[i] = remappingTable[pCtx->m_indices[i]];
+			}
+
+			pCtx->m_verts.swap(vertsDeduplicated);
+			pCtx->m_indices.swap(indicesRemapped);
 		}
 
 		static void CalculateNormals(Context * pCtx)
 		{
 			ASSERT_ERR(pCtx);
+			ASSERT_WARN(pCtx->m_indices.size() % 3 == 0);
 
-			// !!!UNDONE
+			// Generate a normal for each triangle, and accumulate onto vertex
+			for (int i = 0, c = int(pCtx->m_indices.size()); i < c; i += 3)
+			{
+				int indices[3] = { pCtx->m_indices[i], pCtx->m_indices[i+1], pCtx->m_indices[i+2] };
+
+				// Gather positions for this triangle
+				point3 facePositions[3] =
+				{
+					pCtx->m_verts[indices[0]].m_pos,
+					pCtx->m_verts[indices[1]].m_pos,
+					pCtx->m_verts[indices[2]].m_pos,
+				};
+
+				// Calculate edge and normal vectors
+				float3 edge0 = facePositions[1] - facePositions[0];
+				float3 edge1 = facePositions[2] - facePositions[0];
+				float3 normal = normalize(cross(edge0, edge1));
+
+				// Accumulate onto vertices
+				pCtx->m_verts[indices[0]].m_normal += normal;
+				pCtx->m_verts[indices[1]].m_normal += normal;
+				pCtx->m_verts[indices[2]].m_normal += normal;
+			}
+
+			// Normalize summed normals
+			for (int i = 0, c = int(pCtx->m_verts.size()); i < c; ++i)
+			{
+				pCtx->m_verts[i].m_normal = normalize(pCtx->m_verts[i].m_normal);
+			}
 		}
 
 #if VERTEX_TANGENT
 		static void CalculateTangents(Context * pCtx)
 		{
 			ASSERT_ERR(pCtx);
+			ASSERT_WARN(pCtx->m_indices.size() % 3 == 0);
 
-			// !!!UNDONE
+			// Generate a tangent for each triangle, based on triangle's UV mapping,
+			// and accumulate onto vertex
+			for (int i = 0, c = int(pCtx->m_indices.size()); i < c; i += 3)
+			{
+				int indices[3] = { pCtx->m_indices[i], pCtx->m_indices[i+1], pCtx->m_indices[i+2] };
+
+				// Gather positions for this triangle
+				point3 facePositions[3] =
+				{
+					pCtx->m_verts[indices[0]].m_pos,
+					pCtx->m_verts[indices[1]].m_pos,
+					pCtx->m_verts[indices[2]].m_pos,
+				};
+
+				// Calculate edge and normal vectors
+				float3 edge0 = facePositions[1] - facePositions[0];
+				float3 edge1 = facePositions[2] - facePositions[0];
+				float3 normal = cross(edge0, edge1);
+
+				// Calculate matrix from unit triangle to position space
+				float3x3 matUnitToPosition = makefloat3x3(edge0, edge1, normal);
+
+				// Gather UVs for this triangle
+				float2 faceUVs[3] =
+				{
+					pCtx->m_verts[indices[0]].m_uv,
+					pCtx->m_verts[indices[1]].m_uv,
+					pCtx->m_verts[indices[2]].m_uv,
+				};
+
+				// Calculate UV space edge vectors
+				float2 uvEdge0 = faceUVs[1] - faceUVs[0];
+				float2 uvEdge1 = faceUVs[2] - faceUVs[0];
+
+				// Calculate matrix from unit triangle to UV space
+				float3x3 matUnitToUV = float3x3::identity();
+				matUnitToUV[0].xy = uvEdge0;
+				matUnitToUV[1].xy = uvEdge1;
+
+				// Calculate matrix from UV space to position space
+				float3x3 matUVToPosition = inverse(matUnitToUV) * matUnitToPosition;
+
+				// The x-axis of that matrix is the tangent vector
+				float3 tangent = normalize(matUVToPosition[0]);
+
+				// Accumulate onto vertices
+				pCtx->m_verts[indices[0]].m_tangent += tangent;
+				pCtx->m_verts[indices[1]].m_tangent += tangent;
+				pCtx->m_verts[indices[2]].m_tangent += tangent;
+			}
+
+			// Normalize summed tangents
+			for (int i = 0, c = int(pCtx->m_verts.size()); i < c; ++i)
+			{
+				pCtx->m_verts[i].m_tangent = normalize(pCtx->m_verts[i].m_tangent);
+			}
 		}
-#endif
+#endif // VERTEX_TANGENT
+
+		static void SortMaterials(Context * pCtx)
+		{
+			ASSERT_ERR(pCtx);
+
+			// Sort the material ranges by name first, and index second
+			std::sort(
+				pCtx->m_mtlRanges.begin(),
+				pCtx->m_mtlRanges.end(),
+				[](const MtlRange & a, const MtlRange & b)
+				{
+					if (a.m_mtlName != b.m_mtlName)
+						return a.m_mtlName < b.m_mtlName;
+					else
+						return a.m_iIdxStart < b.m_iIdxStart;
+				});
+
+			// Reorder the indices to make them contiguous given the new
+			// order of the material ranges, and merge together all ranges
+			// that use the same material.
+
+			std::vector<MtlRange> mtlRangesMerged;
+			mtlRangesMerged.reserve(pCtx->m_mtlRanges.size());
+
+			std::vector<int> indicesReordered;
+			indicesReordered.resize(pCtx->m_indices.size());
+
+			int indicesCopied = 0;
+
+			// Copy the first range
+			{
+				const MtlRange & rangeFirst = pCtx->m_mtlRanges[0];
+				memcpy(
+					&indicesReordered[0],
+					&pCtx->m_indices[rangeFirst.m_iIdxStart],
+					rangeFirst.m_cIdx * sizeof(int));
+
+				MtlRange rangeMerged = { rangeFirst.m_mtlName, 0, rangeFirst.m_cIdx, };
+				mtlRangesMerged.push_back(rangeMerged);
+
+				indicesCopied = rangeFirst.m_cIdx;
+			}
+
+			// Copy and merge the rest of the ranges
+			for (int i = 1, cRange = int(pCtx->m_mtlRanges.size()); i < cRange; ++i)
+			{
+				const MtlRange & rangeCur = pCtx->m_mtlRanges[i];
+				memcpy(
+					&indicesReordered[indicesCopied],
+					&pCtx->m_indices[rangeCur.m_iIdxStart],
+					rangeCur.m_cIdx * sizeof(int));
+				
+				if (rangeCur.m_mtlName == mtlRangesMerged.back().m_mtlName)
+				{
+					// Material name is the same as the last range, so just extend it
+					mtlRangesMerged.back().m_cIdx += rangeCur.m_cIdx;
+				}
+				else
+				{
+					// Different material name, so create a new range
+					MtlRange rangeMerged = { rangeCur.m_mtlName, indicesCopied, rangeCur.m_cIdx, };
+					mtlRangesMerged.push_back(rangeMerged);
+				}
+
+				indicesCopied += rangeCur.m_cIdx;
+			}
+
+			ASSERT_ERR(indicesCopied == pCtx->m_indices.size());
+			ASSERT_ERR(mtlRangesMerged.size() <= pCtx->m_mtlRanges.size());
+
+			pCtx->m_indices.swap(indicesReordered);
+			pCtx->m_mtlRanges.swap(mtlRangesMerged);
+		}
 	}
 }
