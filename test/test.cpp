@@ -100,7 +100,7 @@ bool TestWindow::Init(HINSTANCE hInstance)
 	// !!!TEMP Test compiling/loading assets using new pipeline
 	static const AssetCompileInfo s_assets[] =
 	{
-		{ "sponza/sponza.obj", ACK_OBJMesh, },
+		{ "sponza/sponza_cracksFilled.obj", ACK_OBJMesh, },
 		{ "sponza/kamen.jpg", ACK_TextureWithMips, },
 	};
 	AssetPack pack;

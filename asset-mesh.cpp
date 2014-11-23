@@ -15,6 +15,11 @@ namespace Framework
 	//  * !!!UNDONE: Vertex cache optimization.
 	//  * !!!UNDONE: Parsing the accompanying .mtl file.
 
+	static const char * s_suffixVerts =		"/verts";
+	static const char * s_suffixIndices =	"/indices";
+	static const char * s_suffixMtlMap =	"/mtlmap";
+	static const char * s_suffixBounds =	"/bounds";
+
 	namespace OBJMeshCompiler
 	{
 		struct MtlRange
@@ -40,6 +45,8 @@ namespace Framework
 		static void CalculateTangents(Context * pCtx);
 #endif
 		static void SortMaterials(Context * pCtx);
+
+		static void SerializeMaterialMap(Context * pCtx, std::vector<byte> * pDataOut);
 	}
 
 
@@ -59,10 +66,12 @@ namespace Framework
 
 		using namespace OBJMeshCompiler;
 
+		// Read the mesh data from the OBJ file
 		Context ctx = {};
 		if (!ParseOBJ(pACI->m_pathSrc, &ctx))
 			return false;
 
+		// Clean up the mesh
 		DeduplicateVerts(&ctx);
 		if (!ctx.m_hasNormals)
 			CalculateNormals(&ctx);
@@ -71,15 +80,65 @@ namespace Framework
 #endif
 		SortMaterials(&ctx);
 
-		// !!!TEMP
-		if (!mz_zip_writer_add_mem(pZipOut, pACI->m_pathSrc, nullptr, 0, MZ_DEFAULT_LEVEL))
+		// Write the data out to the archive
+
+		char zipPath[MZ_ZIP_MAX_ARCHIVE_FILENAME_SIZE + 1];
+
+		// Write out the vertices
+		if (strlen(pACI->m_pathSrc) + strlen(s_suffixVerts) > MZ_ZIP_MAX_ARCHIVE_FILENAME_SIZE)
 		{
-			ERR("Couldn't add file %s to archive", pACI->m_pathSrc);
+			ERR("File path %s%s is too long for .zip format", pACI->m_pathSrc, s_suffixVerts);
+			return false;
+		}
+		sprintf_s(zipPath, "%s%s", pACI->m_pathSrc, s_suffixVerts);
+		if (!mz_zip_writer_add_mem(pZipOut, zipPath, &ctx.m_verts[0], ctx.m_verts.size() * sizeof(Vertex), MZ_DEFAULT_LEVEL))
+		{
+			ERR("Couldn't add file %s to archive", zipPath);
 			return false;
 		}
 
-		// !!!UNDONE
-		return false;
+		// Write out the indices
+		if (strlen(pACI->m_pathSrc) + strlen(s_suffixIndices) > MZ_ZIP_MAX_ARCHIVE_FILENAME_SIZE)
+		{
+			ERR("File path %s%s is too long for .zip format", pACI->m_pathSrc, s_suffixIndices);
+			return false;
+		}
+		sprintf_s(zipPath, "%s%s", pACI->m_pathSrc, s_suffixIndices);
+		if (!mz_zip_writer_add_mem(pZipOut, zipPath, &ctx.m_indices[0], ctx.m_indices.size() * sizeof(int), MZ_DEFAULT_LEVEL))
+		{
+			ERR("Couldn't add file %s to archive", zipPath);
+			return false;
+		}
+
+		// Serialize and write out the material map
+		std::vector<byte> serializedMaterialMap;
+		SerializeMaterialMap(&ctx, &serializedMaterialMap);
+		if (strlen(pACI->m_pathSrc) + strlen(s_suffixMtlMap) > MZ_ZIP_MAX_ARCHIVE_FILENAME_SIZE)
+		{
+			ERR("File path %s%s is too long for .zip format", pACI->m_pathSrc, s_suffixMtlMap);
+			return false;
+		}
+		sprintf_s(zipPath, "%s%s", pACI->m_pathSrc, s_suffixMtlMap);
+		if (!mz_zip_writer_add_mem(pZipOut, zipPath, &serializedMaterialMap[0], serializedMaterialMap.size(), MZ_DEFAULT_LEVEL))
+		{
+			ERR("Couldn't add file %s to archive", zipPath);
+			return false;
+		}
+
+		// Write out the bounding box
+		if (strlen(pACI->m_pathSrc) + strlen(s_suffixBounds) > MZ_ZIP_MAX_ARCHIVE_FILENAME_SIZE)
+		{
+			ERR("File path %s%s is too long for .zip format", pACI->m_pathSrc, s_suffixBounds);
+			return false;
+		}
+		sprintf_s(zipPath, "%s%s", pACI->m_pathSrc, s_suffixBounds);
+		if (!mz_zip_writer_add_mem(pZipOut, zipPath, &ctx.m_bounds, sizeof(ctx.m_bounds), MZ_DEFAULT_LEVEL))
+		{
+			ERR("Couldn't add file %s to archive", zipPath);
+			return false;
+		}
+
+		return true;
 	}
 
 
@@ -116,7 +175,7 @@ namespace Framework
 			// Parse the OBJ format line-by-line
 			char * pCtxLine = (char *)&data[0];
 			int iLine = 0;
-			while (char * pLine = tokenize(pCtxLine, "\n"))
+			while (char * pLine = tokenizeConsecutive(pCtxLine, "\n"))
 			{
 				++iLine;
 
@@ -139,6 +198,8 @@ namespace Framework
 					const char * pZ = tokenize(pCtxToken, " \t");
 					if (!pX || !pY || !pZ)
 						WARN("%s: syntax error at line %d: missing vertex position", path, iLine);
+					if (const char * pExtra = tokenize(pCtxToken, " \t"))
+						WARN("%s: syntax error at line %d: unexpected extra token \"%s\"; ignoring", path, iLine, pExtra);
 
 					// Add vertex
 					point3 pos;
@@ -154,6 +215,8 @@ namespace Framework
 					const char * pZ = tokenize(pCtxToken, " \t");
 					if (!pX || !pY || !pZ)
 						WARN("%s: syntax error at line %d: missing normal vector", path, iLine);
+					if (const char * pExtra = tokenize(pCtxToken, " \t"))
+						WARN("%s: syntax error at line %d: unexpected extra token \"%s\"; ignoring", path, iLine, pExtra);
 
 					// Add normal
 					float3 normal;
@@ -168,6 +231,8 @@ namespace Framework
 					const char * pV = tokenize(pCtxToken, " \t");
 					if (!pU || !pV)
 						WARN("%s: syntax error at line %d: missing UV", path, iLine);
+					if (const char * pExtra = tokenize(pCtxToken, " \t"))
+						WARN("%s: syntax error at line %d: unexpected extra token \"%s\"; ignoring", path, iLine, pExtra);
 
 					// Add UV, flipping V-axis since OBJ UVs use a bottom-up convention
 					float2 uv;
@@ -224,6 +289,8 @@ namespace Framework
 						WARN("%s: syntax error at line %d: missing material name", path, iLine);
 						continue;
 					}
+					if (const char * pExtra = tokenize(pCtxToken, " \t"))
+						WARN("%s: syntax error at line %d: unexpected extra token \"%s\"; ignoring", path, iLine, pExtra);
 
 					// Close the previous range
 					OBJMtlRange * pRange = &OBJMtlRanges.back();
@@ -406,6 +473,7 @@ namespace Framework
 			for (int i = 0, c = int(pCtx->m_verts.size()); i < c; ++i)
 			{
 				pCtx->m_verts[i].m_normal = normalize(pCtx->m_verts[i].m_normal);
+				ASSERT_WARN(all(isfinite(pCtx->m_verts[i].m_normal)));
 			}
 		}
 
@@ -470,6 +538,7 @@ namespace Framework
 			for (int i = 0, c = int(pCtx->m_verts.size()); i < c; ++i)
 			{
 				pCtx->m_verts[i].m_tangent = normalize(pCtx->m_verts[i].m_tangent);
+				ASSERT_WARN(all(isfinite(pCtx->m_verts[i].m_tangent)));
 			}
 		}
 #endif // VERTEX_TANGENT
@@ -545,6 +614,28 @@ namespace Framework
 
 			pCtx->m_indices.swap(indicesReordered);
 			pCtx->m_mtlRanges.swap(mtlRangesMerged);
+		}
+
+		static void SerializeMaterialMap(Context * pCtx, std::vector<byte> * pDataOut)
+		{
+			ASSERT_ERR(pCtx);
+			ASSERT_ERR(pDataOut);
+
+			// Just write out each string in null-terminated format, followed by the index range
+			for (int i = 0, cRange = int(pCtx->m_mtlRanges.size()); i < cRange; ++i)
+			{
+				const MtlRange & range = pCtx->m_mtlRanges[i];
+
+				int iByteStart = int(pDataOut->size());
+
+				// Write the material name
+				int nameLength = int(range.m_mtlName.size()) + 1;
+				pDataOut->resize(iByteStart + nameLength + 2 * sizeof(int));
+				memcpy(&(*pDataOut)[iByteStart], range.m_mtlName.c_str(), nameLength);
+
+				// Write the index range
+				memcpy(&(*pDataOut)[iByteStart + nameLength], &range.m_iIdxStart, 2 * sizeof(int));
+			}
 		}
 	}
 }
