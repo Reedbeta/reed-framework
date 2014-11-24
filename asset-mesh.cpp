@@ -82,59 +82,14 @@ namespace Framework
 
 		// Write the data out to the archive
 
-		char zipPath[MZ_ZIP_MAX_ARCHIVE_FILENAME_SIZE + 1];
-
-		// Write out the vertices
-		if (strlen(pACI->m_pathSrc) + strlen(s_suffixVerts) > MZ_ZIP_MAX_ARCHIVE_FILENAME_SIZE)
-		{
-			ERR("File path %s%s is too long for .zip format", pACI->m_pathSrc, s_suffixVerts);
-			return false;
-		}
-		sprintf_s(zipPath, "%s%s", pACI->m_pathSrc, s_suffixVerts);
-		if (!mz_zip_writer_add_mem(pZipOut, zipPath, &ctx.m_verts[0], ctx.m_verts.size() * sizeof(Vertex), MZ_DEFAULT_LEVEL))
-		{
-			ERR("Couldn't add file %s to archive", zipPath);
-			return false;
-		}
-
-		// Write out the indices
-		if (strlen(pACI->m_pathSrc) + strlen(s_suffixIndices) > MZ_ZIP_MAX_ARCHIVE_FILENAME_SIZE)
-		{
-			ERR("File path %s%s is too long for .zip format", pACI->m_pathSrc, s_suffixIndices);
-			return false;
-		}
-		sprintf_s(zipPath, "%s%s", pACI->m_pathSrc, s_suffixIndices);
-		if (!mz_zip_writer_add_mem(pZipOut, zipPath, &ctx.m_indices[0], ctx.m_indices.size() * sizeof(int), MZ_DEFAULT_LEVEL))
-		{
-			ERR("Couldn't add file %s to archive", zipPath);
-			return false;
-		}
-
-		// Serialize and write out the material map
 		std::vector<byte> serializedMaterialMap;
 		SerializeMaterialMap(&ctx, &serializedMaterialMap);
-		if (strlen(pACI->m_pathSrc) + strlen(s_suffixMtlMap) > MZ_ZIP_MAX_ARCHIVE_FILENAME_SIZE)
-		{
-			ERR("File path %s%s is too long for .zip format", pACI->m_pathSrc, s_suffixMtlMap);
-			return false;
-		}
-		sprintf_s(zipPath, "%s%s", pACI->m_pathSrc, s_suffixMtlMap);
-		if (!mz_zip_writer_add_mem(pZipOut, zipPath, &serializedMaterialMap[0], serializedMaterialMap.size(), MZ_DEFAULT_LEVEL))
-		{
-			ERR("Couldn't add file %s to archive", zipPath);
-			return false;
-		}
 
-		// Write out the bounding box
-		if (strlen(pACI->m_pathSrc) + strlen(s_suffixBounds) > MZ_ZIP_MAX_ARCHIVE_FILENAME_SIZE)
+		if (!WriteAssetDataToZip(pACI->m_pathSrc, s_suffixVerts, &ctx.m_verts[0], ctx.m_verts.size() * sizeof(Vertex), pZipOut) ||
+			!WriteAssetDataToZip(pACI->m_pathSrc, s_suffixIndices, &ctx.m_indices[0], ctx.m_indices.size() * sizeof(int), pZipOut) ||
+			!WriteAssetDataToZip(pACI->m_pathSrc, s_suffixMtlMap, &serializedMaterialMap[0], serializedMaterialMap.size(), pZipOut) ||
+			!WriteAssetDataToZip(pACI->m_pathSrc, s_suffixBounds, &ctx.m_bounds, sizeof(ctx.m_bounds), pZipOut))
 		{
-			ERR("File path %s%s is too long for .zip format", pACI->m_pathSrc, s_suffixBounds);
-			return false;
-		}
-		sprintf_s(zipPath, "%s%s", pACI->m_pathSrc, s_suffixBounds);
-		if (!mz_zip_writer_add_mem(pZipOut, zipPath, &ctx.m_bounds, sizeof(ctx.m_bounds), MZ_DEFAULT_LEVEL))
-		{
-			ERR("Couldn't add file %s to archive", zipPath);
 			return false;
 		}
 

@@ -29,6 +29,23 @@ namespace Framework
 		return &m_data[m_files[iFile].m_offset];
 	}
 
+	byte * AssetPack::LookupFile(const char * path, const char * suffix)
+	{
+		ASSERT_ERR(path);
+		ASSERT_ERR(suffix);
+
+		// !!!UNDONE: assert that path is in a normal form (lowercase, forward slashes, etc.)?
+
+		std::string fullPath = path;
+		fullPath += suffix;
+		auto iter = m_directory.find(fullPath);
+		if (iter == m_directory.end())
+			return nullptr;
+
+		int iFile = iter->second;
+		return &m_data[m_files[iFile].m_offset];
+	}
+
 	void AssetPack::Release()
 	{
 		m_data.clear();

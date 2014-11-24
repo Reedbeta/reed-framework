@@ -18,6 +18,7 @@ namespace Framework
 
 		AssetPack();
 		byte * LookupFile(const char * path);
+		byte * LookupFile(const char * path, const char * suffix);
 		void Release();
 	};
 
