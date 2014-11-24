@@ -108,9 +108,7 @@ namespace Framework
 			// Read the whole file into memory
 			std::vector<byte> data;
 			if (!LoadFile(path, &data, LFK_Text))
-			{
 				return false;
-			}
 
 			std::vector<point3> positions;
 			std::vector<float3> normals;

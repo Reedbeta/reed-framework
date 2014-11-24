@@ -23,12 +23,12 @@
     <ClInclude Include="rendertarget.h" />
     <ClInclude Include="stb_image.h" />
     <ClInclude Include="stb_image_resize.h" />
-    <ClInclude Include="stb_image_write.h" />
     <ClInclude Include="texture.h" />
     <ClInclude Include="timer.h" />
   </ItemGroup>
   <ItemGroup>
     <ClCompile Include="asset-mesh.cpp" />
+    <ClCompile Include="asset-texture.cpp" />
     <ClCompile Include="asset.cpp" />
     <ClCompile Include="camera.cpp" />
     <ClCompile Include="d3d11-window.cpp" />
