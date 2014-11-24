@@ -18,6 +18,7 @@ namespace Framework
 	//      resampled up to the next pow2 size if necessary.
 	//  * Textures are written to the archive as .bmps, for ease of debugging.
 	//      That won't be true anymore when we have more general formats.
+	//  * !!!UNDONE: Premultiplied alpha
 	//  * !!!UNDONE: BCn compression
 	//  * !!!UNDONE: Other pixel formats: HDR textures, normal maps, etc.
 	//  * !!!UNDONE: Cubemaps, volume textures, sparse tiled textures, etc.
@@ -60,7 +61,7 @@ namespace Framework
 			return false;
 		}
 
-		// Store it as an RGBA8 .bmp
+		// Store it as a .bmp
 		if (!WriteBMPToZip(pACI->m_pathSrc, 0, pPixels, dims, pZipOut))
 		{
 			stbi_image_free(pPixels);
@@ -80,17 +81,71 @@ namespace Framework
 		ASSERT_ERR(pACI->m_ack == ACK_TextureWithMips);
 		ASSERT_ERR(pZipOut);
 
+		using namespace TextureCompiler;
+
 		LOG("Compiling mipmapped texture asset %s...", pACI->m_pathSrc);
 
-		// !!!TEMP
-		if (!mz_zip_writer_add_mem(pZipOut, pACI->m_pathSrc, nullptr, 0, MZ_DEFAULT_LEVEL))
+		// Load the image
+		int2 dims;
+		int numComponents;
+		byte4 * pPixels = (byte4 *)stbi_load(pACI->m_pathSrc, &dims.x, &dims.y, &numComponents, 4);
+		if (!pPixels)
 		{
-			ERR("Couldn't add file %s to archive", pACI->m_pathSrc);
+			ERR("Couldn't load file %s: %s", pACI->m_pathSrc, stbi_failure_reason());
 			return false;
 		}
 
-		// !!!UNDONE
-		return false;
+		// Resample the base mip up to pow2 if necessary
+		int2 dimsBase;
+		std::vector<byte4> pixelsBase;
+		byte4 * pPixelsBase;
+		if (!ispow2(dims.x) || !ispow2(dims.y))
+		{
+			dimsBase = makeint2(pow2_ceil(dims.x), pow2_ceil(dims.y));
+			pixelsBase.resize(dimsBase.x * dimsBase.y);
+			pPixelsBase = &pixelsBase[0];
+
+			CHECK_ERR(stbir_resize_uint8_srgb(
+						(const byte *)pPixels, dims.x, dims.y, 0,
+						(byte *)pPixelsBase, dimsBase.x, dimsBase.y, 0,
+						4, 3, 0));
+		}
+		else
+		{
+			dimsBase = dims;
+			pPixelsBase = pPixels;
+		}
+
+		// Store the base level as a .bmp
+		if (!WriteBMPToZip(pACI->m_pathSrc, 0, pPixelsBase, dimsBase, pZipOut))
+		{
+			stbi_image_free(pPixels);
+			return false;
+		}
+
+		// Generate mip levels
+		int mipLevels = log2_floor(maxComponent(dimsBase)) + 1;
+		std::vector<byte4> pixelsMip;
+		for (int level = 1; level < mipLevels; ++level)
+		{
+			int2 dimsMip = { max(dimsBase.x >> level, 1), max(dimsBase.y >> level, 1) };
+			pixelsMip.resize(dimsMip.x * dimsMip.y);
+			byte4 * pPixelsMip = &pixelsMip[0];
+
+			CHECK_ERR(stbir_resize_uint8_srgb(
+						(const byte *)pPixels, dims.x, dims.y, 0,
+						(byte *)pPixelsMip, dimsMip.x, dimsMip.y, 0,
+						4, 3, 0));
+
+			if (!WriteBMPToZip(pACI->m_pathSrc, level, pPixelsMip, dimsMip, pZipOut))
+			{
+				stbi_image_free(pPixels);
+				return false;
+			}
+		}
+
+		stbi_image_free(pPixels);
+		return true;
 	}
 
 
