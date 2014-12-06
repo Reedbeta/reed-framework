@@ -15,10 +15,10 @@ namespace Framework
 	//  * !!!UNDONE: Vertex cache optimization.
 	//  * !!!UNDONE: Parsing the accompanying .mtl file.
 
-	static const char * s_suffixVerts =		"/verts";
-	static const char * s_suffixIndices =	"/indices";
-	static const char * s_suffixMtlMap =	"/mtlmap";
-	static const char * s_suffixBounds =	"/bounds";
+	const char * g_suffixVerts		= "/verts";
+	const char * g_suffixIndices	= "/indices";
+	const char * g_suffixMtlMap		= "/mtlmap";
+	const char * g_suffixBounds		= "/bounds";
 
 	namespace OBJMeshCompiler
 	{
@@ -85,10 +85,10 @@ namespace Framework
 		std::vector<byte> serializedMaterialMap;
 		SerializeMaterialMap(&ctx, &serializedMaterialMap);
 
-		if (!WriteAssetDataToZip(pACI->m_pathSrc, s_suffixVerts, &ctx.m_verts[0], ctx.m_verts.size() * sizeof(Vertex), pZipOut) ||
-			!WriteAssetDataToZip(pACI->m_pathSrc, s_suffixIndices, &ctx.m_indices[0], ctx.m_indices.size() * sizeof(int), pZipOut) ||
-			!WriteAssetDataToZip(pACI->m_pathSrc, s_suffixMtlMap, &serializedMaterialMap[0], serializedMaterialMap.size(), pZipOut) ||
-			!WriteAssetDataToZip(pACI->m_pathSrc, s_suffixBounds, &ctx.m_bounds, sizeof(ctx.m_bounds), pZipOut))
+		if (!WriteAssetDataToZip(pACI->m_pathSrc, g_suffixVerts, &ctx.m_verts[0], ctx.m_verts.size() * sizeof(Vertex), pZipOut) ||
+			!WriteAssetDataToZip(pACI->m_pathSrc, g_suffixIndices, &ctx.m_indices[0], ctx.m_indices.size() * sizeof(int), pZipOut) ||
+			!WriteAssetDataToZip(pACI->m_pathSrc, g_suffixMtlMap, &serializedMaterialMap[0], serializedMaterialMap.size(), pZipOut) ||
+			!WriteAssetDataToZip(pACI->m_pathSrc, g_suffixBounds, &ctx.m_bounds, sizeof(ctx.m_bounds), pZipOut))
 		{
 			return false;
 		}

@@ -19,32 +19,36 @@ namespace Framework
 	class Mesh
 	{
 	public:
-		std::vector<Vertex>			m_verts;
-		std::vector<int>			m_indices;
+		// Asset pack that this mesh's data is sourced from
+		comptr<AssetPack>			m_pPack;
 
+		// Pointers to vertex and index data in the asset pack
+		Vertex *					m_pVerts;
+		int *						m_pIndices;
+		int							m_vertCount;
+		int							m_indexCount;
+
+		// !!!UNDONE: material map
+
+		// GPU resources
 		comptr<ID3D11Buffer>		m_pVtxBuffer;
 		comptr<ID3D11Buffer>		m_pIdxBuffer;
-		int							m_vtxStride;	// Vertex stride for IASetVertexBuffers
+
+		// Rendering info
+		int							m_vtxStrideBytes;
 		D3D11_PRIMITIVE_TOPOLOGY	m_primtopo;
-		box3						m_box;			// Bounding box in local space
+		box3						m_bounds;			// Bounding box in local space
 
 		Mesh();
 		void Draw(ID3D11DeviceContext * pCtx);
-		void Release();
+		void Reset();
 
-		// These methods operate only on m_verts and m_indices stored in CPU memory
-		void DeduplicateVerts();
-		void CalculateNormals();
-#if VERTEX_TANGENT
-		void CalculateTangents();
-#endif
-
-		// Creates the vertex and index buffers on the GPU from m_verts and m_indices
+		// Creates the vertex and index buffers on the GPU from m_pVerts and m_pIndices
 		void UploadToGPU(ID3D11Device * pDevice);
 	};
 
-	bool LoadObjMesh(
-		ID3D11Device * pDevice,
+	bool LoadMeshFromAssetPack(
+		AssetPack * pPack,
 		const char * path,
 		Mesh * pMeshOut);
 }

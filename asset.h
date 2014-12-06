@@ -15,9 +15,10 @@ namespace Framework
 		std::vector<byte>						m_data;				// Entire uncompressed archive
 		std::vector<FileInfo>					m_files;			// List of files in the archive
 		std::unordered_map<std::string, int>	m_directory;		// Mapping from internal path to index in m_files
+		std::string								m_path;				// File path where the asset pack was loaded from
 
-		byte * LookupFile(const char * path);
-		byte * LookupFile(const char * path, const char * suffix);
+		bool LookupFile(const char * path, void ** pDataOut, int * pSizeOut);
+		bool LookupFile(const char * path, const char * suffix, void ** pDataOut, int * pSizeOut);
 		void Reset();
 	};
 

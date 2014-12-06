@@ -107,7 +107,7 @@ bool TestWindow::Init(HINSTANCE hInstance)
 	LoadAssetPackOrCompileIfOutOfDate("sponza-assets.zip", s_assets, dim(s_assets), pPack);
 
 	// Load assets
-	if (!LoadObjMesh(m_pDevice, "sponza\\sponza_cracksFilled.obj", &m_meshSponza))
+	if (!LoadMeshFromAssetPack(pPack, "sponza/sponza_cracksFilled.obj", &m_meshSponza))
 	{
 		ERR("Couldn't load Sponza mesh");
 		return false;
@@ -117,6 +117,8 @@ bool TestWindow::Init(HINSTANCE hInstance)
 		ERR("Couldn't load Sponza stone texture");
 		return false;
 	}
+
+	m_meshSponza.UploadToGPU(m_pDevice);
 
 	// Load shaders
 	CHECK_D3D(m_pDevice->CreateVertexShader(world_vs_bytecode, dim(world_vs_bytecode), nullptr, &m_pVsWorld));

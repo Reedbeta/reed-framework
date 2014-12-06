@@ -8,7 +8,7 @@ namespace Framework
 {
 	// AssetPack implementation
 
-	byte * AssetPack::LookupFile(const char * path)
+	bool AssetPack::LookupFile(const char * path, void ** ppDataOut, int * pSizeOut)
 	{
 		ASSERT_ERR(path);
 
@@ -16,13 +16,20 @@ namespace Framework
 
 		auto iter = m_directory.find(path);
 		if (iter == m_directory.end())
-			return nullptr;
+			return false;
 
 		int iFile = iter->second;
-		return &m_data[m_files[iFile].m_offset];
+		const FileInfo & fileinfo = m_files[iFile];
+
+		if (ppDataOut)
+			*ppDataOut = &m_data[fileinfo.m_offset];
+		if (pSizeOut)
+			*pSizeOut = fileinfo.m_size;
+
+		return true;
 	}
 
-	byte * AssetPack::LookupFile(const char * path, const char * suffix)
+	bool AssetPack::LookupFile(const char * path, const char * suffix, void ** ppDataOut, int * pSizeOut)
 	{
 		ASSERT_ERR(path);
 		ASSERT_ERR(suffix);
@@ -33,10 +40,17 @@ namespace Framework
 		fullPath += suffix;
 		auto iter = m_directory.find(fullPath);
 		if (iter == m_directory.end())
-			return nullptr;
+			return false;
 
 		int iFile = iter->second;
-		return &m_data[m_files[iFile].m_offset];
+		const FileInfo & fileinfo = m_files[iFile];
+
+		if (ppDataOut)
+			*ppDataOut = &m_data[fileinfo.m_offset];
+		if (pSizeOut)
+			*pSizeOut = fileinfo.m_size;
+
+		return true;
 	}
 
 	void AssetPack::Reset()
@@ -44,6 +58,7 @@ namespace Framework
 		m_data.clear();
 		m_files.clear();
 		m_directory.clear();
+		m_path.clear();
 	}
 
 
@@ -120,6 +135,8 @@ namespace Framework
 			ERR("Couldn't load asset pack %s", packPath);
 			return false;
 		}
+
+		pPackOut->m_path = packPath;
 
 		int numFiles = int(mz_zip_reader_get_num_files(&zip));
 		pPackOut->m_files.resize(numFiles);

@@ -14,6 +14,8 @@ namespace Framework
 {
 	using namespace util;
 	using util::byte;		// Needed because Windows also defines the "byte" type
+
+	class AssetPack;
 }
 
 #define CHECK_D3D(f) \
