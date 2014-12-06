@@ -15,13 +15,13 @@ namespace Framework
 	//  * !!!UNDONE: Vertex cache optimization.
 	//  * !!!UNDONE: Parsing the accompanying .mtl file.
 
-	const char * g_suffixVerts		= "/verts";
-	const char * g_suffixIndices	= "/indices";
-	const char * g_suffixMtlMap		= "/mtlmap";
-	const char * g_suffixBounds		= "/bounds";
-
 	namespace OBJMeshCompiler
 	{
+		static const char * s_suffixMeta		= "/meta";
+		static const char * s_suffixVerts		= "/verts";
+		static const char * s_suffixIndices		= "/indices";
+		static const char * s_suffixMtlMap		= "/mtlmap";
+
 		struct MtlRange
 		{
 			std::string		m_mtlName;
@@ -37,6 +37,13 @@ namespace Framework
 			bool					m_hasNormals;
 		};
 
+		struct Meta
+		{
+			// Later: vertex format info
+
+			box3			m_bounds;
+		};
+
 		// Prototype various helper functions
 		static bool ParseOBJ(const char * path, Context * pCtxOut);
 		static void DeduplicateVerts(Context * pCtx);
@@ -46,6 +53,7 @@ namespace Framework
 #endif
 		static void SortMaterials(Context * pCtx);
 
+		static void SerializeMeta(Context * pCtx, std::vector<byte> * pDataOut);
 		static void SerializeMaterialMap(Context * pCtx, std::vector<byte> * pDataOut);
 	}
 
@@ -82,13 +90,16 @@ namespace Framework
 
 		// Write the data out to the archive
 
+		std::vector<byte> serializedMeta;
+		SerializeMeta(&ctx, &serializedMeta);
+
 		std::vector<byte> serializedMaterialMap;
 		SerializeMaterialMap(&ctx, &serializedMaterialMap);
 
-		if (!WriteAssetDataToZip(pACI->m_pathSrc, g_suffixVerts, &ctx.m_verts[0], ctx.m_verts.size() * sizeof(Vertex), pZipOut) ||
-			!WriteAssetDataToZip(pACI->m_pathSrc, g_suffixIndices, &ctx.m_indices[0], ctx.m_indices.size() * sizeof(int), pZipOut) ||
-			!WriteAssetDataToZip(pACI->m_pathSrc, g_suffixMtlMap, &serializedMaterialMap[0], serializedMaterialMap.size(), pZipOut) ||
-			!WriteAssetDataToZip(pACI->m_pathSrc, g_suffixBounds, &ctx.m_bounds, sizeof(ctx.m_bounds), pZipOut))
+		if (!WriteAssetDataToZip(pACI->m_pathSrc, s_suffixMeta, &serializedMeta[0], serializedMeta.size(), pZipOut) ||
+			!WriteAssetDataToZip(pACI->m_pathSrc, s_suffixVerts, &ctx.m_verts[0], ctx.m_verts.size() * sizeof(Vertex), pZipOut) ||
+			!WriteAssetDataToZip(pACI->m_pathSrc, s_suffixIndices, &ctx.m_indices[0], ctx.m_indices.size() * sizeof(int), pZipOut) ||
+			!WriteAssetDataToZip(pACI->m_pathSrc, s_suffixMtlMap, &serializedMaterialMap[0], serializedMaterialMap.size(), pZipOut))
 		{
 			return false;
 		}
@@ -569,6 +580,17 @@ namespace Framework
 			pCtx->m_mtlRanges.swap(mtlRangesMerged);
 		}
 
+		static void SerializeMeta(Context * pCtx, std::vector<byte> * pDataOut)
+		{
+			ASSERT_ERR(pCtx);
+			ASSERT_ERR(pDataOut);
+
+			pDataOut->resize(sizeof(Meta));
+			Meta * pMeta = (Meta *)&(*pDataOut)[0];
+
+			pMeta->m_bounds = pCtx->m_bounds;
+		}
+
 		static void SerializeMaterialMap(Context * pCtx, std::vector<byte> * pDataOut)
 		{
 			ASSERT_ERR(pCtx);
@@ -590,5 +612,58 @@ namespace Framework
 				memcpy(&(*pDataOut)[iByteStart + nameLength], &range.m_iIdxStart, 2 * sizeof(int));
 			}
 		}
+	}
+
+
+
+	// Load compiled data into a runtime game object
+
+	bool LoadMeshFromAssetPack(
+		AssetPack * pPack,
+		const char * path,
+		Mesh * pMeshOut)
+	{
+		ASSERT_ERR(pPack);
+		ASSERT_ERR(path);
+		ASSERT_ERR(pMeshOut);
+
+		using namespace OBJMeshCompiler;
+
+		// Look for the data in the asset pack
+
+		Meta * pMeta;
+		int metaSize;
+		if (!pPack->LookupFile(path, s_suffixMeta, (void **)&pMeta, &metaSize))
+		{
+			WARN("Couldn't find metadata for mesh %s in asset pack %s", path, pPack->m_path.c_str());
+			return false;
+		}
+		ASSERT_WARN(metaSize == sizeof(Meta));
+		pMeshOut->m_bounds = pMeta->m_bounds;
+
+		int vertsSize;
+		if (!pPack->LookupFile(path, s_suffixVerts, (void **)&pMeshOut->m_pVerts, &vertsSize))
+		{
+			WARN("Couldn't find verts for mesh %s in asset pack %s", path, pPack->m_path.c_str());
+			return false;
+		}
+		ASSERT_WARN(vertsSize % sizeof(Vertex) == 0);
+		pMeshOut->m_vertCount = vertsSize / sizeof(Vertex);
+
+		int indicesSize;
+		if (!pPack->LookupFile(path, s_suffixIndices, (void **)&pMeshOut->m_pIndices, &indicesSize))
+		{
+			WARN("Couldn't find indices for mesh %s in asset pack %s", path, pPack->m_path.c_str());
+			return false;
+		}
+		ASSERT_WARN(indicesSize % (3 * sizeof(int)) == 0);
+		pMeshOut->m_indexCount = indicesSize / sizeof(int);
+
+		// !!!UNDONE: material map
+
+		LOG("Loaded %s from asset pack %s - %d verts, %d indices",
+			path, pPack->m_path.c_str(), pMeshOut->m_vertCount, pMeshOut->m_indexCount);
+
+		return true;
 	}
 }
