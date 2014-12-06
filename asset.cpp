@@ -8,13 +8,6 @@ namespace Framework
 {
 	// AssetPack implementation
 
-	AssetPack::AssetPack()
-	:	m_data(),
-		m_files(),
-		m_directory()
-	{
-	}
-
 	byte * AssetPack::LookupFile(const char * path)
 	{
 		ASSERT_ERR(path);
@@ -46,9 +39,10 @@ namespace Framework
 		return &m_data[m_files[iFile].m_offset];
 	}
 
-	void AssetPack::Release()
+	void AssetPack::Reset()
 	{
 		m_data.clear();
+		m_files.clear();
 		m_directory.clear();
 	}
 

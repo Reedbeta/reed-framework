@@ -72,7 +72,7 @@ namespace Framework
 		m_format = format;
 	}
 
-	void RenderTarget::Release()
+	void RenderTarget::Reset()
 	{
 		m_pTex.release();
 		m_pRtv.release();
@@ -303,7 +303,7 @@ namespace Framework
 		m_formatSrvStencil = formats.m_formatSrvStencil;
 	}
 
-	void DepthStencilTarget::Release()
+	void DepthStencilTarget::Reset()
 	{
 		m_pTex.release();
 		m_pDsv.release();

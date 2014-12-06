@@ -16,10 +16,9 @@ namespace Framework
 		std::vector<FileInfo>					m_files;			// List of files in the archive
 		std::unordered_map<std::string, int>	m_directory;		// Mapping from internal path to index in m_files
 
-		AssetPack();
 		byte * LookupFile(const char * path);
 		byte * LookupFile(const char * path, const char * suffix);
-		void Release();
+		void Reset();
 	};
 
 	enum ACK					// Asset Compile Kind

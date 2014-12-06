@@ -79,7 +79,7 @@ namespace Framework
 					int2_arg dims,
 					DXGI_FORMAT format,
 					int flags = TEXFLAG_Default);
-		void	Release();
+		void	Reset();
 
 		int		SizeInBytes() const
 					{ return CalculateMipPyramidSizeInBytes(m_dims, m_format, m_mipLevels); }
@@ -108,7 +108,7 @@ namespace Framework
 					int cubeSize,
 					DXGI_FORMAT format,
 					int flags = TEXFLAG_Default);
-		void	Release();
+		void	Reset();
 
 		int		SizeInBytes() const
 					{ return CalculateMipPyramidSizeInBytes(m_cubeSize, m_format, m_mipLevels); }
@@ -138,7 +138,7 @@ namespace Framework
 					int3_arg dims,
 					DXGI_FORMAT format,
 					int flags = TEXFLAG_Default);
-		void	Release();
+		void	Reset();
 
 		int		SizeInBytes() const
 					{ return CalculateMipPyramidSizeInBytes(m_dims, m_format, m_mipLevels); }

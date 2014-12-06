@@ -65,7 +65,7 @@ namespace Framework
 		m_format = format;
 	}
 
-	void Texture2D::Release()
+	void Texture2D::Reset()
 	{
 		m_pTex.release();
 		m_pSrv.release();
@@ -191,7 +191,7 @@ namespace Framework
 		m_format = format;
 	}
 
-	void TextureCube::Release()
+	void TextureCube::Reset()
 	{
 		m_pTex.release();
 		m_pSrv.release();
@@ -316,7 +316,7 @@ namespace Framework
 		m_format = format;
 	}
 
-	void Texture3D::Release()
+	void Texture3D::Reset()
 	{
 		m_pTex.release();
 		m_pSrv.release();

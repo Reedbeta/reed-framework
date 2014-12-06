@@ -22,7 +22,7 @@ namespace Framework
 					DXGI_FORMAT format,
 					int sampleCount = 1,
 					int flags = RTFLAG_Default);
-		void	Release();
+		void	Reset();
 
 		void	Bind(ID3D11DeviceContext * pCtx);
 		void	Bind(ID3D11DeviceContext * pCtx, box2_arg viewport);
@@ -63,7 +63,7 @@ namespace Framework
 					DXGI_FORMAT format,
 					int sampleCount = 1,
 					int flags = DSFLAG_Default);
-		void	Release();
+		void	Reset();
 
 		int		SizeInBytes() const
 					{ return m_dims.x * m_dims.y * m_sampleCount * BitsPerPixel(m_formatDsv) / 8; }
