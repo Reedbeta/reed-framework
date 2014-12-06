@@ -9,9 +9,12 @@ namespace Framework
 		T * p;
 
 		comptr(): p(nullptr) {}
-		comptr(T * other): p(other) {}
+		comptr(T * other): p(other)
+			{ if (p) p->AddRef(); }
 		comptr(const comptr<T> & other): p(other.p)
 			{ if (p) p->AddRef(); }
+		comptr(comptr<T> && other): p(other.p)
+			{ other.p = nullptr; }
 
 		void release()
 			{ if (p) { p->Release(); p = nullptr; } }
@@ -19,13 +22,38 @@ namespace Framework
 			{ release(); }
 
 		comptr<T> & operator = (T * other)
-			{ release(); p = other; return *this; }
+			{ release(); p = other; if (p) p->AddRef(); return *this; }
 		comptr<T> & operator = (const comptr<T> & other)
-			{ release(); p = other.p; p->AddRef(); return *this; }
+			{ release(); p = other.p; if (p) p->AddRef(); return *this; }
+		comptr<T> & operator = (comptr<T> && other)
+			{ release(); p = other.p; other.p = nullptr; return *this; }
 
 		T ** operator & () { return &p; }
 		T * operator * () { return p; }
 		T * operator -> () { return p; }
 		operator T * () { return p; }
+	};
+
+
+
+	// Reference counting mixin functionality that's interface-compatible with COM
+	struct RefCount
+	{
+		int		m_cRef;
+
+		RefCount(): m_cRef(0) {}
+		virtual ~RefCount() {}
+
+		void AddRef()
+		{
+			++m_cRef;
+		}
+		
+		void Release()
+		{
+			--m_cRef;
+			if (m_cRef == 0)
+				delete this;
+		}
 	};
 }

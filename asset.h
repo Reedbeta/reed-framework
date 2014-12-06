@@ -2,7 +2,7 @@
 
 namespace Framework
 {
-	class AssetPack
+	class AssetPack : public RefCount
 	{
 	public:
 		struct FileInfo

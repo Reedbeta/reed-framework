@@ -103,8 +103,8 @@ bool TestWindow::Init(HINSTANCE hInstance)
 		{ "sponza/sponza_cracksFilled.obj", ACK_OBJMesh, },
 		{ "sponza/kamen.jpg", ACK_TextureWithMips, },
 	};
-	AssetPack pack;
-	LoadAssetPackOrCompileIfOutOfDate("sponza-assets.zip", s_assets, dim(s_assets), &pack);
+	comptr<AssetPack> pPack = new AssetPack;
+	LoadAssetPackOrCompileIfOutOfDate("sponza-assets.zip", s_assets, dim(s_assets), pPack);
 
 	// Load assets
 	if (!LoadObjMesh(m_pDevice, "sponza\\sponza_cracksFilled.obj", &m_meshSponza))
