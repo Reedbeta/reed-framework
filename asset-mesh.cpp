@@ -20,7 +20,7 @@ namespace Framework
 		static const char * s_suffixMeta		= "/meta";
 		static const char * s_suffixVerts		= "/verts";
 		static const char * s_suffixIndices		= "/indices";
-		static const char * s_suffixMtlMap		= "/mtlmap";
+		static const char * s_suffixMtlMap		= "/material_map";
 
 		struct MtlRange
 		{
@@ -53,7 +53,6 @@ namespace Framework
 #endif
 		static void SortMaterials(Context * pCtx);
 
-		static void SerializeMeta(Context * pCtx, std::vector<byte> * pDataOut);
 		static void SerializeMaterialMap(Context * pCtx, std::vector<byte> * pDataOut);
 	}
 
@@ -88,15 +87,18 @@ namespace Framework
 #endif
 		SortMaterials(&ctx);
 
-		// Write the data out to the archive
+		// Fill out the metadata struct
+		Meta meta =
+		{
+			ctx.m_bounds,
+		};
 
-		std::vector<byte> serializedMeta;
-		SerializeMeta(&ctx, &serializedMeta);
+		// Write the data out to the archive
 
 		std::vector<byte> serializedMaterialMap;
 		SerializeMaterialMap(&ctx, &serializedMaterialMap);
 
-		if (!WriteAssetDataToZip(pACI->m_pathSrc, s_suffixMeta, &serializedMeta[0], serializedMeta.size(), pZipOut) ||
+		if (!WriteAssetDataToZip(pACI->m_pathSrc, s_suffixMeta, &meta, sizeof(meta), pZipOut) ||
 			!WriteAssetDataToZip(pACI->m_pathSrc, s_suffixVerts, &ctx.m_verts[0], ctx.m_verts.size() * sizeof(Vertex), pZipOut) ||
 			!WriteAssetDataToZip(pACI->m_pathSrc, s_suffixIndices, &ctx.m_indices[0], ctx.m_indices.size() * sizeof(int), pZipOut) ||
 			!WriteAssetDataToZip(pACI->m_pathSrc, s_suffixMtlMap, &serializedMaterialMap[0], serializedMaterialMap.size(), pZipOut))
@@ -578,17 +580,6 @@ namespace Framework
 
 			pCtx->m_indices.swap(indicesReordered);
 			pCtx->m_mtlRanges.swap(mtlRangesMerged);
-		}
-
-		static void SerializeMeta(Context * pCtx, std::vector<byte> * pDataOut)
-		{
-			ASSERT_ERR(pCtx);
-			ASSERT_ERR(pDataOut);
-
-			pDataOut->resize(sizeof(Meta));
-			Meta * pMeta = (Meta *)&(*pDataOut)[0];
-
-			pMeta->m_bounds = pCtx->m_bounds;
 		}
 
 		static void SerializeMaterialMap(Context * pCtx, std::vector<byte> * pDataOut)

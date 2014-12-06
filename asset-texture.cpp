@@ -25,6 +25,15 @@ namespace Framework
 
 	namespace TextureCompiler
 	{
+		static const char * s_suffixMeta = "/meta";
+
+		struct Meta
+		{
+			int2			m_dims;
+			int				m_mipLevels;
+			DXGI_FORMAT		m_format;
+		};
+
 		// Prototype various helper functions
 		static bool WriteBMPToZip(
 			const char * assetPath,
@@ -61,8 +70,17 @@ namespace Framework
 			return false;
 		}
 
-		// Store it as a .bmp
-		if (!WriteBMPToZip(pACI->m_pathSrc, 0, pPixels, dims, pZipOut))
+		// Fill out the metadata struct
+		Meta meta =
+		{
+			dims,
+			1,		// mipLevels
+			DXGI_FORMAT_R8G8B8A8_UNORM_SRGB,
+		};
+
+		// Write the data out to the archive
+		if (!WriteAssetDataToZip(pACI->m_pathSrc, s_suffixMeta, &meta, sizeof(meta), pZipOut) ||
+			!WriteBMPToZip(pACI->m_pathSrc, 0, pPixels, dims, pZipOut))
 		{
 			stbi_image_free(pPixels);
 			return false;
@@ -116,15 +134,24 @@ namespace Framework
 			pPixelsBase = pPixels;
 		}
 
-		// Store the base level as a .bmp
-		if (!WriteBMPToZip(pACI->m_pathSrc, 0, pPixelsBase, dimsBase, pZipOut))
+		// Fill out the metadata struct
+		int mipLevels = log2_floor(maxComponent(dimsBase)) + 1;
+		Meta meta =
+		{
+			dimsBase,
+			mipLevels,
+			DXGI_FORMAT_R8G8B8A8_UNORM_SRGB,
+		};
+
+		// Store the metadata and the base level as a .bmp
+		if (!WriteAssetDataToZip(pACI->m_pathSrc, s_suffixMeta, &meta, sizeof(meta), pZipOut) ||
+			!WriteBMPToZip(pACI->m_pathSrc, 0, pPixelsBase, dimsBase, pZipOut))
 		{
 			stbi_image_free(pPixels);
 			return false;
 		}
 
 		// Generate mip levels
-		int mipLevels = log2_floor(maxComponent(dimsBase)) + 1;
 		std::vector<byte4> pixelsMip;
 		for (int level = 1; level < mipLevels; ++level)
 		{
