@@ -6,38 +6,24 @@
 
 namespace Framework
 {
+	static const char * s_pathVersionInfo = "version";
+
 	// AssetPack implementation
 
-	bool AssetPack::LookupFile(const char * path, void ** ppDataOut, int * pSizeOut)
+	AssetPack::AssetPack()
+	:	m_version()
 	{
-		ASSERT_ERR(path);
-
-		// !!!UNDONE: assert that path is in a normal form (lowercase, forward slashes, etc.)?
-
-		auto iter = m_directory.find(path);
-		if (iter == m_directory.end())
-			return false;
-
-		int iFile = iter->second;
-		const FileInfo & fileinfo = m_files[iFile];
-
-		if (ppDataOut)
-			*ppDataOut = &m_data[fileinfo.m_offset];
-		if (pSizeOut)
-			*pSizeOut = fileinfo.m_size;
-
-		return true;
 	}
 
 	bool AssetPack::LookupFile(const char * path, const char * suffix, void ** ppDataOut, int * pSizeOut)
 	{
 		ASSERT_ERR(path);
-		ASSERT_ERR(suffix);
 
 		// !!!UNDONE: assert that path is in a normal form (lowercase, forward slashes, etc.)?
 
 		std::string fullPath = path;
-		fullPath += suffix;
+		if (suffix)
+			fullPath += suffix;
 		auto iter = m_directory.find(fullPath);
 		if (iter == m_directory.end())
 			return false;
@@ -46,7 +32,7 @@ namespace Framework
 		const FileInfo & fileinfo = m_files[iFile];
 
 		if (ppDataOut)
-			*ppDataOut = &m_data[fileinfo.m_offset];
+			*ppDataOut = (fileinfo.m_size > 0) ? &m_data[fileinfo.m_offset] : nullptr;
 		if (pSizeOut)
 			*pSizeOut = fileinfo.m_size;
 
@@ -190,7 +176,52 @@ namespace Framework
 
 		mz_zip_reader_end(&zip);
 
+		// Extract the version info
+		AssetPack::VersionInfo * pVerInfo;
+		int verInfoSize;
+		if (!pPackOut->LookupFile(s_pathVersionInfo, nullptr, (void **)&pVerInfo, &verInfoSize))
+		{
+			WARN("Couldn't find version info in asset pack %s", packPath);
+		}
+		ASSERT_WARN(verInfoSize == sizeof(AssetPack::VersionInfo));
+		pPackOut->m_version = *pVerInfo;
+
 		LOG("Loaded asset pack %s - %d files, %d total bytes", packPath, numFiles, bytesTotal);
+		return true;
+	}
+
+	// Just load the version info from an asset pack file.
+	bool LoadAssetPackVersionInfo(
+		const char * packPath,
+		AssetPack::VersionInfo * pVerInfoOut)
+	{
+		ASSERT_ERR(packPath);
+		ASSERT_ERR(pVerInfoOut);
+
+		// Load the archive directory
+		mz_zip_archive zip = {};
+		if (!mz_zip_reader_init_file(&zip, packPath, 0))
+		{
+			WARN("Couldn't load asset pack %s", packPath);
+			return false;
+		}
+
+		// Extract the version info
+		int fileIndex = mz_zip_reader_locate_file(&zip, s_pathVersionInfo, nullptr, 0);
+		if (fileIndex < 0)
+		{
+			WARN("Couldn't find version info in asset pack %s", packPath);
+			mz_zip_reader_end(&zip);
+			return false;
+		}
+		if (!mz_zip_reader_extract_to_mem(&zip, fileIndex, pVerInfoOut, sizeof(AssetPack::VersionInfo), 0))
+		{
+			WARN("Couldn't extract version info from asset pack %s", packPath);
+			mz_zip_reader_end(&zip);
+			return false;
+		}
+
+		mz_zip_reader_end(&zip);
 		return true;
 	}
 
@@ -232,6 +263,16 @@ namespace Framework
 		{
 			WARN("Failed to compile %d of %d assets", numErrors, numAssets);
 		}
+
+		// Write version info
+		AssetPack::VersionInfo version =
+		{
+			AssetPack::PACKVER_Current,
+			AssetPack::MESHVER_Current,
+			AssetPack::TEXVER_Current,
+		};
+		if (!WriteAssetDataToZip(s_pathVersionInfo, nullptr, &version, sizeof(version), &zip))
+			return false;
 
 		if (!mz_zip_writer_finalize_archive(&zip))
 		{
