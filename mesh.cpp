@@ -112,7 +112,7 @@ namespace Framework
 			WARN("Couldn't find bounds for mesh %s in asset pack %s", path, pPack->m_path.c_str());
 			return false;
 		}
-		ASSERT_ERR(boundsSize == sizeof(box3));
+		ASSERT_WARN(boundsSize == sizeof(box3));
 		pMeshOut->m_bounds = *pBounds;
 
 		LOG("Loaded %s from asset pack %s - %d verts, %d indices",
@@ -120,45 +120,4 @@ namespace Framework
 
 		return true;
 	}
-
-#if OLD
-	bool LoadObjMesh(
-		ID3D11Device * pDevice,
-		const char * path,
-		Mesh * pMeshOut)
-	{
-		ASSERT_ERR(pDevice);
-		ASSERT_ERR(path);
-		ASSERT_ERR(pMeshOut);
-
-		bool hasNormals;
-		if (!LoadObjMeshRaw(
-				path,
-				&pMeshOut->m_verts,
-				&pMeshOut->m_indices,
-				&pMeshOut->m_box,
-				&hasNormals))
-		{
-			return false;
-		}
-
-		pMeshOut->DeduplicateVerts();
-
-		// !!!UNDONE: vertex cache optimization?
-
-		if (!hasNormals)
-			pMeshOut->CalculateNormals();
-
-#if VERTEX_TANGENT
-		pMeshOut->CalculateTangents();
-#endif
-
-		pMeshOut->UploadToGPU(pDevice);
-
-		LOG("Loaded %s - %d verts, %d indices",
-			path, pMeshOut->m_verts.size(), pMeshOut->m_indices.size());
-
-		return true;
-	}
-#endif
 }

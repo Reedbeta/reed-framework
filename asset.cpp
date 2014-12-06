@@ -132,7 +132,7 @@ namespace Framework
 		mz_zip_archive zip = {};
 		if (!mz_zip_reader_init_file(&zip, packPath, 0))
 		{
-			ERR("Couldn't load asset pack %s", packPath);
+			WARN("Couldn't load asset pack %s", packPath);
 			return false;
 		}
 
@@ -150,7 +150,7 @@ namespace Framework
 			mz_zip_archive_file_stat fileStat;
 			if (!mz_zip_reader_file_stat(&zip, i, &fileStat))
 			{
-				ERR("Couldn't read directory entry %d of %d from asset pack %s", i, numFiles, packPath);
+				WARN("Couldn't read directory entry %d of %d from asset pack %s", i, numFiles, packPath);
 				mz_zip_reader_end(&zip);
 				return false;
 			}
@@ -182,7 +182,7 @@ namespace Framework
 					&pPackOut->m_data[pFileInfo->m_offset],
 					pFileInfo->m_size, 0))
 			{
-				ERR("Couldn't extract file %s (index %d of %d) from asset pack %s", pFileInfo->m_path.c_str(), i, numFiles, packPath);
+				WARN("Couldn't extract file %s (index %d of %d) from asset pack %s", pFileInfo->m_path.c_str(), i, numFiles, packPath);
 				mz_zip_reader_end(&zip);
 				return false;
 			}
@@ -207,7 +207,7 @@ namespace Framework
 		mz_zip_archive zip = {};
 		if (!mz_zip_writer_init_file(&zip, packPath, 0))
 		{
-			ERR("Couldn't open %s for writing", packPath);
+			WARN("Couldn't open %s for writing", packPath);
 			return false;
 		}
 
@@ -235,7 +235,7 @@ namespace Framework
 
 		if (!mz_zip_writer_finalize_archive(&zip))
 		{
-			ERR("Couldn't finalize archive %s", packPath);
+			WARN("Couldn't finalize archive %s", packPath);
 			mz_zip_writer_end(&zip);
 			return false;
 		}
@@ -259,7 +259,7 @@ namespace Framework
 		mz_zip_archive zip = {};
 		if (!mz_zip_reader_init_file(&zip, packPath, 0))
 		{
-			ERR("Couldn't load asset pack %s", packPath);
+			WARN("Couldn't load asset pack %s", packPath);
 			return false;
 		}
 

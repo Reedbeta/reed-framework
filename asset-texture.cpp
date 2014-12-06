@@ -57,7 +57,7 @@ namespace Framework
 		byte4 * pPixels = (byte4 *)stbi_load(pACI->m_pathSrc, &dims.x, &dims.y, &numComponents, 4);
 		if (!pPixels)
 		{
-			ERR("Couldn't load file %s: %s", pACI->m_pathSrc, stbi_failure_reason());
+			WARN("Couldn't load file %s: %s", pACI->m_pathSrc, stbi_failure_reason());
 			return false;
 		}
 
@@ -91,7 +91,7 @@ namespace Framework
 		byte4 * pPixels = (byte4 *)stbi_load(pACI->m_pathSrc, &dims.x, &dims.y, &numComponents, 4);
 		if (!pPixels)
 		{
-			ERR("Couldn't load file %s: %s", pACI->m_pathSrc, stbi_failure_reason());
+			WARN("Couldn't load file %s: %s", pACI->m_pathSrc, stbi_failure_reason());
 			return false;
 		}
 
