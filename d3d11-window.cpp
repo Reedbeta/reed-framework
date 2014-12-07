@@ -82,6 +82,27 @@ namespace Framework
 					this);
 		ASSERT_ERR(m_hWnd);
 
+#ifdef _DEBUG
+		// Take a look at the adaptors on the system, just for kicks
+		comptr<IDXGIFactory> pFactory;
+		CHECK_D3D(CreateDXGIFactory(__uuidof(IDXGIFactory), (void **)&pFactory));
+		for (int iAdapter = 0; ; ++iAdapter)
+		{
+			comptr<IDXGIAdapter> pAdapter;
+			HRESULT hr = pFactory->EnumAdapters(iAdapter, &pAdapter);
+			if (hr == DXGI_ERROR_NOT_FOUND)
+				break;
+			ASSERT_ERR(SUCCEEDED(hr));
+
+			DXGI_ADAPTER_DESC adapterDesc;
+			pAdapter->GetDesc(&adapterDesc);
+			if (adapterDesc.DedicatedVideoMemory > 0)
+				LOG("Adapter %d: %ls (%dMB VRAM)", iAdapter, adapterDesc.Description, adapterDesc.DedicatedVideoMemory / 1048576);
+			else
+				LOG("Adapter %d: %ls (%dMB shared RAM)", iAdapter, adapterDesc.Description, adapterDesc.SharedSystemMemory / 1048576);
+		}
+#endif // _DEBUG
+
 		// Initialize D3D11
 		UINT flags = 0;
 #ifdef _DEBUG
@@ -108,7 +129,7 @@ namespace Framework
 #if defined(_DEBUG)
 		// Set up D3D11 debug layer settings
 		comptr<ID3D11InfoQueue> pInfoQueue;
-		if (SUCCEEDED(m_pDevice->QueryInterface(IID_ID3D11InfoQueue, (void **)&pInfoQueue)))
+		if (SUCCEEDED(m_pDevice->QueryInterface(__uuidof(ID3D11InfoQueue), (void **)&pInfoQueue)))
 		{
 			// Break in the debugger when an error or warning is issued
 			pInfoQueue->SetBreakOnSeverity(D3D11_MESSAGE_SEVERITY_CORRUPTION, true);
@@ -368,7 +389,7 @@ namespace Framework
 		{
 			// Retrieve the back buffer
 			comptr<ID3D11Texture2D> pTex;
-			CHECK_D3D(m_pSwapChain->GetBuffer(0, IID_ID3D11Texture2D, (void **)&pTex));
+			CHECK_D3D(m_pSwapChain->GetBuffer(0, __uuidof(ID3D11Texture2D), (void **)&pTex));
 
 			// Create render target views in sRGB and raw formats
 			D3D11_RENDER_TARGET_VIEW_DESC rtvDesc = 
@@ -495,4 +516,12 @@ namespace Framework
 		pCtx->PSSetSamplers(0, 1, &pSampSrc);
 		pCtx->Draw(6, 0);
 	}
+}
+
+
+
+// Magic incantation to make the app run on the NV GPU on Optimus laptops
+extern "C"
+{
+    _declspec(dllexport) DWORD NvOptimusEnablement = 1;
 }

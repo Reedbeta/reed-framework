@@ -437,7 +437,7 @@ namespace Framework
 		comptr<ID3D11Resource> pRes;
 		pSrv->GetResource(&pRes);
 		comptr<ID3D11Texture2D> pTex;
-		if (FAILED(pRes->QueryInterface(IID_ID3D11Texture2D, (void **)&pTex)))
+		if (FAILED(pRes->QueryInterface(__uuidof(ID3D11Texture2D), (void **)&pTex)))
 		{
 			WARN("Loaded texture %s, but couldn't get ID3D11Texture2D interface", path);
 			return false;
@@ -513,7 +513,7 @@ namespace Framework
 		comptr<ID3D11Resource> pRes;
 		pSrv->GetResource(&pRes);
 		comptr<ID3D11Texture2D> pTex;
-		if (FAILED(pRes->QueryInterface(IID_ID3D11Texture2D, (void **)&pTex)))
+		if (FAILED(pRes->QueryInterface(__uuidof(ID3D11Texture2D), (void **)&pTex)))
 		{
 			WARN("Loaded texture %s, but couldn't get ID3D11Texture2D interface", path);
 			return false;
