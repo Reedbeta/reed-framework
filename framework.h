@@ -19,10 +19,16 @@ namespace Framework
 }
 
 #define CHECK_D3D(f) \
-			CHECK_ERR(SUCCEEDED(f))
+		{ \
+			HRESULT hr = f; \
+			CHECK_ERR_MSG(SUCCEEDED(hr), "D3D call failed with error code: 0x%08x\nFailed call: %s", hr, #f); \
+		}
 
 #define CHECK_D3D_WARN(f) \
-			CHECK_WARN(SUCCEEDED(f))
+		{ \
+			HRESULT hr = f; \
+			CHECK_WARN_MSG(SUCCEEDED(hr), "D3D call failed with error code: 0x%08x\nFailed call: %s", hr, #f); \
+		}
 
 #include "comptr.h"
 
