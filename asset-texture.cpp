@@ -16,12 +16,14 @@ namespace Framework
 	//  * All textures are currently in RGBA8 sRGB format, top-down.
 	//  * Textures are either stored raw, or with mips.  Textures with mips are also
 	//      resampled up to the next pow2 size if necessary.
-	//  * Textures are written to the archive as .bmps, for ease of debugging.
-	//      That won't be true anymore when we have more general formats.
+	//  * Enable the WRITE_BMP define to additionally write out all images as .bmps
+	//      in the archive, for debugging.
 	//  * !!!UNDONE: Premultiplied alpha
 	//  * !!!UNDONE: BCn compression
 	//  * !!!UNDONE: Other pixel formats: HDR textures, normal maps, etc.
 	//  * !!!UNDONE: Cubemaps, volume textures, sparse tiled textures, etc.
+
+#define WRITE_BMP 0
 
 	namespace TextureCompiler
 	{
@@ -35,12 +37,21 @@ namespace Framework
 		};
 
 		// Prototype various helper functions
+		static bool WriteImageToZip(
+			const char * assetPath,
+			int mipLevel,
+			const byte4 * pPixels,
+			int2_arg dims,
+			mz_zip_archive * pZipOut);
+
+#if WRITE_BMP
 		static bool WriteBMPToZip(
 			const char * assetPath,
 			int mipLevel,
 			const byte4 * pPixels,
 			int2_arg dims,
 			mz_zip_archive * pZipOut);
+#endif
 	}
 
 
@@ -80,7 +91,7 @@ namespace Framework
 
 		// Write the data out to the archive
 		if (!WriteAssetDataToZip(pACI->m_pathSrc, s_suffixMeta, &meta, sizeof(meta), pZipOut) ||
-			!WriteBMPToZip(pACI->m_pathSrc, 0, pPixels, dims, pZipOut))
+			!WriteImageToZip(pACI->m_pathSrc, 0, pPixels, dims, pZipOut))
 		{
 			stbi_image_free(pPixels);
 			return false;
@@ -143,9 +154,9 @@ namespace Framework
 			DXGI_FORMAT_R8G8B8A8_UNORM_SRGB,
 		};
 
-		// Store the metadata and the base level as a .bmp
+		// Store the metadata and the base level pixels
 		if (!WriteAssetDataToZip(pACI->m_pathSrc, s_suffixMeta, &meta, sizeof(meta), pZipOut) ||
-			!WriteBMPToZip(pACI->m_pathSrc, 0, pPixelsBase, dimsBase, pZipOut))
+			!WriteImageToZip(pACI->m_pathSrc, 0, pPixelsBase, dimsBase, pZipOut))
 		{
 			stbi_image_free(pPixels);
 			return false;
@@ -164,7 +175,7 @@ namespace Framework
 						(byte *)pPixelsMip, dimsMip.x, dimsMip.y, 0,
 						4, 3, 0));
 
-			if (!WriteBMPToZip(pACI->m_pathSrc, level, pPixelsMip, dimsMip, pZipOut))
+			if (!WriteImageToZip(pACI->m_pathSrc, level, pPixelsMip, dimsMip, pZipOut))
 			{
 				stbi_image_free(pPixels);
 				return false;
@@ -179,6 +190,35 @@ namespace Framework
 
 	namespace TextureCompiler
 	{
+		static bool WriteImageToZip(
+			const char * assetPath,
+			int mipLevel,
+			const byte4 * pPixels,
+			int2_arg dims,
+			mz_zip_archive * pZipOut)
+		{
+			ASSERT_ERR(assetPath);
+			ASSERT_ERR(mipLevel >= 0);
+			ASSERT_ERR(pPixels);
+			ASSERT_ERR(all(dims > 0));
+			ASSERT_ERR(pZipOut);
+
+			// Compose the suffix
+			char suffix[16] = {};
+			sprintf_s(suffix, "/%d", mipLevel);
+
+#if WRITE_BMP
+			// Write a .bmp version of it, too, if we're doing that
+			if (!WriteBMPToZip(assetPath, mipLevel, pPixels, dims, pZipOut))
+				return false;
+#endif
+
+			// Write it to the .zip archive
+			int sizeBytes = dims.x * dims.y * sizeof(byte4);
+			return WriteAssetDataToZip(assetPath, suffix, pPixels, sizeBytes, pZipOut);
+		}
+
+#if WRITE_BMP
 		static bool WriteBMPToZip(
 			const char * assetPath,
 			int mipLevel,
@@ -228,5 +268,6 @@ namespace Framework
 			// Write it to the .zip archive
 			return WriteAssetDataToZip(assetPath, suffix, &buffer[0], totalSizeBytes, pZipOut);
 		}
+#endif // WRITE_BMP
 	}
 }
