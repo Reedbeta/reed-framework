@@ -6,13 +6,22 @@ namespace Framework
 	// Texture2D implementation
 
 	Texture2D::Texture2D()
-	:	m_pTex(),
-		m_pSrv(),
-		m_pUav(),
-		m_dims(makeint2(0)),
+	:	m_dims(makeint2(0)),
 		m_mipLevels(0),
 		m_format(DXGI_FORMAT_UNKNOWN)
 	{
+	}
+
+	void Texture2D::Reset()
+	{
+		m_pPack.release();
+		m_apPixels.clear();
+		m_dims = makeint2(0);
+		m_mipLevels = 0;
+		m_format = DXGI_FORMAT_UNKNOWN;
+		m_pTex.release();
+		m_pSrv.release();
+		m_pUav.release();
 	}
 
 	void Texture2D::Init(
@@ -46,11 +55,7 @@ namespace Framework
 		}
 		CHECK_D3D(pDevice->CreateTexture2D(&texDesc, nullptr, &m_pTex));
 
-		D3D11_SHADER_RESOURCE_VIEW_DESC srvDesc =
-		{
-			format,
-			D3D11_SRV_DIMENSION_TEXTURE2D,
-		};
+		D3D11_SHADER_RESOURCE_VIEW_DESC srvDesc = { format, D3D11_SRV_DIMENSION_TEXTURE2D, };
 		srvDesc.Texture2D.MipLevels = texDesc.MipLevels;
 		CHECK_D3D(pDevice->CreateShaderResourceView(m_pTex, &srvDesc, &m_pSrv));
 
@@ -65,14 +70,54 @@ namespace Framework
 		m_format = format;
 	}
 
-	void Texture2D::Reset()
+	void Texture2D::UploadToGPU(
+		ID3D11Device * pDevice,
+		int flags /* = TEXFLAG_Default */)
 	{
-		m_pTex.release();
-		m_pSrv.release();
-		m_pUav.release();
-		m_dims = makeint2(0);
-		m_mipLevels = 0;
-		m_format = DXGI_FORMAT_UNKNOWN;
+		ASSERT_ERR(pDevice);
+		ASSERT_ERR(int(m_apPixels.size()) == m_mipLevels);
+
+		// Always map the format to its typeless version, if possible;
+		// enables views of other formats to be created if desired
+		DXGI_FORMAT formatTex = FindTypelessFormat(m_format);
+		if (formatTex == DXGI_FORMAT_UNKNOWN)
+			formatTex = m_format;
+
+		D3D11_TEXTURE2D_DESC texDesc =
+		{
+			m_dims.x, m_dims.y,
+			m_mipLevels, 1,
+			formatTex,
+			{ 1, 0 },
+			D3D11_USAGE_DEFAULT,
+			D3D11_BIND_SHADER_RESOURCE,
+			0, 0,
+		};
+		if (flags & TEXFLAG_EnableUAV)
+		{
+			texDesc.BindFlags |= D3D11_BIND_UNORDERED_ACCESS;
+		}
+
+		std::vector<D3D11_SUBRESOURCE_DATA> aInitialData(m_mipLevels);
+		for (int i = 0; i < m_mipLevels; ++i)
+		{
+			D3D11_SUBRESOURCE_DATA * pInitialData = &aInitialData[i];
+			pInitialData->pSysMem = m_apPixels[i];
+			pInitialData->SysMemPitch = CalculateMipDims(m_dims.x, i) * BitsPerPixel(m_format) / 8;
+			pInitialData->SysMemSlicePitch = 0;
+		}
+
+		CHECK_D3D(pDevice->CreateTexture2D(&texDesc, &aInitialData[0], &m_pTex));
+
+		D3D11_SHADER_RESOURCE_VIEW_DESC srvDesc = { m_format, D3D11_SRV_DIMENSION_TEXTURE2D, };
+		srvDesc.Texture2D.MipLevels = m_mipLevels;
+		CHECK_D3D(pDevice->CreateShaderResourceView(m_pTex, &srvDesc, &m_pSrv));
+
+		if (flags & TEXFLAG_EnableUAV)
+		{
+			D3D11_UNORDERED_ACCESS_VIEW_DESC uavDesc = { m_format, D3D11_UAV_DIMENSION_TEXTURE2D, };
+			CHECK_D3D(pDevice->CreateUnorderedAccessView(m_pTex, &uavDesc, &m_pUav));
+		}
 	}
 
 	void Texture2D::Readback(
@@ -380,164 +425,6 @@ namespace Framework
 		pCtx->Unmap(pTexStaging, 0);
 	}
 
-
-
-	// Texture loading - helper functions
-
-	bool LoadTexture2D(
-		ID3D11Device * pDevice,
-		const char * path,
-		Texture2D * pTexOut,
-		int flags /*= TEXLOADFLAG_Default*/)
-	{
-		ASSERT_ERR(pDevice);
-		ASSERT_ERR(path);
-		ASSERT_ERR(pTexOut);
-
-		bool mipmap = (flags & TEXLOADFLAG_Mipmap) != 0;
-		bool SRGB = (flags & TEXLOADFLAG_SRGB) != 0;
-		bool HDR = (flags & TEXLOADFLAG_HDR) != 0;
-
-		// HDR bitmaps are always in linear color space
-		if (HDR)
-			ASSERT_WARN_MSG(!SRGB, "HDR bitmaps cannot be in SRGB space");
-
-		// Load the texture, generating mipmaps if requested
-
-		D3DX11_IMAGE_LOAD_INFO imgLoadInfo;
-		imgLoadInfo.MipLevels = mipmap ? D3DX11_DEFAULT : 1;
-		imgLoadInfo.Usage = D3D11_USAGE_IMMUTABLE;
-		imgLoadInfo.BindFlags = D3D11_BIND_SHADER_RESOURCE;
-		imgLoadInfo.Format = HDR ? DXGI_FORMAT_R16G16B16A16_FLOAT :
-								(SRGB ? DXGI_FORMAT_R8G8B8A8_UNORM_SRGB : DXGI_FORMAT_R8G8B8A8_UNORM);
-		imgLoadInfo.Filter = D3DX11_FILTER_TRIANGLE | (SRGB ? D3DX11_FILTER_SRGB : 0);
-		imgLoadInfo.MipFilter = D3DX11_FILTER_TRIANGLE;
-
-		comptr<ID3D11ShaderResourceView> pSrv;
-		if (FAILED(D3DX11CreateShaderResourceViewFromFile(
-								pDevice,
-								path,
-								&imgLoadInfo,
-								nullptr,		// no thread pump
-								&pSrv,
-								nullptr)))		// no async return value
-		{
-			WARN("Couldn't load texture %s", path);
-			return false;
-		}
-
-		D3D11_SHADER_RESOURCE_VIEW_DESC srvDesc;
-		pSrv->GetDesc(&srvDesc);
-		if (srvDesc.ViewDimension != D3D11_SRV_DIMENSION_TEXTURE2D)
-		{
-			WARN("Loaded texture %s, but it's not a 2D texture - srvDesc.ViewDimension = %d", path, srvDesc.ViewDimension);
-			return false;
-		}
-
-		comptr<ID3D11Resource> pRes;
-		pSrv->GetResource(&pRes);
-		comptr<ID3D11Texture2D> pTex;
-		if (FAILED(pRes->QueryInterface(__uuidof(ID3D11Texture2D), (void **)&pTex)))
-		{
-			WARN("Loaded texture %s, but couldn't get ID3D11Texture2D interface", path);
-			return false;
-		}
-
-		D3D11_TEXTURE2D_DESC texDesc;
-		pTex->GetDesc(&texDesc);
-
-		LOG(
-			"Loaded 2D texture %s - %dx%d, format %s, %d mip levels",
-			path, texDesc.Width, texDesc.Height, NameOfFormat(texDesc.Format), texDesc.MipLevels);
-
-		pTexOut->m_pTex = pTex;
-		pTexOut->m_pSrv = pSrv;
-		pTexOut->m_dims = makeint2(texDesc.Width, texDesc.Height);
-		pTexOut->m_mipLevels = texDesc.MipLevels;
-		pTexOut->m_format = texDesc.Format;
-
-		return true;
-	}
-
-	bool LoadTextureCube(
-		ID3D11Device * pDevice,
-		const char * path,
-		TextureCube * pTexOut,
-		int flags /*= TEXLOADFLAG_Default*/)
-	{
-		ASSERT_ERR(pDevice);
-		ASSERT_ERR(path);
-		ASSERT_ERR(pTexOut);
-
-		bool mipmap = (flags & TEXLOADFLAG_Mipmap) != 0;
-		bool SRGB = (flags & TEXLOADFLAG_SRGB) != 0;
-		bool HDR = (flags & TEXLOADFLAG_HDR) != 0;
-
-		// HDR bitmaps are always in linear color space
-		if (HDR)
-			ASSERT_WARN_MSG(!SRGB, "HDR bitmaps cannot be in SRGB space");
-
-		// Load the texture, generating mipmaps if requested
-
-		D3DX11_IMAGE_LOAD_INFO imgLoadInfo;
-		imgLoadInfo.MipLevels = mipmap ? D3DX11_DEFAULT : 1;
-		imgLoadInfo.Usage = D3D11_USAGE_IMMUTABLE;
-		imgLoadInfo.BindFlags = D3D11_BIND_SHADER_RESOURCE;
-		imgLoadInfo.MiscFlags = D3D11_RESOURCE_MISC_TEXTURECUBE;
-		imgLoadInfo.Format = HDR ? DXGI_FORMAT_R16G16B16A16_FLOAT :
-								(SRGB ? DXGI_FORMAT_R8G8B8A8_UNORM_SRGB : DXGI_FORMAT_R8G8B8A8_UNORM);
-		imgLoadInfo.Filter = D3DX11_FILTER_TRIANGLE | (SRGB ? D3DX11_FILTER_SRGB : 0);
-		imgLoadInfo.MipFilter = D3DX11_FILTER_TRIANGLE;
-
-		comptr<ID3D11ShaderResourceView> pSrv;
-		if (FAILED(D3DX11CreateShaderResourceViewFromFile(
-								pDevice,
-								path,
-								&imgLoadInfo,
-								nullptr,		// no thread pump
-								&pSrv,
-								nullptr)))		// no async return value
-		{
-			WARN("Couldn't load texture %s", path);
-			return false;
-		}
-
-		D3D11_SHADER_RESOURCE_VIEW_DESC srvDesc;
-		pSrv->GetDesc(&srvDesc);
-		if (srvDesc.ViewDimension != D3D11_SRV_DIMENSION_TEXTURECUBE)
-		{
-			WARN("Loaded texture %s, but it's not a cubemap - srvDesc.ViewDimension = %d", path, srvDesc.ViewDimension);
-			return false;
-		}
-
-		comptr<ID3D11Resource> pRes;
-		pSrv->GetResource(&pRes);
-		comptr<ID3D11Texture2D> pTex;
-		if (FAILED(pRes->QueryInterface(__uuidof(ID3D11Texture2D), (void **)&pTex)))
-		{
-			WARN("Loaded texture %s, but couldn't get ID3D11Texture2D interface", path);
-			return false;
-		}
-
-		D3D11_TEXTURE2D_DESC texDesc;
-		pTex->GetDesc(&texDesc);
-		ASSERT_ERR(texDesc.Width == texDesc.Height);
-		ASSERT_ERR(texDesc.ArraySize == 6);
-		ASSERT_ERR(texDesc.MiscFlags & D3D11_RESOURCE_MISC_TEXTURECUBE);
-
-		LOG(
-			"Loaded cubemap %s - cube size %d, format %s, %d mip levels",
-			path, texDesc.Width, NameOfFormat(texDesc.Format), texDesc.MipLevels);
-
-		pTexOut->m_pTex = pTex;
-		pTexOut->m_pSrv = pSrv;
-		pTexOut->m_cubeSize = texDesc.Width;
-		pTexOut->m_mipLevels = texDesc.MipLevels;
-		pTexOut->m_format = texDesc.Format;
-
-		return true;
-	}
-	
 
 
 	// Texture creation - helper functions

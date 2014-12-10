@@ -166,7 +166,7 @@ namespace Framework
 		std::vector<byte4> pixelsMip;
 		for (int level = 1; level < mipLevels; ++level)
 		{
-			int2 dimsMip = { max(dimsBase.x >> level, 1), max(dimsBase.y >> level, 1) };
+			int2 dimsMip = CalculateMipDims(dimsBase, level);
 			pixelsMip.resize(dimsMip.x * dimsMip.y);
 			byte4 * pPixelsMip = &pixelsMip[0];
 
@@ -269,5 +269,58 @@ namespace Framework
 			return WriteAssetDataToZip(assetPath, suffix, &buffer[0], totalSizeBytes, pZipOut);
 		}
 #endif // WRITE_BMP
+	}
+
+
+
+	// Load compiled data into a runtime game object
+
+	bool LoadTexture2DFromAssetPack(
+		AssetPack * pPack,
+		const char * path,
+		Texture2D * pTexOut)
+	{
+		ASSERT_ERR(pPack);
+		ASSERT_ERR(path);
+		ASSERT_ERR(pTexOut);
+
+		using namespace TextureCompiler;
+
+		pTexOut->m_pPack = pPack;
+
+		// Look for the metadata in the asset pack
+		Meta * pMeta;
+		int metaSize;
+		if (!pPack->LookupFile(path, s_suffixMeta, (void **)&pMeta, &metaSize))
+		{
+			WARN("Couldn't find metadata for texture %s in asset pack %s", path, pPack->m_path.c_str());
+			return false;
+		}
+		ASSERT_WARN(metaSize == sizeof(Meta));
+		pTexOut->m_dims = pMeta->m_dims;
+		pTexOut->m_mipLevels = pMeta->m_mipLevels;
+		pTexOut->m_format = pMeta->m_format;
+
+		// Look for the individual mipmaps
+		pTexOut->m_apPixels.resize(pTexOut->m_mipLevels);
+		for (int i = 0; i < pTexOut->m_mipLevels; ++i)
+		{
+			// Compose the suffix
+			char suffix[16] = {};
+			sprintf_s(suffix, "/%d", i);
+
+			if (!pPack->LookupFile(path, suffix, &pTexOut->m_apPixels[i], nullptr))
+			{
+				WARN("Couldn't find mip level %d for texture %s in asset pack %s", i, path, pPack->m_path.c_str());
+				return false;
+			}		
+		}
+
+		LOG("Loaded %s from asset pack %s - %dx%d, %d mips, %s",
+			path, pPack->m_path.c_str(),
+			pTexOut->m_dims.x, pTexOut->m_dims.y,
+			pTexOut->m_mipLevels, NameOfFormat(pTexOut->m_format));
+
+		return true;
 	}
 }

@@ -39,12 +39,12 @@ namespace Framework
 		D3D11_PRIMITIVE_TOPOLOGY	m_primtopo;
 		box3						m_bounds;			// Bounding box in local space
 
-		Mesh();
-		void Draw(ID3D11DeviceContext * pCtx);
-		void Reset();
+				Mesh();
+		void	Draw(ID3D11DeviceContext * pCtx);
+		void	Reset();
 
 		// Creates the vertex and index buffers on the GPU from m_pVerts and m_pIndices
-		void UploadToGPU(ID3D11Device * pDevice);
+		void	UploadToGPU(ID3D11Device * pDevice);
 	};
 
 	bool LoadMeshFromAssetPack(

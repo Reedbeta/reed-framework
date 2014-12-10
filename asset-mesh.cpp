@@ -620,6 +620,8 @@ namespace Framework
 
 		using namespace OBJMeshCompiler;
 
+		pMeshOut->m_pPack = pPack;
+
 		// Look for the data in the asset pack
 
 		Meta * pMeta;

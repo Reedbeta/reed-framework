@@ -112,13 +112,14 @@ bool TestWindow::Init(HINSTANCE hInstance)
 		ERR("Couldn't load Sponza mesh");
 		return false;
 	}
-	if (!LoadTexture2D(m_pDevice, "sponza\\kamen.jpg", &m_texStone))
+	if (!LoadTexture2DFromAssetPack(pPack, "sponza/kamen.jpg", &m_texStone))
 	{
 		ERR("Couldn't load Sponza stone texture");
 		return false;
 	}
 
 	m_meshSponza.UploadToGPU(m_pDevice);
+	m_texStone.UploadToGPU(m_pDevice);
 
 	// Load shaders
 	CHECK_D3D(m_pDevice->CreateVertexShader(world_vs_bytecode, dim(world_vs_bytecode), nullptr, &m_pVsWorld));

@@ -72,30 +72,43 @@ namespace Framework
 	class Texture2D
 	{
 	public:
-				Texture2D();
+		// Asset pack that this texture's data is sourced from
+		comptr<AssetPack>			m_pPack;
 
+		// Pointers to pixel data in the asset pack, for each mip level
+		std::vector<void *>			m_apPixels;
+		int2						m_dims;
+		int							m_mipLevels;
+		DXGI_FORMAT					m_format;
+
+		// GPU resources
+		comptr<ID3D11Texture2D>				m_pTex;
+		comptr<ID3D11ShaderResourceView>	m_pSrv;
+		comptr<ID3D11UnorderedAccessView>	m_pUav;
+
+				Texture2D();
+		void	Reset();
+
+		int		SizeInBytes() const
+					{ return CalculateMipPyramidSizeInBytes(m_dims, m_format, m_mipLevels); }
+
+		// Creates a texture that exists only on the GPU, not backed by asset data
 		void	Init(
 					ID3D11Device * pDevice,
 					int2_arg dims,
 					DXGI_FORMAT format,
 					int flags = TEXFLAG_Default);
-		void	Reset();
 
-		int		SizeInBytes() const
-					{ return CalculateMipPyramidSizeInBytes(m_dims, m_format, m_mipLevels); }
+		// Creates the texture on the GPU from m_apPixels
+		void	UploadToGPU(
+					ID3D11Device * pDevice,
+					int flags = TEXFLAG_Default);
 
 		// Read back the data to main memory - you're responsible for allocing enough
 		void	Readback(
 					ID3D11DeviceContext * pCtx,
 					int level,
 					void * pDataOut);
-
-		comptr<ID3D11Texture2D>				m_pTex;
-		comptr<ID3D11ShaderResourceView>	m_pSrv;
-		comptr<ID3D11UnorderedAccessView>	m_pUav;
-		int2								m_dims;
-		int									m_mipLevels;
-		DXGI_FORMAT							m_format;
 	};
 
 	class TextureCube
@@ -161,26 +174,10 @@ namespace Framework
 
 	// Texture loading from files
 
-	enum TEXLOADFLAG
-	{
-		TEXLOADFLAG_Mipmap		= 0x1,		// Load mipmaps, or generate if not present in file
-		TEXLOADFLAG_SRGB		= 0x2,		// Interpret image data as SRGB
-		TEXLOADFLAG_HDR			= 0x4,		// Store image in float16 format
-
-		TEXLOADFLAG_Default		= TEXLOADFLAG_Mipmap | TEXLOADFLAG_SRGB,
-	};
-
-	bool LoadTexture2D(
-		ID3D11Device * pDevice,
+	bool LoadTexture2DFromAssetPack(
+		AssetPack * pPack,
 		const char * path,
-		Texture2D * pTexOut,
-		int flags = TEXLOADFLAG_Default);
-
-	bool LoadTextureCube(
-		ID3D11Device * pDevice,
-		const char * path,
-		TextureCube * pTexOut,
-		int flags = TEXLOADFLAG_Default);
+		Texture2D * pTexOut);
 
 	// Creating textures directly in memory
 
