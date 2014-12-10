@@ -4,6 +4,24 @@
 
 // Convenience functions for the asset compiler/loader
 
+inline bool CheckPathChars(const char * path)
+{
+	ASSERT_ERR(path);
+
+	// Check that filenames are printable-ASCII-only and there are no backslashes
+	// (this should really be generalized to allow UTF-8 printable chars)
+	for (const char * pCh = path; *pCh; ++pCh)
+	{
+		if (*pCh < 32 || *pCh > 126 || *pCh == '\\')
+		{
+			WARN("Invalid character %c in path %s", *pCh, path);
+			return false;
+		}
+	}
+
+	return true;
+}
+
 inline bool WriteAssetDataToZip(
 	const char * assetPath,
 	const char * assetSuffix,
@@ -26,6 +44,8 @@ inline bool WriteAssetDataToZip(
 			return false;
 		}
 
+		CHECK_WARN(CheckPathChars(zipPath));
+
 		if (!mz_zip_writer_add_mem(pZipOut, zipPath, pData, sizeBytes, MZ_DEFAULT_LEVEL))
 		{
 			WARN("Couldn't add file %s to archive", zipPath);
@@ -39,6 +59,8 @@ inline bool WriteAssetDataToZip(
 			WARN("File path %s is too long for .zip format", assetPath);
 			return false;
 		}
+
+		CHECK_WARN(CheckPathChars(assetPath));
 
 		if (!mz_zip_writer_add_mem(pZipOut, assetPath, pData, sizeBytes, MZ_DEFAULT_LEVEL))
 		{

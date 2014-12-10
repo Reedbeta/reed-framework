@@ -19,11 +19,10 @@ namespace Framework
 	{
 		ASSERT_ERR(path);
 
-		// !!!UNDONE: assert that path is in a normal form (lowercase, forward slashes, etc.)?
-
 		std::string fullPath = path;
 		if (suffix)
 			fullPath += suffix;
+		CHECK_WARN(CheckPathChars(fullPath.c_str()));
 		auto iter = m_directory.find(fullPath);
 		if (iter == m_directory.end())
 			return false;
