@@ -28,7 +28,15 @@ namespace Framework
 		int							m_vertCount;
 		int							m_indexCount;
 
-		// !!!UNDONE: material map
+		// Material map (note: should eventually have a resolved reference to
+		// a material object, rather than a string name.  Name points to the
+		// serialized string in the asset pack.)
+		struct MtlRange
+		{
+			const char *	m_mtlName;
+			int				m_indexStart, m_indexCount;
+		};
+		std::vector<MtlRange>		m_mtlRanges;
 
 		// GPU resources
 		comptr<ID3D11Buffer>		m_pVtxBuffer;
@@ -41,6 +49,7 @@ namespace Framework
 
 				Mesh();
 		void	Draw(ID3D11DeviceContext * pCtx);
+		void	DrawMtlRange(ID3D11DeviceContext * pCtx, int iMtlRange);
 		void	Reset();
 
 		// Creates the vertex and index buffers on the GPU from m_pVerts and m_pIndices

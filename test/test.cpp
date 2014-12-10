@@ -97,7 +97,7 @@ bool TestWindow::Init(HINSTANCE hInstance)
 {
 	super::Init("TestWindow", "Test", hInstance);
 
-	// !!!TEMP Test compiling/loading assets using new pipeline
+	// Ensure the asset pack is up to date
 	static const AssetCompileInfo s_assets[] =
 	{
 		{ "sponza/sponza_cracksFilled.obj", ACK_OBJMesh, },

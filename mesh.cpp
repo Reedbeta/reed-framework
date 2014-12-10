@@ -15,11 +15,27 @@ namespace Framework
 
 	void Mesh::Draw(ID3D11DeviceContext * pCtx)
 	{
+		ASSERT_ERR(pCtx);
+
 		UINT zero = 0;
 		pCtx->IASetVertexBuffers(0, 1, &m_pVtxBuffer, (UINT *)&m_vtxStrideBytes, &zero);
 		pCtx->IASetIndexBuffer(m_pIdxBuffer, DXGI_FORMAT_R32_UINT, 0);
 		pCtx->IASetPrimitiveTopology(m_primtopo);
-		pCtx->DrawIndexed(int(m_indexCount), 0, 0);
+		pCtx->DrawIndexed(m_indexCount, 0, 0);
+	}
+
+	void Mesh::DrawMtlRange(ID3D11DeviceContext * pCtx, int iMtlRange)
+	{
+		ASSERT_ERR(pCtx);
+		ASSERT_ERR(iMtlRange >= 0 && iMtlRange < int(m_mtlRanges.size()));
+
+		const MtlRange * pRange = &m_mtlRanges[iMtlRange];
+
+		UINT zero = 0;
+		pCtx->IASetVertexBuffers(0, 1, &m_pVtxBuffer, (UINT *)&m_vtxStrideBytes, &zero);
+		pCtx->IASetIndexBuffer(m_pIdxBuffer, DXGI_FORMAT_R32_UINT, 0);
+		pCtx->IASetPrimitiveTopology(m_primtopo);
+		pCtx->DrawIndexed(pRange->m_indexCount, pRange->m_indexStart, 0);
 	}
 
 	void Mesh::Reset()

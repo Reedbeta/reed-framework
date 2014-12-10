@@ -25,7 +25,7 @@ namespace Framework
 		struct MtlRange
 		{
 			std::string		m_mtlName;
-			int				m_iIdxStart, m_cIdx;
+			int				m_indexStart, m_indexCount;
 		};
 
 		struct Context
@@ -522,7 +522,7 @@ namespace Framework
 					if (a.m_mtlName != b.m_mtlName)
 						return a.m_mtlName < b.m_mtlName;
 					else
-						return a.m_iIdxStart < b.m_iIdxStart;
+						return a.m_indexStart < b.m_indexStart;
 				});
 
 			// Reorder the indices to make them contiguous given the new
@@ -542,13 +542,13 @@ namespace Framework
 				const MtlRange & rangeFirst = pCtx->m_mtlRanges[0];
 				memcpy(
 					&indicesReordered[0],
-					&pCtx->m_indices[rangeFirst.m_iIdxStart],
-					rangeFirst.m_cIdx * sizeof(int));
+					&pCtx->m_indices[rangeFirst.m_indexStart],
+					rangeFirst.m_indexCount * sizeof(int));
 
-				MtlRange rangeMerged = { rangeFirst.m_mtlName, 0, rangeFirst.m_cIdx, };
+				MtlRange rangeMerged = { rangeFirst.m_mtlName, 0, rangeFirst.m_indexCount, };
 				mtlRangesMerged.push_back(rangeMerged);
 
-				indicesCopied = rangeFirst.m_cIdx;
+				indicesCopied = rangeFirst.m_indexCount;
 			}
 
 			// Copy and merge the rest of the ranges
@@ -557,22 +557,22 @@ namespace Framework
 				const MtlRange & rangeCur = pCtx->m_mtlRanges[i];
 				memcpy(
 					&indicesReordered[indicesCopied],
-					&pCtx->m_indices[rangeCur.m_iIdxStart],
-					rangeCur.m_cIdx * sizeof(int));
+					&pCtx->m_indices[rangeCur.m_indexStart],
+					rangeCur.m_indexCount * sizeof(int));
 				
 				if (rangeCur.m_mtlName == mtlRangesMerged.back().m_mtlName)
 				{
 					// Material name is the same as the last range, so just extend it
-					mtlRangesMerged.back().m_cIdx += rangeCur.m_cIdx;
+					mtlRangesMerged.back().m_indexCount += rangeCur.m_indexCount;
 				}
 				else
 				{
 					// Different material name, so create a new range
-					MtlRange rangeMerged = { rangeCur.m_mtlName, indicesCopied, rangeCur.m_cIdx, };
+					MtlRange rangeMerged = { rangeCur.m_mtlName, indicesCopied, rangeCur.m_indexCount, };
 					mtlRangesMerged.push_back(rangeMerged);
 				}
 
-				indicesCopied += rangeCur.m_cIdx;
+				indicesCopied += rangeCur.m_indexCount;
 			}
 
 			ASSERT_ERR(indicesCopied == pCtx->m_indices.size());
@@ -600,7 +600,7 @@ namespace Framework
 				memcpy(&(*pDataOut)[iByteStart], range.m_mtlName.c_str(), nameLength);
 
 				// Write the index range
-				memcpy(&(*pDataOut)[iByteStart + nameLength], &range.m_iIdxStart, 2 * sizeof(int));
+				memcpy(&(*pDataOut)[iByteStart + nameLength], &range.m_indexStart, 2 * sizeof(int));
 			}
 		}
 	}
@@ -608,6 +608,8 @@ namespace Framework
 
 
 	// Load compiled data into a runtime game object
+
+	static bool DeserializeMaterialMap(const byte * pMtlMap, int mtlMapSize, Mesh * pMeshOut);
 
 	bool LoadMeshFromAssetPack(
 		AssetPack * pPack,
@@ -652,10 +654,62 @@ namespace Framework
 		ASSERT_WARN(indicesSize % (3 * sizeof(int)) == 0);
 		pMeshOut->m_indexCount = indicesSize / sizeof(int);
 
-		// !!!UNDONE: material map
+		byte * pMtlMap;
+		int mtlMapSize;
+		if (!pPack->LookupFile(path, s_suffixMtlMap, (void **)&pMtlMap, &mtlMapSize))
+		{
+			WARN("Couldn't find material map for mesh %s in asset pack %s", path, pPack->m_path.c_str());
+			return false;
+		}
+		if (!DeserializeMaterialMap(pMtlMap, mtlMapSize, pMeshOut))
+		{
+			WARN("Couldn't deserialize material map for mesh %s in asset pack %s", path, pPack->m_path.c_str());
+			return false;
+		}
 
-		LOG("Loaded %s from asset pack %s - %d verts, %d indices",
-			path, pPack->m_path.c_str(), pMeshOut->m_vertCount, pMeshOut->m_indexCount);
+		LOG("Loaded %s from asset pack %s - %d verts, %d indices, %d materials",
+			path, pPack->m_path.c_str(), pMeshOut->m_vertCount, pMeshOut->m_indexCount, pMeshOut->m_mtlRanges.size());
+
+		return true;
+	}
+
+	static bool DeserializeMaterialMap(const byte * pMtlMap, int mtlMapSize, Mesh * pMeshOut)
+	{
+		const byte * pCur = pMtlMap;
+		const byte * pEnd = pMtlMap + mtlMapSize;
+		while (pCur < pEnd)
+		{
+			Mesh::MtlRange range = { (const char *)pCur, };
+
+			// Find the end of the string
+			while (pCur < pEnd && *pCur)
+				++pCur;
+
+			if (pCur == pEnd)
+			{
+				WARN("Corrupt material map: unterminated string");
+				return false;
+			}
+
+			// Extract the index start and count
+			++pCur;
+			if (pEnd - pCur < 2 * sizeof(int))
+			{
+				WARN("Corrupt material map: missing index start/count");
+				return false;
+			}
+			memcpy(&range.m_indexStart, pCur, 2 * sizeof(int));
+			pCur += 2 * sizeof(int);
+			if (range.m_indexStart < 0 ||
+				range.m_indexCount <= 0 ||
+				range.m_indexStart + range.m_indexCount > pMeshOut->m_indexCount)
+			{
+				WARN("Corrupt material map: invalid index start/count");
+				return false;
+			}
+
+			pMeshOut->m_mtlRanges.push_back(range);
+		}
 
 		return true;
 	}
