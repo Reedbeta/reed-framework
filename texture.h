@@ -114,8 +114,21 @@ namespace Framework
 	class TextureCube
 	{
 	public:
-				TextureCube();
+		// Asset pack that this texture's data is sourced from
+		comptr<AssetPack>			m_pPack;
 
+		// Pointers to pixel data in the asset pack, for each mip level and cube face
+		std::vector<void *>			m_apPixels;
+		int							m_cubeSize;
+		int							m_mipLevels;
+		DXGI_FORMAT					m_format;
+
+		// GPU resources
+		comptr<ID3D11Texture2D>				m_pTex;
+		comptr<ID3D11ShaderResourceView>	m_pSrv;
+		comptr<ID3D11UnorderedAccessView>	m_pUav;
+
+				TextureCube();
 		void	Init(
 					ID3D11Device * pDevice,
 					int cubeSize,
@@ -126,26 +139,37 @@ namespace Framework
 		int		SizeInBytes() const
 					{ return CalculateMipPyramidSizeInBytes(m_cubeSize, m_format, m_mipLevels); }
 
+		// Creates the texture on the GPU from m_apPixels
+		void	UploadToGPU(
+					ID3D11Device * pDevice,
+					int flags = TEXFLAG_Default);
+
 		// Read back the data to main memory - you're responsible for allocing enough
 		void	Readback(
 					ID3D11DeviceContext * pCtx,
 					int face,
 					int level,
 					void * pDataOut);
-
-		comptr<ID3D11Texture2D>				m_pTex;
-		comptr<ID3D11ShaderResourceView>	m_pSrv;
-		comptr<ID3D11UnorderedAccessView>	m_pUav;
-		int									m_cubeSize;
-		int									m_mipLevels;
-		DXGI_FORMAT							m_format;
 	};
 
 	class Texture3D
 	{
 	public:
-				Texture3D();
+		// Asset pack that this texture's data is sourced from
+		comptr<AssetPack>			m_pPack;
 
+		// Pointers to pixel data in the asset pack, for each mip level
+		std::vector<void *>			m_apPixels;
+		int3						m_dims;
+		int							m_mipLevels;
+		DXGI_FORMAT					m_format;
+
+		// GPU resources
+		comptr<ID3D11Texture3D>				m_pTex;
+		comptr<ID3D11ShaderResourceView>	m_pSrv;
+		comptr<ID3D11UnorderedAccessView>	m_pUav;
+
+				Texture3D();
 		void	Init(
 					ID3D11Device * pDevice,
 					int3_arg dims,
@@ -156,18 +180,16 @@ namespace Framework
 		int		SizeInBytes() const
 					{ return CalculateMipPyramidSizeInBytes(m_dims, m_format, m_mipLevels); }
 
+		// Creates the texture on the GPU from m_apPixels
+		void	UploadToGPU(
+					ID3D11Device * pDevice,
+					int flags = TEXFLAG_Default);
+
 		// Read back the data to main memory - you're responsible for allocing enough
 		void	Readback(
 					ID3D11DeviceContext * pCtx,
 					int level,
 					void * pDataOut);
-
-		comptr<ID3D11Texture3D>				m_pTex;
-		comptr<ID3D11ShaderResourceView>	m_pSrv;
-		comptr<ID3D11UnorderedAccessView>	m_pUav;
-		int3								m_dims;
-		int									m_mipLevels;
-		DXGI_FORMAT							m_format;
 	};
 
 

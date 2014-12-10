@@ -175,13 +175,22 @@ namespace Framework
 	// TextureCube implementation
 
 	TextureCube::TextureCube()
-	:	m_pTex(),
-		m_pSrv(),
-		m_pUav(),
-		m_cubeSize(0),
+	:	m_cubeSize(0),
 		m_mipLevels(0),
 		m_format(DXGI_FORMAT_UNKNOWN)
 	{
+	}
+
+	void TextureCube::Reset()
+	{
+		m_pPack.release();
+		m_apPixels.clear();
+		m_cubeSize = 0;
+		m_mipLevels = 0;
+		m_format = DXGI_FORMAT_UNKNOWN;
+		m_pTex.release();
+		m_pSrv.release();
+		m_pUav.release();
 	}
 
 	void TextureCube::Init(
@@ -216,11 +225,7 @@ namespace Framework
 		}
 		CHECK_D3D(pDevice->CreateTexture2D(&texDesc, nullptr, &m_pTex));
 
-		D3D11_SHADER_RESOURCE_VIEW_DESC srvDesc =
-		{
-			format,
-			D3D11_SRV_DIMENSION_TEXTURECUBE,
-		};
+		D3D11_SHADER_RESOURCE_VIEW_DESC srvDesc = { format, D3D11_SRV_DIMENSION_TEXTURECUBE, };
 		srvDesc.TextureCube.MipLevels = texDesc.MipLevels;
 		CHECK_D3D(pDevice->CreateShaderResourceView(m_pTex, &srvDesc, &m_pSrv));
 
@@ -236,14 +241,59 @@ namespace Framework
 		m_format = format;
 	}
 
-	void TextureCube::Reset()
+	void TextureCube::UploadToGPU(
+		ID3D11Device * pDevice,
+		int flags /* = TEXFLAG_Default */)
 	{
-		m_pTex.release();
-		m_pSrv.release();
-		m_pUav.release();
-		m_cubeSize = 0;
-		m_mipLevels = 0;
-		m_format = DXGI_FORMAT_UNKNOWN;
+		ASSERT_ERR(pDevice);
+		ASSERT_ERR(int(m_apPixels.size()) == m_mipLevels * 6);
+
+		// Always map the format to its typeless version, if possible;
+		// enables views of other formats to be created if desired
+		DXGI_FORMAT formatTex = FindTypelessFormat(m_format);
+		if (formatTex == DXGI_FORMAT_UNKNOWN)
+			formatTex = m_format;
+
+		D3D11_TEXTURE2D_DESC texDesc =
+		{
+			m_cubeSize, m_cubeSize,
+			m_mipLevels, 6,
+			formatTex,
+			{ 1, 0 },
+			D3D11_USAGE_DEFAULT,
+			D3D11_BIND_SHADER_RESOURCE,
+			0,
+			D3D11_RESOURCE_MISC_TEXTURECUBE,
+		};
+		if (flags & TEXFLAG_EnableUAV)
+		{
+			texDesc.BindFlags |= D3D11_BIND_UNORDERED_ACCESS;
+		}
+
+		std::vector<D3D11_SUBRESOURCE_DATA> aInitialData(m_mipLevels * 6);
+		for (int face = 0; face < 6; ++face)
+		{
+			for (int level = 0; level < m_mipLevels; ++level)
+			{
+				D3D11_SUBRESOURCE_DATA * pInitialData = &aInitialData[face * m_mipLevels + level];
+				pInitialData->pSysMem = m_apPixels[face * m_mipLevels + level];
+				pInitialData->SysMemPitch = CalculateMipDims(m_cubeSize, level) * BitsPerPixel(m_format) / 8;
+				pInitialData->SysMemSlicePitch = 0;
+			}
+		}
+
+		CHECK_D3D(pDevice->CreateTexture2D(&texDesc, &aInitialData[0], &m_pTex));
+
+		D3D11_SHADER_RESOURCE_VIEW_DESC srvDesc = { m_format, D3D11_SRV_DIMENSION_TEXTURECUBE, };
+		srvDesc.TextureCube.MipLevels = m_mipLevels;
+		CHECK_D3D(pDevice->CreateShaderResourceView(m_pTex, &srvDesc, &m_pSrv));
+
+		if (flags & TEXFLAG_EnableUAV)
+		{
+			D3D11_UNORDERED_ACCESS_VIEW_DESC uavDesc = { m_format, D3D11_UAV_DIMENSION_TEXTURE2DARRAY, };
+			uavDesc.Texture2DArray.ArraySize = 6;
+			CHECK_D3D(pDevice->CreateUnorderedAccessView(m_pTex, &uavDesc, &m_pUav));
+		}
 	}
 
 	void TextureCube::Readback(
@@ -303,13 +353,22 @@ namespace Framework
 	// Texture3D implementation
 
 	Texture3D::Texture3D()
-	:	m_pTex(),
-		m_pSrv(),
-		m_pUav(),
-		m_dims(makeint3(0)),
+	:	m_dims(makeint3(0)),
 		m_mipLevels(0),
 		m_format(DXGI_FORMAT_UNKNOWN)
 	{
+	}
+
+	void Texture3D::Reset()
+	{
+		m_pPack.release();
+		m_apPixels.clear();
+		m_dims = makeint3(0);
+		m_mipLevels = 0;
+		m_format = DXGI_FORMAT_UNKNOWN;
+		m_pTex.release();
+		m_pSrv.release();
+		m_pUav.release();
 	}
 
 	void Texture3D::Init(
@@ -341,11 +400,7 @@ namespace Framework
 		}
 		CHECK_D3D(pDevice->CreateTexture3D(&texDesc, nullptr, &m_pTex));
 
-		D3D11_SHADER_RESOURCE_VIEW_DESC srvDesc =
-		{
-			format,
-			D3D11_SRV_DIMENSION_TEXTURE3D,
-		};
+		D3D11_SHADER_RESOURCE_VIEW_DESC srvDesc = { format, D3D11_SRV_DIMENSION_TEXTURE3D, };
 		srvDesc.Texture3D.MipLevels = texDesc.MipLevels;
 		CHECK_D3D(pDevice->CreateShaderResourceView(m_pTex, &srvDesc, &m_pSrv));
 
@@ -361,14 +416,55 @@ namespace Framework
 		m_format = format;
 	}
 
-	void Texture3D::Reset()
+	void Texture3D::UploadToGPU(
+		ID3D11Device * pDevice,
+		int flags /* = TEXFLAG_Default */)
 	{
-		m_pTex.release();
-		m_pSrv.release();
-		m_pUav.release();
-		m_dims = makeint3(0);
-		m_mipLevels = 0;
-		m_format = DXGI_FORMAT_UNKNOWN;
+		ASSERT_ERR(pDevice);
+		ASSERT_ERR(int(m_apPixels.size()) == m_mipLevels);
+
+		// Always map the format to its typeless version, if possible;
+		// enables views of other formats to be created if desired
+		DXGI_FORMAT formatTex = FindTypelessFormat(m_format);
+		if (formatTex == DXGI_FORMAT_UNKNOWN)
+			formatTex = m_format;
+
+		D3D11_TEXTURE3D_DESC texDesc =
+		{
+			m_dims.x, m_dims.y, m_dims.z,
+			m_mipLevels,
+			formatTex,
+			D3D11_USAGE_DEFAULT,
+			D3D11_BIND_SHADER_RESOURCE,
+			0, 0,
+		};
+		if (flags & TEXFLAG_EnableUAV)
+		{
+			texDesc.BindFlags |= D3D11_BIND_UNORDERED_ACCESS;
+		}
+
+		std::vector<D3D11_SUBRESOURCE_DATA> aInitialData(m_mipLevels);
+		for (int i = 0; i < m_mipLevels; ++i)
+		{
+			int3 mipDims = CalculateMipDims(m_dims, i);
+			D3D11_SUBRESOURCE_DATA * pInitialData = &aInitialData[i];
+			pInitialData->pSysMem = m_apPixels[i];
+			pInitialData->SysMemPitch = mipDims.x * BitsPerPixel(m_format) / 8;
+			pInitialData->SysMemSlicePitch = pInitialData->SysMemPitch * mipDims.y;
+		}
+
+		CHECK_D3D(pDevice->CreateTexture3D(&texDesc, &aInitialData[0], &m_pTex));
+
+		D3D11_SHADER_RESOURCE_VIEW_DESC srvDesc = { m_format, D3D11_SRV_DIMENSION_TEXTURE3D, };
+		srvDesc.Texture3D.MipLevels = m_mipLevels;
+		CHECK_D3D(pDevice->CreateShaderResourceView(m_pTex, &srvDesc, &m_pSrv));
+
+		if (flags & TEXFLAG_EnableUAV)
+		{
+			D3D11_UNORDERED_ACCESS_VIEW_DESC uavDesc = { m_format, D3D11_UAV_DIMENSION_TEXTURE3D, };
+			uavDesc.Texture3D.WSize = m_dims.z;
+			CHECK_D3D(pDevice->CreateUnorderedAccessView(m_pTex, &uavDesc, &m_pUav));
+		}
 	}
 
 	void Texture3D::Readback(
