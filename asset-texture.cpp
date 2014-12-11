@@ -69,8 +69,6 @@ namespace Framework
 
 		using namespace TextureCompiler;
 
-		LOG("Compiling raw texture asset %s...", pACI->m_pathSrc);
-
 		// Load the image
 		int2 dims;
 		int numComponents;
@@ -111,8 +109,6 @@ namespace Framework
 		ASSERT_ERR(pZipOut);
 
 		using namespace TextureCompiler;
-
-		LOG("Compiling mipmapped texture asset %s...", pACI->m_pathSrc);
 
 		// Load the image
 		int2 dims;

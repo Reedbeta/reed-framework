@@ -69,8 +69,6 @@ namespace Framework
 		ASSERT_ERR(pACI->m_ack == ACK_OBJMesh);
 		ASSERT_ERR(pZipOut);
 
-		LOG("Compiling OBJ mesh asset %s...", pACI->m_pathSrc);
-
 		using namespace OBJMeshCompiler;
 
 		// Read the mesh data from the OBJ file

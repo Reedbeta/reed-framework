@@ -12,34 +12,11 @@ namespace Framework
 			int				m_size;			// Size in bytes
 		};
 
-		enum PACKVER
-		{
-			PACKVER_Current = 1,
-		};
-
-		enum MESHVER
-		{
-			MESHVER_Current = 1,
-		};
-
-		enum TEXVER
-		{
-			TEXVER_Current = 1,
-		};
-
-		struct VersionInfo
-		{
-			PACKVER		m_packver;
-			MESHVER		m_meshver;
-			TEXVER		m_texver;
-		};
-
 		std::vector<byte>						m_data;				// Entire uncompressed archive
 		std::vector<FileInfo>					m_files;			// List of files in the archive
 		std::unordered_map<std::string, int>	m_directory;		// Mapping from internal path to index in m_files
 
 		std::string								m_path;				// File path where the asset pack was loaded from
-		VersionInfo								m_version;			// File format version numbers
 
 		AssetPack();
 		bool LookupFile(const char * path, const char * suffix, void ** pDataOut, int * pSizeOut);
@@ -69,25 +46,8 @@ namespace Framework
 		int numAssets,
 		AssetPack * pPackOut);
 
-	// Just load an asset pack file, THAT'S ALL.
+	// Just load an asset pack file.
 	bool LoadAssetPack(
 		const char * packPath,
 		AssetPack * pPackOut);
-
-	// Just load the version info from an asset pack file.
-	bool LoadAssetPackVersionInfo(
-		const char * packPath,
-		AssetPack::VersionInfo * pVerInfoOut);
-
-	// Compile an entire asset pack from scratch.
-	bool CompileFullAssetPack(
-		const char * packPath,
-		const AssetCompileInfo * assets,
-		int numAssets);
-
-	// Update an asset pack by compiling the assets that are out of date or missing from it.
-	bool UpdateAssetPack(
-		const char * packPath,
-		const AssetCompileInfo * assets,
-		int numAssets);
 }
