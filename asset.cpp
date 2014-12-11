@@ -72,12 +72,17 @@ namespace Framework
 
 		enum PACKVER
 		{
-			PACKVER_Current = 1,
+			PACKVER_Current = 2,
 		};
 
 		enum MESHVER
 		{
 			MESHVER_Current = 1,
+		};
+
+		enum MTLVER
+		{
+			MTLVER_Current = 1,
 		};
 
 		enum TEXVER
@@ -89,6 +94,7 @@ namespace Framework
 		{
 			PACKVER		m_packver;
 			MESHVER		m_meshver;
+			MTLVER		m_mtlver;
 			TEXVER		m_texver;
 		};
 
@@ -128,6 +134,9 @@ namespace Framework
 	bool CompileOBJMeshAsset(
 		const AssetCompileInfo * pACI,
 		mz_zip_archive * pZipOut);
+	bool CompileOBJMtlLibAsset(
+		const AssetCompileInfo * pACI,
+		mz_zip_archive * pZipOut);
 	bool CompileTextureRawAsset(
 		const AssetCompileInfo * pACI,
 		mz_zip_archive * pZipOut);
@@ -139,6 +148,7 @@ namespace Framework
 	static const AssetCompileFunc s_assetCompileFuncs[] =
 	{
 		&CompileOBJMeshAsset,				// ACK_OBJMesh
+		&CompileOBJMtlLibAsset,				// ACK_OBJMtlLib
 		&CompileTextureRawAsset,			// ACK_TextureRaw
 		&CompileTextureWithMipsAsset,		// ACK_TextureWithMips
 	};
@@ -147,6 +157,7 @@ namespace Framework
 	static const char * s_ackNames[] =
 	{
 		"OBJ mesh",							// ACK_OBJMesh
+		"OBJ material library",				// ACK_OBJMtlLib
 		"raw texture",						// ACK_TextureRaw
 		"mipmapped texture",				// ACK_TextureWithMips
 	};
@@ -300,6 +311,11 @@ namespace Framework
 			WARN("Asset pack %s has wrong mesh version %d (expected %d)", packPath, pVerInfo->m_meshver, MESHVER_Current);
 			return false;
 		}
+		if (pVerInfo->m_mtlver != MTLVER_Current)
+		{
+			WARN("Asset pack %s has wrong material version %d (expected %d)", packPath, pVerInfo->m_mtlver, MTLVER_Current);
+			return false;
+		}
 		if (pVerInfo->m_texver != TEXVER_Current)
 		{
 			WARN("Asset pack %s has wrong texture version %d (expected %d)", packPath, pVerInfo->m_texver, TEXVER_Current);
@@ -413,6 +429,7 @@ namespace Framework
 			{
 				PACKVER_Current,
 				MESHVER_Current,
+				MTLVER_Current,
 				TEXVER_Current,
 			};
 			if (!WriteAssetDataToZip(s_pathVersionInfo, nullptr, &version, sizeof(version), &zip))
@@ -522,6 +539,14 @@ namespace Framework
 				{
 				case ACK_OBJMesh:
 					if (ver.m_meshver != MESHVER_Current)
+					{
+						pAssetsToUpdateOut->push_back(i);
+						continue;
+					}
+					break;
+
+				case ACK_OBJMtlLib:
+					if (ver.m_mtlver != MTLVER_Current)
 					{
 						pAssetsToUpdateOut->push_back(i);
 						continue;
@@ -683,6 +708,7 @@ namespace Framework
 			{
 				PACKVER_Current,
 				MESHVER_Current,
+				MTLVER_Current,
 				TEXVER_Current,
 			};
 			if (!WriteAssetDataToZip(s_pathVersionInfo, nullptr, &version, sizeof(version), &zipDest))

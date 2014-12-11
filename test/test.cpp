@@ -101,6 +101,7 @@ bool TestWindow::Init(HINSTANCE hInstance)
 	static const AssetCompileInfo s_assets[] =
 	{
 		{ "sponza/sponza_cracksFilled.obj", ACK_OBJMesh, },
+		{ "sponza/sponza.mtl", ACK_OBJMtlLib, },
 		{ "sponza/kamen.jpg", ACK_TextureWithMips, },
 	};
 	comptr<AssetPack> pPack = new AssetPack;

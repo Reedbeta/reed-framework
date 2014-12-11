@@ -28,6 +28,7 @@
   </ItemGroup>
   <ItemGroup>
     <ClCompile Include="asset-mesh.cpp" />
+    <ClCompile Include="asset-mtl.cpp" />
     <ClCompile Include="asset-texture.cpp" />
     <ClCompile Include="asset.cpp" />
     <ClCompile Include="camera.cpp" />

@@ -136,7 +136,7 @@ namespace Framework
 			OBJMtlRange initialRange = { std::string(), 0, 0, };
 			OBJMtlRanges.push_back(initialRange);
 
-			// Parse the OBJ format line-by-line
+			// Parse line-by-line
 			char * pCtxLine = (char *)&data[0];
 			int iLine = 0;
 			while (char * pLine = tokenizeConsecutive(pCtxLine, "\n"))
