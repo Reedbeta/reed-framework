@@ -631,7 +631,12 @@ namespace Framework
 			WARN("Couldn't find metadata for mesh %s in asset pack %s", path, pPack->m_path.c_str());
 			return false;
 		}
-		ASSERT_WARN(metaSize == sizeof(Meta));
+		if (metaSize != sizeof(Meta))
+		{
+			WARN("Metadata for mesh %s in asset pack %s is wrong size, %d bytes (expected %d)",
+				path, pPack->m_path.c_str(), metaSize, sizeof(Meta));
+			return false;
+		}
 		pMeshOut->m_bounds = pMeta->m_bounds;
 
 		int vertsSize;
@@ -640,7 +645,6 @@ namespace Framework
 			WARN("Couldn't find verts for mesh %s in asset pack %s", path, pPack->m_path.c_str());
 			return false;
 		}
-		ASSERT_WARN(vertsSize % sizeof(Vertex) == 0);
 		pMeshOut->m_vertCount = vertsSize / sizeof(Vertex);
 
 		int indicesSize;
@@ -649,7 +653,6 @@ namespace Framework
 			WARN("Couldn't find indices for mesh %s in asset pack %s", path, pPack->m_path.c_str());
 			return false;
 		}
-		ASSERT_WARN(indicesSize % (3 * sizeof(int)) == 0);
 		pMeshOut->m_indexCount = indicesSize / sizeof(int);
 
 		byte * pMtlMap;

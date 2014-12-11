@@ -292,7 +292,12 @@ namespace Framework
 			WARN("Couldn't find metadata for texture %s in asset pack %s", path, pPack->m_path.c_str());
 			return false;
 		}
-		ASSERT_WARN(metaSize == sizeof(Meta));
+		if (metaSize != sizeof(Meta))
+		{
+			WARN("Metadata for texture %s in asset pack %s is wrong size, %d bytes (expected %d)",
+				path, pPack->m_path.c_str(), metaSize, sizeof(Meta));
+			return false;
+		}
 		pTexOut->m_dims = pMeta->m_dims;
 		pTexOut->m_mipLevels = pMeta->m_mipLevels;
 		pTexOut->m_format = pMeta->m_format;
@@ -305,11 +310,20 @@ namespace Framework
 			char suffix[16] = {};
 			sprintf_s(suffix, "/%d", i);
 
-			if (!pPack->LookupFile(path, suffix, &pTexOut->m_apPixels[i], nullptr))
+			int pixelsSize;
+			if (!pPack->LookupFile(path, suffix, &pTexOut->m_apPixels[i], &pixelsSize))
 			{
-				WARN("Couldn't find mip level %d for texture %s in asset pack %s", i, path, pPack->m_path.c_str());
+				WARN("Couldn't find mip level %d of texture %s in asset pack %s", i, path, pPack->m_path.c_str());
 				return false;
-			}		
+			}
+			int2 mipDims = CalculateMipDims(pMeta->m_dims, i);
+			int expectedPixelsSize = mipDims.x * mipDims.y * BitsPerPixel(pMeta->m_format) / 8;
+			if (pixelsSize != expectedPixelsSize)
+			{
+				WARN("Mip level %d of texture %s in asset pack %s is wrong size, %d bytes (expected %d)",
+					i, path, pPack->m_path.c_str(), pixelsSize, expectedPixelsSize);
+				return false;
+			}
 		}
 
 		LOG("Loaded %s from asset pack %s - %dx%d, %d mips, %s",

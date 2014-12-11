@@ -264,7 +264,8 @@ namespace Framework
 					&pPackOut->m_data[pFileInfo->m_offset],
 					pFileInfo->m_size, 0))
 			{
-				WARN("Couldn't extract file %s (index %d of %d) from asset pack %s", pFileInfo->m_path.c_str(), i, numFiles, packPath);
+				WARN("Couldn't extract file %s (index %d of %d) from asset pack %s",
+					pFileInfo->m_path.c_str(), i, numFiles, packPath);
 				mz_zip_reader_end(&zip);
 				return false;
 			}
@@ -282,7 +283,8 @@ namespace Framework
 		}
 		if (verInfoSize != sizeof(VersionInfo))
 		{
-			WARN("Version info in asset pack %s is wrong size, %d bytes (expected %d)", packPath, verInfoSize, sizeof(VersionInfo));
+			WARN("Version info in asset pack %s is wrong size, %d bytes (expected %d)",
+				packPath, verInfoSize, sizeof(VersionInfo));
 			return false;
 		}
 
