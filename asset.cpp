@@ -1,5 +1,6 @@
 #include "framework.h"
 #include "miniz.h"
+#include <algorithm>
 
 #include <sys/types.h>
 #include <sys/stat.h>
@@ -106,20 +107,20 @@ namespace Framework
 			int numAssets);
 
 		// Check if any assets in a pack are out of date by version number or mod time,
-		// returning a list of ones that need updating.  Return flag indicates whether
-		// operation succeeded.
+		// returning a list of ones that need updating (as indices into the assets array).
 		static bool FindOutOfDateAssets(
 			const char * packPath,
 			const AssetCompileInfo * assets,
 			int numAssets,
-			std::vector<AssetCompileInfo> * pAssetsToUpdateOut);
+			std::vector<int> * pAssetsToUpdateOut);
 
-		// Update an asset pack in-place by recompiling the given assets,
-		// preserving any other data already in the pack.
+		// Update an asset pack in-place by recompiling some assets,
+		// preserving any other data already in the pack for others.
 		static bool UpdateAssetPack(
 			const char * packPath,
-			const AssetCompileInfo * assetsToUpdate,
-			int numAssets);
+			const AssetCompileInfo * assets,
+			int numAssets,
+			std::vector<int> const & assetsToUpdate);
 	}
 
 	// Prototype individual compilation functions for different asset types
@@ -171,7 +172,7 @@ namespace Framework
 		if (_stat(packPath, &packStat) == 0)
 		{
 			// Check if any assets are out of date
-			std::vector<AssetCompileInfo> assetsToUpdate;
+			std::vector<int> assetsToUpdate;
 			if (!FindOutOfDateAssets(packPath, assets, numAssets, &assetsToUpdate))
 			{
 				LOG("Asset pack %s exists but seems to be corrupt; recompiling it from sources.", packPath);
@@ -185,7 +186,7 @@ namespace Framework
 			else
 			{
 				LOG("Asset pack %s is out of date; updating.", packPath);
-				if (!UpdateAssetPack(packPath, &assetsToUpdate[0], int(assetsToUpdate.size())))
+				if (!UpdateAssetPack(packPath, assets, numAssets, assetsToUpdate))
 					return false;
 			}
 		}
@@ -415,11 +416,17 @@ namespace Framework
 				TEXVER_Current,
 			};
 			if (!WriteAssetDataToZip(s_pathVersionInfo, nullptr, &version, sizeof(version), &zip))
+			{
+				mz_zip_writer_end(&zip);
 				return false;
+			}
 
 			// Write manifest
 			if (!WriteAssetDataToZip(s_pathManifest, nullptr, &manifest[0], manifest.length(), &zip))
+			{
+				mz_zip_writer_end(&zip);
 				return false;
+			}
 
 			if (!mz_zip_writer_finalize_archive(&zip))
 			{
@@ -439,7 +446,7 @@ namespace Framework
 			const char * packPath,
 			const AssetCompileInfo * assets,
 			int numAssets,
-			std::vector<AssetCompileInfo> * pAssetsToUpdateOut)
+			std::vector<int> * pAssetsToUpdateOut)
 		{
 			ASSERT_ERR(packPath);
 			ASSERT_ERR(assets);
@@ -473,7 +480,9 @@ namespace Framework
 			// If the pack version is wrong, we have to recompile the whole thing
 			if (ver.m_packver != PACKVER_Current)
 			{
-				pAssetsToUpdateOut->assign(assets, assets + numAssets);
+				pAssetsToUpdateOut->resize(numAssets);
+				for (int i = 0; i < numAssets; ++i)
+					(*pAssetsToUpdateOut)[i] = i;
 				mz_zip_reader_end(&zip);
 				return true;
 			}
@@ -514,7 +523,7 @@ namespace Framework
 				case ACK_OBJMesh:
 					if (ver.m_meshver != MESHVER_Current)
 					{
-						pAssetsToUpdateOut->push_back(*pACI);
+						pAssetsToUpdateOut->push_back(i);
 						continue;
 					}
 					break;
@@ -523,7 +532,7 @@ namespace Framework
 				case ACK_TextureWithMips:
 					if (ver.m_texver != TEXVER_Current)
 					{
-						pAssetsToUpdateOut->push_back(*pACI);
+						pAssetsToUpdateOut->push_back(i);
 						continue;
 					}
 					break;
@@ -536,7 +545,7 @@ namespace Framework
 				// Check if the asset exists in the manifest.  If it doesn't, needs to be compiled.
 				if (manifest.find(std::string(pACI->m_pathSrc)) == manifest.end())
 				{
-					pAssetsToUpdateOut->push_back(*pACI);
+					pAssetsToUpdateOut->push_back(i);
 					continue;
 				}
 
@@ -547,7 +556,7 @@ namespace Framework
 				if (_stat(pACI->m_pathSrc, &srcStat) == 0 &&
 					srcStat.st_mtime > packStat.st_mtime)
 				{
-					pAssetsToUpdateOut->push_back(*pACI);
+					pAssetsToUpdateOut->push_back(i);
 					continue;
 				}
 			}
@@ -555,29 +564,160 @@ namespace Framework
 			return true;
 		}
 
-		// Update an asset pack in-place by recompiling the given assets,
-		// preserving any other data already in the pack.
+		// Update an asset pack in-place by recompiling some assets,
+		// preserving any other data already in the pack for the others.
 		static bool UpdateAssetPack(
 			const char * packPath,
-			const AssetCompileInfo * assetsToUpdate,
-			int numAssets)
+			const AssetCompileInfo * assets,
+			int numAssets,
+			std::vector<int> const & assetsToUpdate)
 		{
 			ASSERT_ERR(packPath);
-			ASSERT_ERR(assetsToUpdate);
+			ASSERT_ERR(assets);
 			ASSERT_ERR(numAssets > 0);
 		
 			// Load the archive directory
-			mz_zip_archive zip = {};
-			if (!mz_zip_reader_init_file(&zip, packPath, 0))
+			mz_zip_archive zipSrc = {};
+			if (!mz_zip_reader_init_file(&zipSrc, packPath, 0))
 			{
 				WARN("Couldn't load asset pack %s", packPath);
 				return false;
 			}
+			int numSrcFiles = int(mz_zip_reader_get_num_files(&zipSrc));
 
-			// !!!UNDONE
+			// Generate a temporary filename for the new archive
+			char outDir[MAX_PATH] = {};
+			if (const char * pLastSlash = strrchr(packPath, '/'))
+			{
+				ASSERT_ERR(pLastSlash - packPath < MAX_PATH);
+				memcpy(outDir, packPath, pLastSlash - packPath);
+			}
+			else
+			{
+				outDir[0] = '.';
+			}
+			char tempPath[MAX_PATH];
+			CHECK_ERR(GetTempFileName(outDir, nullptr, 0, tempPath) != 0);
 
-			mz_zip_reader_end(&zip);
-			return true;
+			// Open the temporary file for writing
+			mz_zip_archive zipDest = {};
+			if (!mz_zip_writer_init_file(&zipDest, tempPath, 0))
+			{
+				WARN("Couldn't open temporary file %s for writing", packPath);
+				mz_zip_reader_end(&zipSrc);
+				return false;
+			}
+
+			std::string manifest;
+			int numErrors = 0;
+			int numAssetsToUpdate = int(assetsToUpdate.size());
+
+			// Iterate over assets, tracking position in both original asset list and
+			// list of assets that need updates (a sorted subset of the original ones)
+			for (int iAsset = 0, iAssetToUpdate = 0; iAsset < numAssets; ++iAsset)
+			{
+				const AssetCompileInfo * pACI = &assets[iAsset];
+
+				// Does this asset need recompiling?
+				while (iAssetToUpdate < numAssetsToUpdate && assetsToUpdate[iAssetToUpdate] < iAsset)
+					++iAssetToUpdate;
+
+				if (iAssetToUpdate < numAssetsToUpdate && assetsToUpdate[iAssetToUpdate] == iAsset)
+				{
+					ACK ack = pACI->m_ack;
+					ASSERT_ERR(ack >= 0 && ack < ACK_Count);
+			
+					LOG("[%d/%d] Compiling %s asset %s...",
+						iAssetToUpdate+1, numAssetsToUpdate, s_ackNames[ack], pACI->m_pathSrc);
+
+					// Compile the asset
+					if (s_assetCompileFuncs[ack](pACI, &zipDest))
+					{
+						// Write asset name to the manifest
+						manifest += pACI->m_pathSrc;
+						manifest += '\n';
+					}
+					else
+					{
+						WARN("Couldn't compile asset %s", pACI->m_pathSrc);
+						++numErrors;
+					}
+				}
+				else
+				{
+					// Copy any files prefixed with the asset name from the old zip to the new one
+					// Note, this could be more efficient when there's a large number of files
+					for (int i = 0; i < numSrcFiles; ++i)
+					{
+						char filename[MZ_ZIP_MAX_ARCHIVE_FILENAME_SIZE];
+						mz_zip_reader_get_filename(&zipSrc, i, filename, sizeof(filename));
+						if (_strnicmp(filename, pACI->m_pathSrc, strlen(pACI->m_pathSrc)) == 0)
+						{
+							if (!mz_zip_writer_add_from_zip_reader(&zipDest, &zipSrc, i))
+							{
+								WARN("Couldn't copy file %s from asset pack %s to temporary archive %s",
+									filename, packPath, tempPath);
+								mz_zip_reader_end(&zipSrc);
+								mz_zip_writer_end(&zipDest);
+								DeleteFile(tempPath);
+								return false;
+							}
+						}
+					}
+
+					// Write asset name to the manifest
+					manifest += pACI->m_pathSrc;
+					manifest += '\n';
+				}
+			}
+
+			mz_zip_reader_end(&zipSrc);
+
+			if (numErrors > 0)
+			{
+				WARN("Failed to compile %d of %d assets", numErrors, numAssetsToUpdate);
+			}
+
+			// Write version info
+			VersionInfo version =
+			{
+				PACKVER_Current,
+				MESHVER_Current,
+				TEXVER_Current,
+			};
+			if (!WriteAssetDataToZip(s_pathVersionInfo, nullptr, &version, sizeof(version), &zipDest))
+			{
+				mz_zip_writer_end(&zipDest);
+				DeleteFile(tempPath);
+				return false;
+			}
+
+			// Write manifest
+			if (!WriteAssetDataToZip(s_pathManifest, nullptr, &manifest[0], manifest.length(), &zipDest))
+			{
+				mz_zip_writer_end(&zipDest);
+				DeleteFile(tempPath);
+				return false;
+			}
+
+			if (!mz_zip_writer_finalize_archive(&zipDest))
+			{
+				WARN("Couldn't finalize temporary archive %s", tempPath);
+				mz_zip_writer_end(&zipDest);
+				DeleteFile(tempPath);
+				return false;
+			}
+
+			mz_zip_writer_end(&zipDest);
+
+			// Move the new version of the asset pack over the old one
+			if (!MoveFileEx(tempPath, packPath, MOVEFILE_COPY_ALLOWED | MOVEFILE_REPLACE_EXISTING))
+			{
+				WARN("Couldn't rename temporary file %s over asset pack %s", tempPath, packPath);
+				return false;
+			}
+
+			return (numErrors == 0);
 		}
 	}
 }
