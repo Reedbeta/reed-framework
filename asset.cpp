@@ -35,11 +35,17 @@ namespace Framework
 		return true;
 	}
 
+	bool AssetPack::HasAsset(const char * path)
+	{
+		return (m_manifest.find(std::string(path)) != m_manifest.end());
+	}
+
 	void AssetPack::Reset()
 	{
 		m_data.clear();
 		m_files.clear();
 		m_directory.clear();
+		m_manifest.clear();
 		m_path.clear();
 	}
 
@@ -61,6 +67,7 @@ namespace Framework
 	namespace AssetCompiler
 	{
 		static const char * s_pathVersionInfo = "version";
+		static const char * s_pathManifest = "manifest";
 
 		enum PACKVER
 		{
@@ -85,6 +92,12 @@ namespace Framework
 		};
 
 		// Prototype various helper functions
+
+		// Parse an asset pack manifest (newline-delimited list of names) into a set structure
+		static void ParseManifest(
+			const char * manifest,
+			int manifestSize,
+			std::unordered_set<std::string> * pManifestOut);
 
 		// Compile an entire asset pack from scratch.
 		static bool CompileFullAssetPack(
@@ -265,19 +278,40 @@ namespace Framework
 		if (!pPackOut->LookupFile(s_pathVersionInfo, nullptr, (void **)&pVerInfo, &verInfoSize))
 		{
 			WARN("Couldn't find version info in asset pack %s", packPath);
+			return false;
 		}
-		ASSERT_WARN(verInfoSize == sizeof(VersionInfo));
+		if (verInfoSize != sizeof(VersionInfo))
+		{
+			WARN("Version info in asset pack %s is wrong size, %d bytes (expected %d)", packPath, verInfoSize, sizeof(VersionInfo));
+			return false;
+		}
 
 		// Check that all the versions are correct
-		ASSERT_WARN_MSG(
-			pVerInfo->m_packver == PACKVER_Current,
-			"Asset pack %s has wrong pack version %d (expected %d)", packPath, pVerInfo->m_packver, PACKVER_Current);
-		ASSERT_WARN_MSG(
-			pVerInfo->m_meshver == MESHVER_Current,
-			"Asset pack %s has wrong mesh version %d (expected %d)", packPath, pVerInfo->m_meshver, MESHVER_Current);
-		ASSERT_WARN_MSG(
-			pVerInfo->m_texver == TEXVER_Current,
-			"Asset pack %s has wrong texture version %d (expected %d)", packPath, pVerInfo->m_texver, TEXVER_Current);
+		if (pVerInfo->m_packver != PACKVER_Current)
+		{
+			WARN("Asset pack %s has wrong pack version %d (expected %d)", packPath, pVerInfo->m_packver, PACKVER_Current);
+			return false;
+		}
+		if (pVerInfo->m_meshver != MESHVER_Current)
+		{
+			WARN("Asset pack %s has wrong mesh version %d (expected %d)", packPath, pVerInfo->m_meshver, MESHVER_Current);
+			return false;
+		}
+		if (pVerInfo->m_texver != TEXVER_Current)
+		{
+			WARN("Asset pack %s has wrong texture version %d (expected %d)", packPath, pVerInfo->m_texver, TEXVER_Current);
+			return false;
+		}
+
+		// Extract the manifest
+		const char * pManifest;
+		int manifestSize;
+		if (!pPackOut->LookupFile(s_pathManifest, nullptr, (void **)&pManifest, &manifestSize))
+		{
+			WARN("Couldn't find manifest in asset pack %s", packPath);
+			return false;
+		}
+		ParseManifest(pManifest, manifestSize, &pPackOut->m_manifest);
 
 		LOG("Loaded asset pack %s - %dMB uncompressed", packPath, bytesTotal / 1048576);
 		return true;
@@ -287,6 +321,40 @@ namespace Framework
 
 	namespace AssetCompiler
 	{
+		// Parse an asset pack manifest (newline-delimited list of names) into a set structure
+		static void ParseManifest(
+			const char * manifest,
+			int manifestSize,
+			std::unordered_set<std::string> * pManifestOut)
+		{
+			ASSERT_ERR(manifest);
+			ASSERT_ERR(manifestSize > 0);
+			ASSERT_ERR(pManifestOut);
+
+			// Make a copy so that we can parse destructively
+			std::vector<char> manifestCopy(manifestSize + 1);
+			memcpy(&manifestCopy[0], manifest, manifestSize);
+
+			// Parse line-by-line
+			char * pCtxLine = &manifestCopy[0];
+			while (char * pLine = tokenizeConsecutive(pCtxLine, "\n"))
+			{
+				// Strip comments starting with #
+				if (char * pChzComment = strchr(pLine, '#'))
+					*pChzComment = 0;
+
+				// Strip whitespace
+				char * pCtxToken = pLine;
+				char * pToken = tokenize(pCtxToken, " \t");
+
+				// Ignore blank lines
+				if (!pToken)
+					continue;
+
+				pManifestOut->insert(std::string(pToken));
+			}
+		}
+
 		// Compile an entire asset pack from scratch.
 		static bool CompileFullAssetPack(
 			const char * packPath,
@@ -307,6 +375,8 @@ namespace Framework
 			// !!!UNDONE: not nicely generating entries in the .zip for directories in the internal paths.
 			// Doesn't seem to matter as .zip viewers handle it fine, but maybe we should do that anyway?
 
+			std::string manifest;
+
 			int numErrors = 0;
 			for (int iAsset = 0; iAsset < numAssets; ++iAsset)
 			{
@@ -319,8 +389,9 @@ namespace Framework
 				// Compile the asset
 				if (s_assetCompileFuncs[ack](pACI, &zip))
 				{
-					// Write directory for the asset to the .zip as a sentinel that it compiled
-					// !!!UNDONE
+					// Write asset name to the manifest
+					manifest += pACI->m_pathSrc;
+					manifest += '\n';
 				}
 				else
 				{
@@ -342,6 +413,10 @@ namespace Framework
 				TEXVER_Current,
 			};
 			if (!WriteAssetDataToZip(s_pathVersionInfo, nullptr, &version, sizeof(version), &zip))
+				return false;
+
+			// Write manifest
+			if (!WriteAssetDataToZip(s_pathManifest, nullptr, &manifest[0], manifest.length(), &zip))
 				return false;
 
 			if (!mz_zip_writer_finalize_archive(&zip))
@@ -401,6 +476,28 @@ namespace Framework
 				return true;
 			}
 
+			// Extract the manifest
+			fileIndex = mz_zip_reader_locate_file(&zip, s_pathManifest, nullptr, 0);
+			if (fileIndex < 0)
+			{
+				WARN("Couldn't find manifest in asset pack %s", packPath);
+				mz_zip_reader_end(&zip);
+				return false;
+			}
+			size_t manifestSize;
+			char * pManifest = (char *)mz_zip_reader_extract_to_heap(&zip, fileIndex, &manifestSize, 0);
+			if (!pManifest)
+			{
+				WARN("Couldn't extract manifest from asset pack %s", packPath);
+				mz_zip_reader_end(&zip);
+				return false;
+			}
+			std::unordered_set<std::string> manifest;
+			ParseManifest(pManifest, int(manifestSize), &manifest);
+			mz_free(pManifest);
+
+			mz_zip_reader_end(&zip);
+
 			// Get the mod date of the asset pack
 			struct _stat packStat;
 			CHECK_ERR(_stat(packPath, &packStat) == 0);
@@ -434,15 +531,12 @@ namespace Framework
 					break;
 				}
 
-				// Check if the asset actually exists in the pack.  If it doesn't, needs to be compiled.
-				// !!!UNDONE
-#if LATER
-				if (mz_zip_reader_locate_file(&zip, pACI->m_pathSrc, nullptr, 0) < 0)
+				// Check if the asset exists in the manifest.  If it doesn't, needs to be compiled.
+				if (manifest.find(std::string(pACI->m_pathSrc)) == manifest.end())
 				{
 					pAssetsToUpdateOut->push_back(*pACI);
 					continue;
 				}
-#endif
 
 				// Check mod time of the source file against that of the pack
 				// If the source file doesn't exist, that's OK!  Asset packs can be
@@ -456,7 +550,6 @@ namespace Framework
 				}
 			}
 
-			mz_zip_reader_end(&zip);
 			return true;
 		}
 
