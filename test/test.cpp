@@ -130,7 +130,7 @@ bool TestWindow::Init(HINSTANCE hInstance)
 		ERR("Couldn't load Sponza material library");
 		return false;
 	}
-	if (!LoadMeshFromAssetPack(pPack, "sponza/sponza_cracksfilled.obj", &m_meshSponza))
+	if (!LoadMeshFromAssetPack(pPack, "sponza/sponza_cracksfilled.obj", &m_mtlLibSponza, &m_meshSponza))
 	{
 		ERR("Couldn't load Sponza mesh");
 		return false;

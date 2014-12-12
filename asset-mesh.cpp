@@ -614,11 +614,12 @@ namespace Framework
 
 	// Load compiled data into a runtime game object
 
-	static bool DeserializeMaterialMap(const byte * pMtlMap, int mtlMapSize, Mesh * pMeshOut);
+	static bool DeserializeMaterialMap(const byte * pMtlMap, int mtlMapSize, MaterialLib * pMtlLib, Mesh * pMeshOut);
 
 	bool LoadMeshFromAssetPack(
 		AssetPack * pPack,
 		const char * path,
+		MaterialLib * pMtlLib,
 		Mesh * pMeshOut)
 	{
 		ASSERT_ERR(pPack);
@@ -669,7 +670,7 @@ namespace Framework
 			WARN("Couldn't find material map for mesh %s in asset pack %s", path, pPack->m_path.c_str());
 			return false;
 		}
-		if (!DeserializeMaterialMap(pMtlMap, mtlMapSize, pMeshOut))
+		if (!DeserializeMaterialMap(pMtlMap, mtlMapSize, pMtlLib, pMeshOut))
 		{
 			WARN("Couldn't deserialize material map for mesh %s in asset pack %s", path, pPack->m_path.c_str());
 			return false;
@@ -681,13 +682,19 @@ namespace Framework
 		return true;
 	}
 
-	static bool DeserializeMaterialMap(const byte * pMtlMap, int mtlMapSize, Mesh * pMeshOut)
+	static bool DeserializeMaterialMap(const byte * pMtlMap, int mtlMapSize, MaterialLib * pMtlLib, Mesh * pMeshOut)
 	{
+		ASSERT_ERR(pMtlMap);
+		ASSERT_ERR(mtlMapSize > 0);
+		ASSERT_ERR(pMeshOut);
+
 		const byte * pCur = pMtlMap;
 		const byte * pEnd = pMtlMap + mtlMapSize;
 		while (pCur < pEnd)
 		{
-			Mesh::MtlRange range = { (const char *)pCur, };
+			Mesh::MtlRange range = {};
+
+			const char * pMtlName = (const char *)pCur;
 
 			// Find the end of the string
 			while (pCur < pEnd && *pCur)
@@ -714,6 +721,14 @@ namespace Framework
 			{
 				WARN("Corrupt material map: invalid index start/count");
 				return false;
+			}
+
+			// Look up material by name
+			if (pMtlLib && *pMtlName)
+			{
+				range.m_pMtl = pMtlLib->Lookup(pMtlName);
+				ASSERT_WARN_MSG(range.m_pMtl, 
+					"Couldn't find material %s in material library", pMtlName);
 			}
 
 			pMeshOut->m_mtlRanges.push_back(range);

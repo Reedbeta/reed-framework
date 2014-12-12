@@ -5,6 +5,9 @@
 
 namespace Framework
 {
+	struct Material;
+	class MaterialLib;
+
 	// Hard-coded vertex struct for now
 	struct Vertex
 	{
@@ -28,13 +31,11 @@ namespace Framework
 		int							m_vertCount;
 		int							m_indexCount;
 
-		// Material map (note: should eventually have a resolved reference to
-		// a material object, rather than a string name.  Name points to the
-		// serialized string in the asset pack.)
+		// Material map
 		struct MtlRange
 		{
-			const char *	m_mtlName;
-			int				m_indexStart, m_indexCount;
+			Material *	m_pMtl;
+			int			m_indexStart, m_indexCount;
 		};
 		std::vector<MtlRange>		m_mtlRanges;
 
@@ -56,8 +57,11 @@ namespace Framework
 		void	UploadToGPU(ID3D11Device * pDevice);
 	};
 
+	// Load a mesh from an asset pack and resolve material references
+	// using the given texture library
 	bool LoadMeshFromAssetPack(
 		AssetPack * pPack,
 		const char * path,
+		MaterialLib * pMtlLib,
 		Mesh * pMeshOut);
 }
