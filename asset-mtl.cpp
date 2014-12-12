@@ -7,7 +7,7 @@ namespace Framework
 
 	namespace OBJMtlLibCompiler
 	{
-		static const char * s_suffixMtlLib = "/material_library";
+		static const char * s_suffixMtlLib = "/material_lib";
 
 		struct Material
 		{
@@ -15,8 +15,8 @@ namespace Framework
 			std::string		m_texDiffuseColor;
 			std::string		m_texSpecColor;
 			std::string		m_texHeight;
-			srgb			m_rgbDiffuseColor;
-			srgb			m_rgbSpecColor;
+			rgb				m_rgbDiffuseColor;
+			rgb				m_rgbSpecColor;
 			float			m_specPower;
 		};
 
@@ -173,7 +173,7 @@ namespace Framework
 						WARN("%s: RGB color at line %d is outside [0, 1]; clamping", path, iLine);
 						color = saturate(color);
 					}
-					pMtlCur->m_rgbDiffuseColor = color;
+					pMtlCur->m_rgbDiffuseColor = toLinear(color);
 				}
 				else if (_stricmp(pToken, "Ks") == 0)
 				{
@@ -191,7 +191,7 @@ namespace Framework
 						WARN("%s: RGB color at line %d is outside [0, 1]; clamping", path, iLine);
 						color = saturate(color);
 					}
-					pMtlCur->m_rgbSpecColor = color;
+					pMtlCur->m_rgbSpecColor = toLinear(color);
 				}
 				else if (_stricmp(pToken, "Ns") == 0)
 				{
@@ -246,5 +246,98 @@ namespace Framework
 				memcpy(pWrite, &pMtl->m_rgbDiffuseColor, 7 * sizeof(float));
 			}
 		}
+	}
+
+
+
+	// Load compiled data into a runtime game object
+
+	bool LoadMaterialLibFromAssetPack(
+		AssetPack * pPack,
+		const char * path,
+		MaterialLib * pMtlLibOut)
+	{
+		ASSERT_ERR(pPack);
+		ASSERT_ERR(path);
+		ASSERT_ERR(pMtlLibOut);
+
+		using namespace OBJMtlLibCompiler;
+
+		pMtlLibOut->m_pPack = pPack;
+
+		// Look for the data in the asset pack
+		byte * pData;
+		int dataSize;
+		if (!pPack->LookupFile(path, s_suffixMtlLib, (void **)&pData, &dataSize))
+		{
+			WARN("Couldn't find data for material lib %s in asset pack %s", path, pPack->m_path.c_str());
+			return false;
+		}
+
+		// Deserialize it
+		const byte * pCur = pData;
+		const byte * pEnd = pData + dataSize;
+		while (pCur < pEnd)
+		{
+			Framework::Material mtl = { (const char *)pCur, };
+
+			while (pCur < pEnd && *pCur)
+				++pCur;
+			if (pCur == pEnd)
+			{
+				WARN("Corrupt material lib: unterminated string");
+				return false;
+			}
+			++pCur;
+
+			const char * pTexDiffuseColor = (const char *)pCur;
+			while (pCur < pEnd && *pCur)
+				++pCur;
+			if (pCur == pEnd)
+			{
+				WARN("Corrupt material lib: unterminated string");
+				return false;
+			}
+			++pCur;
+
+			const char * pTexSpecColor = (const char *)pCur;
+			while (pCur < pEnd && *pCur)
+				++pCur;
+			if (pCur == pEnd)
+			{
+				WARN("Corrupt material lib: unterminated string");
+				return false;
+			}
+			++pCur;
+
+			const char * pTexHeight = (const char *)pCur;
+			while (pCur < pEnd && *pCur)
+				++pCur;
+			if (pCur == pEnd)
+			{
+				WARN("Corrupt material lib: unterminated string");
+				return false;
+			}
+			++pCur;
+
+			memcpy(&mtl.m_rgbDiffuseColor, pCur, 7 * sizeof(float));
+			pCur += 7 * sizeof(float);
+			if (any(mtl.m_rgbDiffuseColor < 0.0f) || any(mtl.m_rgbDiffuseColor > 1.0f) ||
+				any(mtl.m_rgbSpecColor < 0.0f) || any(mtl.m_rgbSpecColor > 1.0f) ||
+				mtl.m_specPower < 0.0f)
+			{
+				WARN("Corrupt material lib: invalid parameter data");
+				return false;
+			}
+
+			// !!!UNDONE: look up textures by name
+			(void) pTexDiffuseColor;
+			(void) pTexSpecColor;
+			(void) pTexHeight;
+
+			pMtlLibOut->m_mtls.insert(std::make_pair(std::string(mtl.m_mtlName), mtl));
+		}
+
+		return true;
 	}
 }

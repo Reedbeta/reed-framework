@@ -67,6 +67,7 @@ public:
 	virtual void		OnRender();
 
 	Mesh								m_meshSponza;
+	MaterialLib							m_mtlLibSponza;
 	Texture2D							m_texStone;
 	comptr<ID3D11VertexShader>			m_pVsWorld;
 	comptr<ID3D11PixelShader>			m_pPsSimple;
@@ -80,16 +81,6 @@ public:
 // TestWindow implementation
 
 TestWindow::TestWindow()
-: super(),
-  m_meshSponza(),
-  m_texStone(),
-  m_pVsWorld(),
-  m_pPsSimple(),
-  m_pInputLayout(),
-  m_cbFrame(),
-  m_cbDebug(),
-  m_camera(),
-  m_timer()
 {
 }
 
@@ -111,6 +102,11 @@ bool TestWindow::Init(HINSTANCE hInstance)
 	if (!LoadMeshFromAssetPack(pPack, "sponza/sponza_cracksFilled.obj", &m_meshSponza))
 	{
 		ERR("Couldn't load Sponza mesh");
+		return false;
+	}
+	if (!LoadMaterialLibFromAssetPack(pPack, "sponza/sponza.mtl", &m_mtlLibSponza))
+	{
+		ERR("Couldn't load Sponza material library");
 		return false;
 	}
 	if (!LoadTexture2DFromAssetPack(pPack, "sponza/kamen.jpg", &m_texStone))
