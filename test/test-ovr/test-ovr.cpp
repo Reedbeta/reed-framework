@@ -82,7 +82,8 @@ public:
 	ovrD3D11Texture						m_ovrEyeTextures[2];
 
 	Mesh								m_meshSponza;
-	Texture2D							m_texStone;
+	MaterialLib							m_mtlLibSponza;
+	TextureLib							m_texLibSponza;
 	comptr<ID3D11VertexShader>			m_pVsWorld;
 	comptr<ID3D11PixelShader>			m_pPsSimple;
 	comptr<ID3D11InputLayout>			m_pInputLayout;
@@ -95,24 +96,11 @@ public:
 // TestWindow implementation
 
 TestWindow::TestWindow()
-: super(),
-  m_hmd(nullptr),
-  m_rtEyes(),
-  m_dstEyes(),
-  m_pSrvEyesRaw(),
-  m_eyeOffsets(),
-  m_eyeProjections(),
-  m_eyeViewports(),
-  m_ovrEyeTextures(),
-  m_meshSponza(),
-  m_texStone(),
-  m_pVsWorld(),
-  m_pPsSimple(),
-  m_pInputLayout(),
-  m_cbFrame(),
-  m_cbDebug(),
-  m_camera(),
-  m_timer()
+:	m_hmd(nullptr),
+	m_eyeOffsets(),
+	m_eyeProjections(),
+	m_eyeViewports(),
+	m_ovrEyeTextures()
 {
 }
 
@@ -215,17 +203,66 @@ bool TestWindow::Init(HINSTANCE hInstance)
 		m_ovrEyeTextures[i].D3D11.pSRView = m_pSrvEyesRaw;
 	}
 	
+	// Ensure the asset pack is up to date
+	static const AssetCompileInfo s_assets[] =
+	{
+		{ "sponza/sponza_cracksfilled.obj", ACK_OBJMesh, },
+		{ "sponza/sponza.mtl", ACK_OBJMtlLib, },
+		{ "sponza/sp_luk.jpg", ACK_TextureWithMips, },
+		{ "sponza/sp_luk-bump.jpg", ACK_TextureWithMips, },
+		{ "sponza/00_skap.jpg", ACK_TextureWithMips, },
+		{ "sponza/01_stub.jpg", ACK_TextureWithMips, },
+		{ "sponza/01_stub-bump.jpg", ACK_TextureWithMips, },
+		{ "sponza/01_s_ba.jpg", ACK_TextureWithMips, },
+		{ "sponza/01_st_kp.jpg", ACK_TextureWithMips, },
+		{ "sponza/01_st_kp-bump.jpg", ACK_TextureWithMips, },
+		{ "sponza/x01_st.jpg", ACK_TextureWithMips, },
+		{ "sponza/kamen-stup.jpg", ACK_TextureWithMips, },
+		{ "sponza/reljef.jpg", ACK_TextureWithMips, },
+		{ "sponza/reljef-bump.jpg", ACK_TextureWithMips, },
+		{ "sponza/kamen.jpg", ACK_TextureWithMips, },
+		{ "sponza/kamen-bump.jpg", ACK_TextureWithMips, },
+		{ "sponza/prozor1.jpg", ACK_TextureWithMips, },
+		{ "sponza/vrata_kr.jpg", ACK_TextureWithMips, },
+		{ "sponza/vrata_ko.jpg", ACK_TextureWithMips, },
+	};
+	comptr<AssetPack> pPack = new AssetPack;
+	// !!!UNDONE: for now, require it to have already been built.  We can't currently build
+	// it from here because the relative paths are not right.
+#if LATER
+	if (!LoadAssetPackOrCompileIfOutOfDate("../sponza-assets.zip", s_assets, dim(s_assets), pPack))
+	{
+		ERR("Couldn't load or compile Sponza asset pack");
+		return false;
+	}
+#else
+	if (!LoadAssetPack("../sponza-assets.zip", pPack))
+	{
+		ERR("Couldn't load Sponza asset pack");
+		return false;
+	}
+#endif
+
 	// Load assets
-	if (!LoadObjMesh(m_pDevice, "..\\sponza\\sponza_cracksFilled.obj", &m_meshSponza))
+	if (!LoadTextureLibFromAssetPack(pPack, s_assets, dim(s_assets), &m_texLibSponza))
+	{
+		ERR("Couldn't load Sponza texture library");
+		return false;
+	}
+	if (!LoadMaterialLibFromAssetPack(pPack, "sponza/sponza.mtl", &m_texLibSponza, &m_mtlLibSponza))
+	{
+		ERR("Couldn't load Sponza material library");
+		return false;
+	}
+	if (!LoadMeshFromAssetPack(pPack, "sponza/sponza_cracksfilled.obj", &m_mtlLibSponza, &m_meshSponza))
 	{
 		ERR("Couldn't load Sponza mesh");
 		return false;
 	}
-	if (!LoadTexture2D(m_pDevice, "..\\sponza\\kamen.jpg", &m_texStone))
-	{
-		ERR("Couldn't load Sponza stone texture");
-		return false;
-	}
+
+	// Upload all assets to GPU
+	m_meshSponza.UploadToGPU(m_pDevice);
+	m_texLibSponza.UploadAllToGPU(m_pDevice);
 
 	// Load shaders
 	CHECK_D3D(m_pDevice->CreateVertexShader(world_vs_bytecode, dim(world_vs_bytecode), nullptr, &m_pVsWorld));
@@ -426,7 +463,6 @@ void TestWindow::OnRender()
 	// Init shaders
 	m_pCtx->VSSetShader(m_pVsWorld, nullptr, 0);
 	m_pCtx->PSSetShader(m_pPsSimple, nullptr, 0);
-	m_pCtx->PSSetShaderResources(0, 1, &m_texStone.m_pSrv);
 	m_pCtx->PSSetSamplers(0, 1, &m_pSsTrilinearRepeatAniso);
 
 	// Render each eye, in the order that's best for the HMD scan order
@@ -471,8 +507,17 @@ void TestWindow::OnRender()
 		};
 		m_pCtx->RSSetViewports(1, &d3dViewport);
 
-		// Draw the world
-		m_meshSponza.Draw(m_pCtx);
+		// Draw the individual material ranges of the mesh
+		for (int i = 0, c = int(m_meshSponza.m_mtlRanges.size()); i < c; ++i)
+		{
+			ID3D11ShaderResourceView * pSrv = nullptr;
+			if (Material * pMtl = m_meshSponza.m_mtlRanges[i].m_pMtl)
+				if (Texture2D * pTex = pMtl->m_pTexDiffuseColor)
+					pSrv = pTex->m_pSrv;
+
+			m_pCtx->PSSetShaderResources(0, 1, &pSrv);
+			m_meshSponza.DrawMtlRange(m_pCtx, i);
+		}
 	}
 
 #if ANT_TWEAK_BAR
