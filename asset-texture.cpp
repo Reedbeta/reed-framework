@@ -333,4 +333,46 @@ namespace Framework
 
 		return true;
 	}
+
+
+
+	// Create a library of all the textures in an asset pack
+
+	bool LoadTextureLibFromAssetPack(
+		AssetPack * pPack,
+		const AssetCompileInfo * assets,
+		int numAssets,
+		TextureLib * pTexLibOut)
+	{
+		ASSERT_ERR(pPack);
+		ASSERT_ERR(assets);
+		ASSERT_ERR(numAssets > 0);
+		ASSERT_ERR(pTexLibOut);
+
+		// Find all the texture assets
+		for (int i = 0; i < numAssets; ++i)
+		{
+			const AssetCompileInfo * pACI = &assets[i];
+			if (pACI->m_ack != ACK_TextureRaw &&
+				pACI->m_ack != ACK_TextureWithMips)
+			{
+				continue;
+			}
+
+			// !!!HACK: only use the basename for now, so materials can find textures
+			const char * basename = pACI->m_pathSrc;
+			if (const char * pLastSlash = strrchr(pACI->m_pathSrc, '/'))
+				basename = pLastSlash + 1;
+
+			auto iterAndBool = pTexLibOut->m_texs.insert(std::make_pair(std::string(basename), Texture2D()));
+
+			if (!LoadTexture2DFromAssetPack(pPack, pACI->m_pathSrc, &iterAndBool.first->second))
+			{
+				pTexLibOut->m_texs.erase(iterAndBool.first);
+				return false;
+			}
+		}
+
+		return true;
+	}
 }

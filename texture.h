@@ -194,12 +194,14 @@ namespace Framework
 
 
 
-	// Texture loading from files
+	// Texture loading from asset packs
 
 	bool LoadTexture2DFromAssetPack(
 		AssetPack * pPack,
 		const char * path,
 		Texture2D * pTexOut);
+
+	// !!!UNDONE: load cubemaps and 3D textures as well
 
 	// Creating textures directly in memory
 
@@ -221,4 +223,27 @@ namespace Framework
 		DXGI_FORMAT format,
 		const void * pPixels,
 		Texture2D * pTexOut);
+
+
+
+	// Texture library: indexes a set of textures by name.
+	class TextureLib
+	{
+	public:
+		// Table of textures by name
+		// !!!UNDONE: store cubemaps and 3D textures as well
+		std::unordered_map<std::string, Texture2D>	m_texs;
+
+					TextureLib();
+		Texture2D *	Lookup(const char * name);
+		void		Reset();
+	};
+
+	// Create a library of all the textures in an asset pack
+	struct AssetCompileInfo;
+	bool LoadTextureLibFromAssetPack(
+		AssetPack * pPack,
+		const AssetCompileInfo * assets,
+		int numAssets,
+		TextureLib * pTexLibOut);
 }

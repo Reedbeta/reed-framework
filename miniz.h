@@ -8,11 +8,11 @@ inline bool CheckPathChars(const char * path)
 {
 	ASSERT_ERR(path);
 
-	// Check that filenames are printable-ASCII-only and there are no backslashes
+	// Check that filenames are printable-ASCII-only, lowercase, and there are no backslashes
 	// (this should really be generalized to allow UTF-8 printable chars)
 	for (const char * pCh = path; *pCh; ++pCh)
 	{
-		if (*pCh < 32 || *pCh > 126 || *pCh == '\\')
+		if (*pCh < 32 || (*pCh >= 'A' && *pCh <= 'Z') || *pCh > 126 || *pCh == '\\')
 		{
 			WARN("Invalid character %c in path %s", *pCh, path);
 			return false;

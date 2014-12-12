@@ -1,5 +1,7 @@
 #include "framework.h"
 #include "miniz.h"
+#include <algorithm>
+#include <ctype.h>
 
 namespace Framework
 {
@@ -62,6 +64,11 @@ namespace Framework
 
 	namespace OBJMtlLibCompiler
 	{
+		inline void LowercaseString(std::string & str)
+		{
+			std::transform(str.begin(), str.end(), str.begin(), &tolower);
+		}
+
 		static bool ParseMTL(const char * path, Context * pCtxOut)
 		{
 			ASSERT_ERR(path);
@@ -104,6 +111,7 @@ namespace Framework
 					pCtxOut->m_mtls.push_back(Material());
 					pMtlCur = &pCtxOut->m_mtls.back();
 					pMtlCur->m_mtlName = pMtlName;
+					LowercaseString(pMtlCur->m_mtlName);
 				}
 				else if (_stricmp(pToken, "map_Kd") == 0)
 				{
@@ -121,6 +129,7 @@ namespace Framework
 						WARN("%s: syntax error at line %d: unexpected extra token \"%s\"; ignoring", path, iLine, pExtra);
 
 					pMtlCur->m_texDiffuseColor = pTexName;
+					LowercaseString(pMtlCur->m_texDiffuseColor);
 				}
 				else if (_stricmp(pToken, "map_Ks") == 0)
 				{
@@ -138,6 +147,7 @@ namespace Framework
 						WARN("%s: syntax error at line %d: unexpected extra token \"%s\"; ignoring", path, iLine, pExtra);
 
 					pMtlCur->m_texSpecColor = pTexName;
+					LowercaseString(pMtlCur->m_texSpecColor);
 				}
 				else if (_stricmp(pToken, "map_bump") == 0 ||
 						 _stricmp(pToken, "bump") == 0)
@@ -156,6 +166,7 @@ namespace Framework
 						WARN("%s: syntax error at line %d: unexpected extra token \"%s\"; ignoring", path, iLine, pExtra);
 
 					pMtlCur->m_texHeight = pTexName;
+					LowercaseString(pMtlCur->m_texHeight);
 				}
 				else if (_stricmp(pToken, "Kd") == 0)
 				{
@@ -255,6 +266,7 @@ namespace Framework
 	bool LoadMaterialLibFromAssetPack(
 		AssetPack * pPack,
 		const char * path,
+		TextureLib * pTexLib,
 		MaterialLib * pMtlLibOut)
 	{
 		ASSERT_ERR(pPack);
@@ -330,10 +342,28 @@ namespace Framework
 				return false;
 			}
 
-			// !!!UNDONE: look up textures by name
-			(void) pTexDiffuseColor;
-			(void) pTexSpecColor;
-			(void) pTexHeight;
+			// Look up textures by name
+			if (pTexLib)
+			{
+				if (*pTexDiffuseColor)
+				{
+					mtl.m_pTexDiffuseColor = pTexLib->Lookup(pTexDiffuseColor);
+					ASSERT_WARN_MSG(mtl.m_pTexDiffuseColor, 
+						"Material %s: couldn't find texture %s in texture library", mtl.m_mtlName, pTexDiffuseColor);
+				}
+				if (*pTexSpecColor)
+				{
+					mtl.m_pTexSpecColor = pTexLib->Lookup(pTexSpecColor);
+					ASSERT_WARN_MSG(mtl.m_pTexSpecColor, 
+						"Material %s: couldn't find texture %s in texture library", mtl.m_mtlName, pTexSpecColor);
+				}
+				if (*pTexHeight)
+				{
+					mtl.m_pTexHeight = pTexLib->Lookup(pTexHeight);
+					ASSERT_WARN_MSG(mtl.m_pTexHeight, 
+						"Material %s: couldn't find texture %s in texture library", mtl.m_mtlName, pTexHeight);
+				}
+			}
 
 			pMtlLibOut->m_mtls.insert(std::make_pair(std::string(mtl.m_mtlName), mtl));
 		}

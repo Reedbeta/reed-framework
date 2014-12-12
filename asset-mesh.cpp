@@ -1,6 +1,7 @@
 #include "framework.h"
 #include "miniz.h"
 #include <algorithm>
+#include <ctype.h>
 
 namespace Framework
 {
@@ -111,6 +112,11 @@ namespace Framework
 
 	namespace OBJMeshCompiler
 	{
+		inline void LowercaseString(std::string & str)
+		{
+			std::transform(str.begin(), str.end(), str.begin(), &tolower);
+		}
+
 		static bool ParseOBJ(const char * path, Context * pCtxOut)
 		{
 			ASSERT_ERR(path);
@@ -269,6 +275,7 @@ namespace Framework
 
 					// Start the new range
 					pRange->mtlName = pMtlName;
+					LowercaseString(pRange->mtlName);
 					pRange->iFaceStart = int(OBJfaces.size());
 				}
 				else

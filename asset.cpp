@@ -611,6 +611,7 @@ namespace Framework
 			int numSrcFiles = int(mz_zip_reader_get_num_files(&zipSrc));
 
 			// Generate a temporary filename for the new archive
+			CHECK_WARN(CheckPathChars(packPath));
 			char outDir[MAX_PATH] = {};
 			if (const char * pLastSlash = strrchr(packPath, '/'))
 			{

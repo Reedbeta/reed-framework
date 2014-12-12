@@ -68,6 +68,7 @@ public:
 
 	Mesh								m_meshSponza;
 	MaterialLib							m_mtlLibSponza;
+	TextureLib							m_texLibSponza;
 	Texture2D							m_texStone;
 	comptr<ID3D11VertexShader>			m_pVsWorld;
 	comptr<ID3D11PixelShader>			m_pPsSimple;
@@ -91,22 +92,47 @@ bool TestWindow::Init(HINSTANCE hInstance)
 	// Ensure the asset pack is up to date
 	static const AssetCompileInfo s_assets[] =
 	{
-		{ "sponza/sponza_cracksFilled.obj", ACK_OBJMesh, },
+		{ "sponza/sponza_cracksfilled.obj", ACK_OBJMesh, },
 		{ "sponza/sponza.mtl", ACK_OBJMtlLib, },
+		{ "sponza/sp_luk.jpg", ACK_TextureWithMips, },
+		{ "sponza/sp_luk-bump.jpg", ACK_TextureWithMips, },
+		{ "sponza/00_skap.jpg", ACK_TextureWithMips, },
+		{ "sponza/01_stub.jpg", ACK_TextureWithMips, },
+		{ "sponza/01_stub-bump.jpg", ACK_TextureWithMips, },
+		{ "sponza/01_s_ba.jpg", ACK_TextureWithMips, },
+		{ "sponza/01_st_kp.jpg", ACK_TextureWithMips, },
+		{ "sponza/01_st_kp-bump.jpg", ACK_TextureWithMips, },
+		{ "sponza/x01_st.jpg", ACK_TextureWithMips, },
+		{ "sponza/kamen-stup.jpg", ACK_TextureWithMips, },
+		{ "sponza/reljef.jpg", ACK_TextureWithMips, },
+		{ "sponza/reljef-bump.jpg", ACK_TextureWithMips, },
 		{ "sponza/kamen.jpg", ACK_TextureWithMips, },
+		{ "sponza/kamen-bump.jpg", ACK_TextureWithMips, },
+		{ "sponza/prozor1.jpg", ACK_TextureWithMips, },
+		{ "sponza/vrata_kr.jpg", ACK_TextureWithMips, },
+		{ "sponza/vrata_ko.jpg", ACK_TextureWithMips, },
 	};
 	comptr<AssetPack> pPack = new AssetPack;
-	LoadAssetPackOrCompileIfOutOfDate("sponza-assets.zip", s_assets, dim(s_assets), pPack);
-
-	// Load assets
-	if (!LoadMeshFromAssetPack(pPack, "sponza/sponza_cracksFilled.obj", &m_meshSponza))
+	if (!LoadAssetPackOrCompileIfOutOfDate("sponza-assets.zip", s_assets, dim(s_assets), pPack))
 	{
-		ERR("Couldn't load Sponza mesh");
+		ERR("Couldn't load or compile Sponza asset pack");
 		return false;
 	}
-	if (!LoadMaterialLibFromAssetPack(pPack, "sponza/sponza.mtl", &m_mtlLibSponza))
+
+	// Load assets
+	if (!LoadTextureLibFromAssetPack(pPack, s_assets, dim(s_assets), &m_texLibSponza))
+	{
+		ERR("Couldn't load Sponza texture library");
+		return false;
+	}
+	if (!LoadMaterialLibFromAssetPack(pPack, "sponza/sponza.mtl", &m_texLibSponza, &m_mtlLibSponza))
 	{
 		ERR("Couldn't load Sponza material library");
+		return false;
+	}
+	if (!LoadMeshFromAssetPack(pPack, "sponza/sponza_cracksfilled.obj", &m_meshSponza))
+	{
+		ERR("Couldn't load Sponza mesh");
 		return false;
 	}
 	if (!LoadTexture2DFromAssetPack(pPack, "sponza/kamen.jpg", &m_texStone))

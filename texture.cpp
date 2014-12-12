@@ -676,6 +676,32 @@ namespace Framework
 
 
 
+	// TextureLib implementation
+
+	TextureLib::TextureLib()
+	{
+	}
+
+	Texture2D * TextureLib::Lookup(const char * name)
+	{
+		ASSERT_ERR(name);
+
+		auto iter = m_texs.find(std::string(name));
+		if (iter == m_texs.end())
+			return nullptr;
+
+		return &iter->second;
+	}
+
+	void TextureLib::Reset()
+	{
+		m_texs.clear();
+	}
+
+
+
+	// Utility functions
+	
 	const char * NameOfFormat(DXGI_FORMAT format)
 	{
 		static const char * s_names[] =

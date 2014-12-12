@@ -3,6 +3,7 @@
 namespace Framework
 {
 	class Texture2D;
+	class TextureLib;
 
 	// Very simple, hard-coded set of parameters for now
 	struct Material
@@ -30,8 +31,11 @@ namespace Framework
 		void		Reset();
 	};
 
+	// Load a material library from an asset pack and resolve texture
+	// references using the given texture library
 	bool LoadMaterialLibFromAssetPack(
 		AssetPack * pPack,
 		const char * path,
+		TextureLib * pTexLib,
 		MaterialLib * pMtlLibOut);
 }
