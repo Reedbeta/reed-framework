@@ -236,6 +236,9 @@ namespace Framework
 
 					TextureLib();
 		Texture2D *	Lookup(const char * name);
+		void		UploadAllToGPU(
+						ID3D11Device * pDevice,
+						int flags = TEXFLAG_Default);
 		void		Reset();
 	};
 

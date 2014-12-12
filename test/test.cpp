@@ -69,7 +69,6 @@ public:
 	Mesh								m_meshSponza;
 	MaterialLib							m_mtlLibSponza;
 	TextureLib							m_texLibSponza;
-	Texture2D							m_texStone;
 	comptr<ID3D11VertexShader>			m_pVsWorld;
 	comptr<ID3D11PixelShader>			m_pPsSimple;
 	comptr<ID3D11InputLayout>			m_pInputLayout;
@@ -135,14 +134,10 @@ bool TestWindow::Init(HINSTANCE hInstance)
 		ERR("Couldn't load Sponza mesh");
 		return false;
 	}
-	if (!LoadTexture2DFromAssetPack(pPack, "sponza/kamen.jpg", &m_texStone))
-	{
-		ERR("Couldn't load Sponza stone texture");
-		return false;
-	}
 
+	// Upload all assets to GPU
 	m_meshSponza.UploadToGPU(m_pDevice);
-	m_texStone.UploadToGPU(m_pDevice);
+	m_texLibSponza.UploadAllToGPU(m_pDevice);
 
 	// Load shaders
 	CHECK_D3D(m_pDevice->CreateVertexShader(world_vs_bytecode, dim(world_vs_bytecode), nullptr, &m_pVsWorld));
@@ -311,9 +306,19 @@ void TestWindow::OnRender()
 
 	m_pCtx->VSSetShader(m_pVsWorld, nullptr, 0);
 	m_pCtx->PSSetShader(m_pPsSimple, nullptr, 0);
-	m_pCtx->PSSetShaderResources(0, 1, &m_texStone.m_pSrv);
 	m_pCtx->PSSetSamplers(0, 1, &m_pSsTrilinearRepeatAniso);
-	m_meshSponza.Draw(m_pCtx);
+
+	// Draw the individual material ranges of the mesh
+	for (int i = 0, c = int(m_meshSponza.m_mtlRanges.size()); i < c; ++i)
+	{
+		ID3D11ShaderResourceView * pSrv = nullptr;
+		if (Material * pMtl = m_meshSponza.m_mtlRanges[i].m_pMtl)
+			if (Texture2D * pTex = pMtl->m_pTexDiffuseColor)
+				pSrv = pTex->m_pSrv;
+
+		m_pCtx->PSSetShaderResources(0, 1, &pSrv);
+		m_meshSponza.DrawMtlRange(m_pCtx, i);
+	}
 
 	CHECK_WARN(TwDraw());
 	CHECK_D3D(m_pSwapChain->Present(1, 0));

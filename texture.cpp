@@ -693,6 +693,14 @@ namespace Framework
 		return &iter->second;
 	}
 
+	void TextureLib::UploadAllToGPU(ID3D11Device * pDevice, int flags /* = TEXFLAG_Default */)
+	{
+		for (auto iter = m_texs.begin(), end = m_texs.end(); iter != end; ++iter)
+		{
+			iter->second.UploadToGPU(pDevice, flags);
+		}
+	}
+
 	void TextureLib::Reset()
 	{
 		m_texs.clear();
