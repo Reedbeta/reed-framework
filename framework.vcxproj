@@ -100,7 +100,7 @@
       <PreprocessorDefinitions>WIN32;_DEBUG;_LIB;%(PreprocessorDefinitions)</PreprocessorDefinitions>
       <SDLCheck>true</SDLCheck>
       <TreatWarningAsError>true</TreatWarningAsError>
-      <AdditionalIncludeDirectories>..\reed-util;d3dx11;$(Platform)\$(Configuration)\shaders\</AdditionalIncludeDirectories>
+      <AdditionalIncludeDirectories>..\reed-util;$(Platform)\$(Configuration)\shaders\</AdditionalIncludeDirectories>
       <AdditionalOptions>/d2Zi+</AdditionalOptions>
     </ClCompile>
     <Link>
@@ -127,7 +127,7 @@
       <PreprocessorDefinitions>WIN32;NDEBUG;_LIB;%(PreprocessorDefinitions)</PreprocessorDefinitions>
       <SDLCheck>true</SDLCheck>
       <TreatWarningAsError>true</TreatWarningAsError>
-      <AdditionalIncludeDirectories>..\reed-util;d3dx11;$(Platform)\$(Configuration)\shaders\</AdditionalIncludeDirectories>
+      <AdditionalIncludeDirectories>..\reed-util;$(Platform)\$(Configuration)\shaders\</AdditionalIncludeDirectories>
       <AdditionalOptions>/d2Zi+</AdditionalOptions>
     </ClCompile>
     <Link>
