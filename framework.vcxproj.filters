@@ -113,4 +113,8 @@
       <Extensions>*.hlsl</Extensions>
     </Filter>
   </ItemGroup>
+  <ItemGroup>
+    <None Include=".gitignore" />
+    <None Include="README.md" />
+  </ItemGroup>
 </Project>

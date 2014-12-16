@@ -56,6 +56,10 @@
       <ShaderType Condition="'$(Configuration)|$(Platform)'=='Release|x64'">Vertex</ShaderType>
     </FxCompile>
   </ItemGroup>
+  <ItemGroup>
+    <None Include=".gitignore" />
+    <None Include="README.md" />
+  </ItemGroup>
   <PropertyGroup Label="Globals">
     <ProjectGuid>{6D779109-842E-4C23-A10D-2345FFCCEA60}</ProjectGuid>
     <Keyword>Win32Proj</Keyword>
