@@ -553,20 +553,13 @@ namespace Framework
 			ASSERT_ERR(pCtx);
 			ASSERT_ERR(pDataOut);
 
-			// Just write out each string in null-terminated format, followed by the index range
+			SerializeHelper sh(pDataOut);
 			for (int i = 0, cRange = int(pCtx->m_mtlRanges.size()); i < cRange; ++i)
 			{
 				const MtlRange & range = pCtx->m_mtlRanges[i];
-
-				int iByteStart = int(pDataOut->size());
-
-				// Write the material name
-				int nameLength = int(range.m_mtlName.size()) + 1;
-				pDataOut->resize(iByteStart + nameLength + 2 * sizeof(int));
-				memcpy(&(*pDataOut)[iByteStart], range.m_mtlName.c_str(), nameLength);
-
-				// Write the index range
-				memcpy(&(*pDataOut)[iByteStart + nameLength], &range.m_indexStart, 2 * sizeof(int));
+				sh.WriteString(range.m_mtlName);
+				sh.Write(range.m_indexStart);
+				sh.Write(range.m_indexCount);
 			}
 		}
 	}
@@ -649,33 +642,21 @@ namespace Framework
 		ASSERT_ERR(mtlMapSize > 0);
 		ASSERT_ERR(pMeshOut);
 
-		const byte * pCur = pMtlMap;
-		const byte * pEnd = pMtlMap + mtlMapSize;
-		while (pCur < pEnd)
+		DeserializeHelper dh(pMtlMap, mtlMapSize);
+		while (!dh.AtEOF())
 		{
 			Mesh::MtlRange range = {};
 
-			const char * pMtlName = (const char *)pCur;
-
-			// Find the end of the string
-			while (pCur < pEnd && *pCur)
-				++pCur;
-
-			if (pCur == pEnd)
+			// Read data
+			const char * mtlName;
+			if (!dh.ReadString(&mtlName) ||
+				!dh.Read(&range.m_indexStart) ||
+				!dh.Read(&range.m_indexCount))
 			{
-				WARN("Corrupt material map: unterminated string");
 				return false;
 			}
 
-			// Extract the index start and count
-			++pCur;
-			if (pEnd - pCur < 2 * sizeof(int))
-			{
-				WARN("Corrupt material map: missing index start/count");
-				return false;
-			}
-			memcpy(&range.m_indexStart, pCur, 2 * sizeof(int));
-			pCur += 2 * sizeof(int);
+			// Validate data
 			if (range.m_indexStart < 0 ||
 				range.m_indexCount <= 0 ||
 				range.m_indexStart + range.m_indexCount > pMeshOut->m_indexCount)
@@ -685,11 +666,11 @@ namespace Framework
 			}
 
 			// Look up material by name
-			if (pMtlLib && *pMtlName)
+			if (pMtlLib && *mtlName)
 			{
-				range.m_pMtl = pMtlLib->Lookup(pMtlName);
+				range.m_pMtl = pMtlLib->Lookup(mtlName);
 				ASSERT_WARN_MSG(range.m_pMtl, 
-					"Couldn't find material %s in material library", pMtlName);
+					"Couldn't find material %s in material library", mtlName);
 			}
 
 			pMeshOut->m_mtlRanges.push_back(range);

@@ -173,27 +173,17 @@ namespace Framework
 			ASSERT_ERR(pCtx);
 			ASSERT_ERR(pDataOut);
 
+			SerializeHelper sh(pDataOut);
 			for (int i = 0, cMtl = int(pCtx->m_mtls.size()); i < cMtl; ++i)
 			{
 				const Material * pMtl = &pCtx->m_mtls[i];
-
-				// Write out all the strings as null-terminated, followed by the colors
-
-				int nameLength = int(pMtl->m_mtlName.size()) + 1;
-				int texDiffuseLength = int(pMtl->m_texDiffuseColor.size()) + 1;
-				int texSpecLength = int(pMtl->m_texSpecColor.size()) + 1;
-				int texHeightLength = int(pMtl->m_texHeight.size()) + 1;
-				int totalLength = nameLength + texDiffuseLength + texSpecLength + texHeightLength + 7 * sizeof(float);
-
-				int iByteStart = int(pDataOut->size());
-				pDataOut->resize(iByteStart + totalLength);
-				byte * pWrite = (byte *)&(*pDataOut)[iByteStart];
-
-				memcpy(pWrite, pMtl->m_mtlName.c_str(), nameLength); pWrite += nameLength;
-				memcpy(pWrite, pMtl->m_texDiffuseColor.c_str(), texDiffuseLength); pWrite += texDiffuseLength;
-				memcpy(pWrite, pMtl->m_texSpecColor.c_str(), texSpecLength); pWrite += texSpecLength;
-				memcpy(pWrite, pMtl->m_texHeight.c_str(), texHeightLength); pWrite += texHeightLength;
-				memcpy(pWrite, &pMtl->m_rgbDiffuseColor, 7 * sizeof(float));
+				sh.WriteString(pMtl->m_mtlName);
+				sh.WriteString(pMtl->m_texDiffuseColor);
+				sh.WriteString(pMtl->m_texSpecColor);
+				sh.WriteString(pMtl->m_texHeight);
+				sh.Write(pMtl->m_rgbDiffuseColor);
+				sh.Write(pMtl->m_rgbSpecColor);
+				sh.Write(pMtl->m_specPower);
 			}
 		}
 	}
@@ -226,81 +216,55 @@ namespace Framework
 		}
 
 		// Deserialize it
-		const byte * pCur = pData;
-		const byte * pEnd = pData + dataSize;
-		while (pCur < pEnd)
+		DeserializeHelper dh(pData, dataSize);
+		while (!dh.AtEOF())
 		{
-			Framework::Material mtl = { (const char *)pCur, };
+			Framework::Material mtl = {};
 
-			while (pCur < pEnd && *pCur)
-				++pCur;
-			if (pCur == pEnd)
+			// Read data
+			const char * texDiffuseColorName;
+			const char * texSpecColorName;
+			const char * texHeightName;
+			if (!dh.ReadString(&mtl.m_mtlName) ||
+				!dh.ReadString(&texDiffuseColorName) ||
+				!dh.ReadString(&texSpecColorName) ||
+				!dh.ReadString(&texHeightName) ||
+				!dh.Read(&mtl.m_rgbDiffuseColor) ||
+				!dh.Read(&mtl.m_rgbSpecColor) ||
+				!dh.Read(&mtl.m_specPower))
 			{
-				WARN("Corrupt material lib: unterminated string");
 				return false;
 			}
-			++pCur;
 
-			const char * pTexDiffuseColor = (const char *)pCur;
-			while (pCur < pEnd && *pCur)
-				++pCur;
-			if (pCur == pEnd)
-			{
-				WARN("Corrupt material lib: unterminated string");
-				return false;
-			}
-			++pCur;
-
-			const char * pTexSpecColor = (const char *)pCur;
-			while (pCur < pEnd && *pCur)
-				++pCur;
-			if (pCur == pEnd)
-			{
-				WARN("Corrupt material lib: unterminated string");
-				return false;
-			}
-			++pCur;
-
-			const char * pTexHeight = (const char *)pCur;
-			while (pCur < pEnd && *pCur)
-				++pCur;
-			if (pCur == pEnd)
-			{
-				WARN("Corrupt material lib: unterminated string");
-				return false;
-			}
-			++pCur;
-
-			memcpy(&mtl.m_rgbDiffuseColor, pCur, 7 * sizeof(float));
-			pCur += 7 * sizeof(float);
+			// Validate data
 			if (any(mtl.m_rgbDiffuseColor < 0.0f) || any(mtl.m_rgbDiffuseColor > 1.0f) ||
 				any(mtl.m_rgbSpecColor < 0.0f) || any(mtl.m_rgbSpecColor > 1.0f) ||
 				mtl.m_specPower < 0.0f)
 			{
-				WARN("Corrupt material lib: invalid parameter data");
+				WARN("Corrupt material lib: numeric parameter out of range");
 				return false;
 			}
 
 			// Look up textures by name
 			if (pTexLib)
 			{
-				if (*pTexDiffuseColor)
+				if (*texDiffuseColorName)
 				{
-					mtl.m_pTexDiffuseColor = pTexLib->Lookup(pTexDiffuseColor);
+					mtl.m_pTexDiffuseColor = pTexLib->Lookup(texDiffuseColorName);
 					ASSERT_WARN_MSG(mtl.m_pTexDiffuseColor, 
-						"Material %s: couldn't find texture %s in texture library", mtl.m_mtlName, pTexDiffuseColor);
+						"Material %s: couldn't find texture %s in texture library", mtl.m_mtlName, texDiffuseColorName);
 				}
-				if (*pTexSpecColor)
+				if (*texSpecColorName)
 				{
-					mtl.m_pTexSpecColor = pTexLib->Lookup(pTexSpecColor);
+					mtl.m_pTexSpecColor = pTexLib->Lookup(texSpecColorName);
 					ASSERT_WARN_MSG(mtl.m_pTexSpecColor, 
-						"Material %s: couldn't find texture %s in texture library", mtl.m_mtlName, pTexSpecColor);
+						"Material %s: couldn't find texture %s in texture library", mtl.m_mtlName, texSpecColorName);
 				}
-				if (*pTexHeight)
+				if (*texHeightName)
 				{
-					mtl.m_pTexHeight = pTexLib->Lookup(pTexHeight);
+					mtl.m_pTexHeight = pTexLib->Lookup(texHeightName);
 					ASSERT_WARN_MSG(mtl.m_pTexHeight, 
-						"Material %s: couldn't find texture %s in texture library", mtl.m_mtlName, pTexHeight);
+						"Material %s: couldn't find texture %s in texture library", mtl.m_mtlName, texHeightName);
 				}
 			}
 
