@@ -48,7 +48,9 @@
     <ClCompile Include="asset-mtl.cpp">
       <Filter>Source Files</Filter>
     </ClCompile>
-    <ClCompile Include="material.cpp" />
+    <ClCompile Include="material.cpp">
+      <Filter>Source Files</Filter>
+    </ClCompile>
   </ItemGroup>
   <ItemGroup>
     <ClInclude Include="asset.h">
@@ -93,7 +95,9 @@
     <ClInclude Include="timer.h">
       <Filter>Header Files</Filter>
     </ClInclude>
-    <ClInclude Include="material.h" />
+    <ClInclude Include="material.h">
+      <Filter>Header Files</Filter>
+    </ClInclude>
   </ItemGroup>
   <ItemGroup>
     <Filter Include="Source Files">
