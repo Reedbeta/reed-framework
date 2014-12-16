@@ -1,7 +1,6 @@
 #include "framework.h"
 #include "miniz.h"
 #include <algorithm>
-#include <ctype.h>
 
 namespace Framework
 {
@@ -112,11 +111,6 @@ namespace Framework
 
 	namespace OBJMeshCompiler
 	{
-		inline void LowercaseString(std::string & str)
-		{
-			std::transform(str.begin(), str.end(), str.begin(), &tolower);
-		}
-
 		static bool ParseOBJ(const char * path, Context * pCtxOut)
 		{
 			ASSERT_ERR(path);
@@ -143,71 +137,43 @@ namespace Framework
 			OBJMtlRanges.push_back(initialRange);
 
 			// Parse line-by-line
-			char * pCtxLine = (char *)&data[0];
-			int iLine = 0;
-			while (char * pLine = tokenizeConsecutive(pCtxLine, "\n"))
+			TextParsingHelper tph((char *)&data[0]);
+			while (tph.NextLine())
 			{
-				++iLine;
-
-				// Strip comments starting with #
-				if (char * pChzComment = strchr(pLine, '#'))
-					*pChzComment = 0;
-
-				// Parse the line token-by-token
-				char * pCtxToken = pLine;
-				char * pToken = tokenize(pCtxToken, " \t");
-
-				// Ignore blank lines
-				if (!pToken)
-					continue;
-
+				char * pToken = tph.NextToken();
 				if (_stricmp(pToken, "v") == 0)
 				{
-					const char * pX = tokenize(pCtxToken, " \t");
-					const char * pY = tokenize(pCtxToken, " \t");
-					const char * pZ = tokenize(pCtxToken, " \t");
-					if (!pX || !pY || !pZ)
-						WARN("%s: syntax error at line %d: missing vertex position", path, iLine);
-					if (const char * pExtra = tokenize(pCtxToken, " \t"))
-						WARN("%s: syntax error at line %d: unexpected extra token \"%s\"; ignoring", path, iLine, pExtra);
+					char * tokens[3] = {};
+					tph.ExpectTokens(tokens, dim(tokens), path, "vertex position");
 
 					// Add vertex
 					point3 pos;
-					pos.x = float(atof(pX));
-					pos.y = float(atof(pY));
-					pos.z = float(atof(pZ));
+					pos.x = float(atof(tokens[0]));
+					pos.y = float(atof(tokens[1]));
+					pos.z = float(atof(tokens[2]));
 					positions.push_back(pos);
 				}
 				else if (_stricmp(pToken, "vn") == 0)
 				{
-					const char * pX = tokenize(pCtxToken, " \t");
-					const char * pY = tokenize(pCtxToken, " \t");
-					const char * pZ = tokenize(pCtxToken, " \t");
-					if (!pX || !pY || !pZ)
-						WARN("%s: syntax error at line %d: missing normal vector", path, iLine);
-					if (const char * pExtra = tokenize(pCtxToken, " \t"))
-						WARN("%s: syntax error at line %d: unexpected extra token \"%s\"; ignoring", path, iLine, pExtra);
+					char * tokens[3] = {};
+					tph.ExpectTokens(tokens, dim(tokens), path, "normal vector");
 
 					// Add normal
 					float3 normal;
-					normal.x = float(atof(pX));
-					normal.y = float(atof(pY));
-					normal.z = float(atof(pZ));
+					normal.x = float(atof(tokens[0]));
+					normal.y = float(atof(tokens[1]));
+					normal.z = float(atof(tokens[2]));
 					normals.push_back(normal);
 				}
 				else if (_stricmp(pToken, "vt") == 0)
 				{
-					const char * pU = tokenize(pCtxToken, " \t");
-					const char * pV = tokenize(pCtxToken, " \t");
-					if (!pU || !pV)
-						WARN("%s: syntax error at line %d: missing UV", path, iLine);
-					if (const char * pExtra = tokenize(pCtxToken, " \t"))
-						WARN("%s: syntax error at line %d: unexpected extra token \"%s\"; ignoring", path, iLine, pExtra);
+					char * tokens[2] = {};
+					tph.ExpectTokens(tokens, dim(tokens), path, "UVs");
 
 					// Add UV, flipping V-axis since OBJ UVs use a bottom-up convention
 					float2 uv;
-					uv.x = float(atof(pU));
-					uv.y = 1.0f - float(atof(pV));
+					uv.x = float(atof(tokens[0]));
+					uv.y = 1.0f - float(atof(tokens[1]));
 					uvs.push_back(uv);
 				}
 				else if (_stricmp(pToken, "f") == 0)
@@ -216,7 +182,7 @@ namespace Framework
 					OBJFace face = {};
 					face.iVertStart = int(OBJverts.size());
 
-					while (char * pCtxVert = tokenize(pCtxToken, " \t"))
+					while (char * pCtxVert = tph.NextToken())
 					{
 						// Parse vertex specification, with slashes separating position, UV, normal indices
 						// Note that some components may be missing and will be set to zero here
@@ -245,7 +211,7 @@ namespace Framework
 
 					if (face.iVertEnd == face.iVertStart)
 					{
-						WARN("%s: syntax error at line %d: missing faces", path, iLine);
+						WARN("%s: syntax error at line %d: missing faces", path, tph.m_iLine);
 						continue;
 					}
 
@@ -253,14 +219,9 @@ namespace Framework
 				}
 				else if (_stricmp(pToken, "usemtl") == 0)
 				{
-					const char * pMtlName = tokenize(pCtxToken, " \t");
+					const char * pMtlName = tph.ExpectOneToken(path, "material name");
 					if (!pMtlName)
-					{
-						WARN("%s: syntax error at line %d: missing material name", path, iLine);
 						continue;
-					}
-					if (const char * pExtra = tokenize(pCtxToken, " \t"))
-						WARN("%s: syntax error at line %d: unexpected extra token \"%s\"; ignoring", path, iLine, pExtra);
 
 					// Close the previous range
 					OBJMtlRange * pRange = &OBJMtlRanges.back();
@@ -275,7 +236,7 @@ namespace Framework
 
 					// Start the new range
 					pRange->mtlName = pMtlName;
-					LowercaseString(pRange->mtlName);
+					makeLowercase(pRange->mtlName);
 					pRange->iFaceStart = int(OBJfaces.size());
 				}
 				else

@@ -104,6 +104,7 @@ namespace Framework
 		static void ParseManifest(
 			const char * manifest,
 			int manifestSize,
+			const char * path,
 			std::unordered_set<std::string> * pManifestOut);
 
 		// Compile an entire asset pack from scratch.
@@ -330,7 +331,7 @@ namespace Framework
 			WARN("Couldn't find manifest in asset pack %s", packPath);
 			return false;
 		}
-		ParseManifest(pManifest, manifestSize, &pPackOut->m_manifest);
+		ParseManifest(pManifest, manifestSize, packPath, &pPackOut->m_manifest);
 
 		LOG("Loaded asset pack %s - %dMB uncompressed", packPath, bytesTotal / 1048576);
 		return true;
@@ -344,6 +345,7 @@ namespace Framework
 		static void ParseManifest(
 			const char * manifest,
 			int manifestSize,
+			const char * path,
 			std::unordered_set<std::string> * pManifestOut)
 		{
 			ASSERT_ERR(manifest);
@@ -354,23 +356,11 @@ namespace Framework
 			std::vector<char> manifestCopy(manifestSize + 1);
 			memcpy(&manifestCopy[0], manifest, manifestSize);
 
-			// Parse line-by-line
-			char * pCtxLine = &manifestCopy[0];
-			while (char * pLine = tokenizeConsecutive(pCtxLine, "\n"))
+			TextParsingHelper tph(&manifestCopy[0]);
+			while (tph.NextLine())
 			{
-				// Strip comments starting with #
-				if (char * pChzComment = strchr(pLine, '#'))
-					*pChzComment = 0;
-
-				// Strip whitespace
-				char * pCtxToken = pLine;
-				char * pToken = tokenize(pCtxToken, " \t");
-
-				// Ignore blank lines
-				if (!pToken)
-					continue;
-
-				pManifestOut->insert(std::string(pToken));
+				pManifestOut->insert(std::string(tph.NextToken()));
+				tph.ExpectEOL(path);
 			}
 		}
 
@@ -521,7 +511,7 @@ namespace Framework
 				return false;
 			}
 			std::unordered_set<std::string> manifest;
-			ParseManifest(pManifest, int(manifestSize), &manifest);
+			ParseManifest(pManifest, int(manifestSize), packPath, &manifest);
 			mz_free(pManifest);
 
 			mz_zip_reader_end(&zip);

@@ -1,7 +1,5 @@
 #include "framework.h"
 #include "miniz.h"
-#include <algorithm>
-#include <ctype.h>
 
 namespace Framework
 {
@@ -64,11 +62,6 @@ namespace Framework
 
 	namespace OBJMtlLibCompiler
 	{
-		inline void LowercaseString(std::string & str)
-		{
-			std::transform(str.begin(), str.end(), str.begin(), &tolower);
-		}
-
 		static bool ParseMTL(const char * path, Context * pCtxOut)
 		{
 			ASSERT_ERR(path);
@@ -82,72 +75,40 @@ namespace Framework
 			Material * pMtlCur = nullptr;
 
 			// Parse line-by-line
-			char * pCtxLine = (char *)&data[0];
-			int iLine = 0;
-			while (char * pLine = tokenizeConsecutive(pCtxLine, "\n"))
+			TextParsingHelper tph((char *)&data[0]);
+			while (tph.NextLine())
 			{
-				++iLine;
-
-				// Strip comments starting with #
-				if (char * pChzComment = strchr(pLine, '#'))
-					*pChzComment = 0;
-
-				// Parse the line token-by-token
-				char * pCtxToken = pLine;
-				char * pToken = tokenize(pCtxToken, " \t");
-
-				// Ignore blank lines
-				if (!pToken)
-					continue;
-
+				char * pToken = tph.NextToken();
 				if (_stricmp(pToken, "newmtl") == 0)
 				{
-					const char * pMtlName = tokenize(pCtxToken, " \t");
-					if (!pMtlName)
-						WARN("%s: syntax error at line %d: missing material name", path, iLine);
-					if (const char * pExtra = tokenize(pCtxToken, " \t"))
-						WARN("%s: syntax error at line %d: unexpected extra token \"%s\"; ignoring", path, iLine, pExtra);
-
 					pCtxOut->m_mtls.push_back(Material());
 					pMtlCur = &pCtxOut->m_mtls.back();
-					pMtlCur->m_mtlName = pMtlName;
-					LowercaseString(pMtlCur->m_mtlName);
+					pMtlCur->m_mtlName = tph.ExpectOneToken(path, "material name");
+					makeLowercase(pMtlCur->m_mtlName);
 				}
 				else if (_stricmp(pToken, "map_Kd") == 0)
 				{
 					if (!pMtlCur)
 					{
 						WARN("%s: syntax error at line %d: material parameters specified before any \"newmtl\" command; ignoring",
-							path, iLine);
+							path, tph.m_iLine);
 						continue;
 					}
 
-					const char * pTexName = tokenize(pCtxToken, " \t");
-					if (!pTexName)
-						WARN("%s: syntax error at line %d: missing texture name", path, iLine);
-					if (const char * pExtra = tokenize(pCtxToken, " \t"))
-						WARN("%s: syntax error at line %d: unexpected extra token \"%s\"; ignoring", path, iLine, pExtra);
-
-					pMtlCur->m_texDiffuseColor = pTexName;
-					LowercaseString(pMtlCur->m_texDiffuseColor);
+					pMtlCur->m_texDiffuseColor = tph.ExpectOneToken(path, "texture name");
+					makeLowercase(pMtlCur->m_texDiffuseColor);
 				}
 				else if (_stricmp(pToken, "map_Ks") == 0)
 				{
 					if (!pMtlCur)
 					{
 						WARN("%s: syntax error at line %d: material parameters specified before any \"newmtl\" command; ignoring",
-							path, iLine);
+							path, tph.m_iLine);
 						continue;
 					}
 
-					const char * pTexName = tokenize(pCtxToken, " \t");
-					if (!pTexName)
-						WARN("%s: syntax error at line %d: missing texture name", path, iLine);
-					if (const char * pExtra = tokenize(pCtxToken, " \t"))
-						WARN("%s: syntax error at line %d: unexpected extra token \"%s\"; ignoring", path, iLine, pExtra);
-
-					pMtlCur->m_texSpecColor = pTexName;
-					LowercaseString(pMtlCur->m_texSpecColor);
+					pMtlCur->m_texSpecColor = tph.ExpectOneToken(path, "texture name");
+					makeLowercase(pMtlCur->m_texSpecColor);
 				}
 				else if (_stricmp(pToken, "map_bump") == 0 ||
 						 _stricmp(pToken, "bump") == 0)
@@ -155,67 +116,45 @@ namespace Framework
 					if (!pMtlCur)
 					{
 						WARN("%s: syntax error at line %d: material parameters specified before any \"newmtl\" command; ignoring",
-							path, iLine);
+							path, tph.m_iLine);
 						continue;
 					}
 
-					const char * pTexName = tokenize(pCtxToken, " \t");
-					if (!pTexName)
-						WARN("%s: syntax error at line %d: missing texture name", path, iLine);
-					if (const char * pExtra = tokenize(pCtxToken, " \t"))
-						WARN("%s: syntax error at line %d: unexpected extra token \"%s\"; ignoring", path, iLine, pExtra);
-
-					pMtlCur->m_texHeight = pTexName;
-					LowercaseString(pMtlCur->m_texHeight);
+					pMtlCur->m_texHeight = tph.ExpectOneToken(path, "texture name");
+					makeLowercase(pMtlCur->m_texHeight);
 				}
 				else if (_stricmp(pToken, "Kd") == 0)
 				{
-					const char * pR = tokenize(pCtxToken, " \t");
-					const char * pG = tokenize(pCtxToken, " \t");
-					const char * pB = tokenize(pCtxToken, " \t");
-					if (!pR || !pG || !pB)
-						WARN("%s: syntax error at line %d: missing RGB color", path, iLine);
-					if (const char * pExtra = tokenize(pCtxToken, " \t"))
-						WARN("%s: syntax error at line %d: unexpected extra token \"%s\"; ignoring", path, iLine, pExtra);
+					char * tokens[3] = {};
+					tph.ExpectTokens(tokens, dim(tokens), path, "RGB color");
 
-					srgb color = makesrgb(float(atof(pR)), float(atof(pG)), float(atof(pB)));
+					srgb color = makesrgb(float(atof(tokens[0])), float(atof(tokens[1])), float(atof(tokens[2])));
 					if (any(color < 0.0f) || any(color > 1.0f))
 					{
-						WARN("%s: RGB color at line %d is outside [0, 1]; clamping", path, iLine);
+						WARN("%s: RGB color at line %d is outside [0, 1]; clamping", path, tph.m_iLine);
 						color = saturate(color);
 					}
 					pMtlCur->m_rgbDiffuseColor = toLinear(color);
 				}
 				else if (_stricmp(pToken, "Ks") == 0)
 				{
-					const char * pR = tokenize(pCtxToken, " \t");
-					const char * pG = tokenize(pCtxToken, " \t");
-					const char * pB = tokenize(pCtxToken, " \t");
-					if (!pR || !pG || !pB)
-						WARN("%s: syntax error at line %d: missing RGB color", path, iLine);
-					if (const char * pExtra = tokenize(pCtxToken, " \t"))
-						WARN("%s: syntax error at line %d: unexpected extra token \"%s\"; ignoring", path, iLine, pExtra);
+					char * tokens[3] = {};
+					tph.ExpectTokens(tokens, dim(tokens), path, "RGB color");
 
-					srgb color = makesrgb(float(atof(pR)), float(atof(pG)), float(atof(pB)));
+					srgb color = makesrgb(float(atof(tokens[0])), float(atof(tokens[1])), float(atof(tokens[2])));
 					if (any(color < 0.0f) || any(color > 1.0f))
 					{
-						WARN("%s: RGB color at line %d is outside [0, 1]; clamping", path, iLine);
+						WARN("%s: RGB color at line %d is outside [0, 1]; clamping", path, tph.m_iLine);
 						color = saturate(color);
 					}
 					pMtlCur->m_rgbSpecColor = toLinear(color);
 				}
 				else if (_stricmp(pToken, "Ns") == 0)
 				{
-					const char * pN = tokenize(pCtxToken, " \t");
-					if (!pN)
-						WARN("%s: syntax error at line %d: missing number", path, iLine);
-					if (const char * pExtra = tokenize(pCtxToken, " \t"))
-						WARN("%s: syntax error at line %d: unexpected extra token \"%s\"; ignoring", path, iLine, pExtra);
-
-					float n = float(atof(pN));
+					float n = float(atof(tph.ExpectOneToken(path, "specular power")));
 					if (n < 0.0f)
 					{
-						WARN("%s: specular power at line %d is below zero; clamping", path, iLine);
+						WARN("%s: specular power at line %d is below zero; clamping", path, tph.m_iLine);
 						n = 0.0f;
 					}
 					pMtlCur->m_specPower = n;
