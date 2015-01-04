@@ -6,16 +6,16 @@ Content     :   Installable memory allocator
 Created     :   September 19, 2012
 Notes       : 
 
-Copyright   :   Copyright 2014 Oculus VR, Inc. All Rights reserved.
+Copyright   :   Copyright 2014 Oculus VR, LLC All Rights reserved.
 
-Licensed under the Oculus VR Rift SDK License Version 3.1 (the "License"); 
+Licensed under the Oculus VR Rift SDK License Version 3.2 (the "License"); 
 you may not use the Oculus VR Rift SDK except in compliance with the License, 
 which is provided at the time of installation or download, or which 
 otherwise accompanies this software in either electronic or hard copy form.
 
 You may obtain a copy of the License at
 
-http://www.oculusvr.com/licenses/LICENSE-3.1 
+http://www.oculusvr.com/licenses/LICENSE-3.2 
 
 Unless required by applicable law or agreed to in writing, the Oculus VR SDK 
 distributed under the License is distributed on an "AS IS" BASIS,
@@ -178,6 +178,7 @@ class Allocator
 {
     friend class System;
 public:
+    virtual ~Allocator(){}
 
     // *** Standard Alignment Alloc/Free
 
@@ -333,6 +334,18 @@ public:
     // Redefine all new & delete operators.
     OVR_MEMORY_REDEFINE_NEW(NewOverrideBase)
 };
+
+
+//------------------------------------------------------------------------
+// ***** Mapped memory allocation
+//
+// Equates to VirtualAlloc/VirtualFree on Windows, mmap/munmap on Unix.
+// These are useful for when you need system-supplied memory pages. 
+// These are also useful for when you need to allocate memory in a way 
+// that doesn't affect the application heap.
+
+void* MMapAlloc(size_t size);
+void  MMapFree(void* memory, size_t size);
 
 
 } // OVR

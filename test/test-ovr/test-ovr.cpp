@@ -137,8 +137,8 @@ bool TestWindow::Init(HINSTANCE hInstance)
 	// Hook up OVR to the swap chain
 	ovrD3D11Config oculusConfig = {};
 	oculusConfig.D3D11.Header.API = ovrRenderAPI_D3D11;
-	oculusConfig.D3D11.Header.RTSize.w = m_dims.x;
-	oculusConfig.D3D11.Header.RTSize.h = m_dims.y;
+	oculusConfig.D3D11.Header.BackBufferSize.w = m_dims.x;
+	oculusConfig.D3D11.Header.BackBufferSize.h = m_dims.y;
 	oculusConfig.D3D11.Header.Multisample = 1;
 	oculusConfig.D3D11.pDevice = m_pDevice;
 	oculusConfig.D3D11.pDeviceContext = m_pCtx;
@@ -180,7 +180,7 @@ bool TestWindow::Init(HINSTANCE hInstance)
 	for (int i = 0; i < 2; ++i)
 	{
 		// Negate the offset vector from the SDK, since it's given to us reversed
-		m_eyeOffsets[i] = -makefloat3(oculusEyeDescs[i].ViewAdjust.x, oculusEyeDescs[i].ViewAdjust.y, oculusEyeDescs[i].ViewAdjust.z);
+		m_eyeOffsets[i] = -makefloat3(oculusEyeDescs[i].HmdToEyeViewOffset.x, oculusEyeDescs[i].HmdToEyeViewOffset.y, oculusEyeDescs[i].HmdToEyeViewOffset.z);
 
 		m_eyeProjections[i] = perspProjD3DStyle(
 									-oculusEyeDescs[i].Fov.LeftTan * zNear,
@@ -473,7 +473,7 @@ void TestWindow::OnRender()
 
 		// Retrieve pose for the eye (predicted head-tracking state at
 		// predicted time at which this eye will be scanned out)
-		ovrPosef eyePose = ovrHmd_GetEyePose(m_hmd, currentEye);
+		ovrPosef eyePose = ovrHmd_GetHmdPosePerEye(m_hmd, currentEye);
 		renderedEyePoses[currentEye] = eyePose;
 
 		// Calculate new camera matrices incorporating the head-tracking pose and eye offsets
