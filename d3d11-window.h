@@ -30,6 +30,9 @@ namespace Framework
 		void				BindSRGBBackBuffer(ID3D11DeviceContext * pCtx);
 		void				BindRawBackBuffer(ID3D11DeviceContext * pCtx);
 
+		void				SetViewport(ID3D11DeviceContext * pCtx, box2_arg viewport);
+		void				SetViewport(ID3D11DeviceContext * pCtx, box3_arg viewport);
+
 		void				DrawFullscreenPass(
 								ID3D11DeviceContext * pCtx,
 								box2_arg boxSrc = makebox2(0, 0, 1, 1));
@@ -66,11 +69,13 @@ namespace Framework
 		int2								m_dims;
 
 		// Back buffer render target views, one as SRGB and one as raw
+		comptr<ID3D11Texture2D>				m_pTexBackBuffer;
 		comptr<ID3D11RenderTargetView>		m_pRtvSRGB;
 		comptr<ID3D11RenderTargetView>		m_pRtvRaw;
 
 		// Screen depth buffer
 		bool								m_hasDepthBuffer;
+		comptr<ID3D11Texture2D>				m_pTexDepth;
 		comptr<ID3D11DepthStencilView>		m_pDsv;
 		comptr<ID3D11ShaderResourceView>	m_pSrvDepth;
 

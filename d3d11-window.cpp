@@ -377,8 +377,10 @@ namespace Framework
 		m_dims = dimsNew;
 
 		// Have to release old render target views before swap chain can be resized
+		m_pTexBackBuffer.release();
 		m_pRtvSRGB.release();
 		m_pRtvRaw.release();
+		m_pTexDepth.release();
 		m_pDsv.release();
 		m_pSrvDepth.release();
 
@@ -388,8 +390,7 @@ namespace Framework
 
 		{
 			// Retrieve the back buffer
-			comptr<ID3D11Texture2D> pTex;
-			CHECK_D3D(m_pSwapChain->GetBuffer(0, __uuidof(ID3D11Texture2D), (void **)&pTex));
+			CHECK_D3D(m_pSwapChain->GetBuffer(0, __uuidof(ID3D11Texture2D), (void **)&m_pTexBackBuffer));
 
 			// Create render target views in sRGB and raw formats
 			D3D11_RENDER_TARGET_VIEW_DESC rtvDesc = 
@@ -397,16 +398,15 @@ namespace Framework
 				DXGI_FORMAT_R8G8B8A8_UNORM_SRGB,
 				D3D11_RTV_DIMENSION_TEXTURE2D,
 			};
-			CHECK_D3D(m_pDevice->CreateRenderTargetView(pTex, &rtvDesc, &m_pRtvSRGB));
+			CHECK_D3D(m_pDevice->CreateRenderTargetView(m_pTexBackBuffer, &rtvDesc, &m_pRtvSRGB));
 			rtvDesc.Format = DXGI_FORMAT_R8G8B8A8_UNORM;
-			CHECK_D3D(m_pDevice->CreateRenderTargetView(pTex, &rtvDesc, &m_pRtvRaw));
+			CHECK_D3D(m_pDevice->CreateRenderTargetView(m_pTexBackBuffer, &rtvDesc, &m_pRtvRaw));
 		}
 
 		if (m_hasDepthBuffer)
 		{
 			// Create depth buffer and its views
 
-			comptr<ID3D11Texture2D> pTexDepth;
 			D3D11_TEXTURE2D_DESC texDesc =
 			{
 				dimsNew.x, dimsNew.y, 1, 1,
@@ -415,14 +415,14 @@ namespace Framework
 				D3D11_USAGE_DEFAULT,
 				D3D11_BIND_DEPTH_STENCIL | D3D11_BIND_SHADER_RESOURCE,
 			};
-			CHECK_D3D(m_pDevice->CreateTexture2D(&texDesc, nullptr, &pTexDepth));
+			CHECK_D3D(m_pDevice->CreateTexture2D(&texDesc, nullptr, &m_pTexDepth));
 
 			D3D11_DEPTH_STENCIL_VIEW_DESC dsvDesc =
 			{
 				DXGI_FORMAT_D32_FLOAT,
 				D3D11_DSV_DIMENSION_TEXTURE2D,
 			};
-			CHECK_D3D(m_pDevice->CreateDepthStencilView(pTexDepth, &dsvDesc, &m_pDsv));
+			CHECK_D3D(m_pDevice->CreateDepthStencilView(m_pTexDepth, &dsvDesc, &m_pDsv));
 
 			D3D11_SHADER_RESOURCE_VIEW_DESC srvDesc =
 			{
@@ -430,7 +430,7 @@ namespace Framework
 				D3D11_SRV_DIMENSION_TEXTURE2D,
 			};
 			srvDesc.Texture2D.MipLevels = 1;
-			CHECK_D3D(m_pDevice->CreateShaderResourceView(pTexDepth, &srvDesc, &m_pSrvDepth));
+			CHECK_D3D(m_pDevice->CreateShaderResourceView(m_pTexDepth, &srvDesc, &m_pSrvDepth));
 		}
 	}
 
@@ -450,6 +450,28 @@ namespace Framework
 		pCtx->OMSetRenderTargets(1, &m_pRtvRaw, m_pDsv);
 		D3D11_VIEWPORT viewport = { 0.0f, 0.0f, float(m_dims.x), float(m_dims.y), 0.0f, 1.0f, };
 		pCtx->RSSetViewports(1, &viewport);
+	}
+
+	void D3D11Window::SetViewport(ID3D11DeviceContext * pCtx, box2_arg viewport)
+	{
+		D3D11_VIEWPORT vp =
+		{
+			viewport.m_mins.x, viewport.m_mins.y,
+			viewport.diagonal().x, viewport.diagonal().y,
+			0.0f, 1.0f,
+		};
+		pCtx->RSSetViewports(1, &vp);
+	}
+
+	void D3D11Window::SetViewport(ID3D11DeviceContext * pCtx, box3_arg viewport)
+	{
+		D3D11_VIEWPORT vp =
+		{
+			viewport.m_mins.x, viewport.m_mins.y,
+			viewport.diagonal().x, viewport.diagonal().y,
+			viewport.m_mins.z, viewport.m_maxs.z,
+		};
+		pCtx->RSSetViewports(1, &vp);
 	}
 
 	void D3D11Window::DrawFullscreenPass(

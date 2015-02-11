@@ -26,7 +26,7 @@ namespace Framework
 		i64 timestamp;
 		QueryPerformanceCounter((LARGE_INTEGER *)&timestamp);
 
-		m_time = float(timestamp) * m_period;
+		m_time = float(timestamp - m_startupTimestamp) * m_period;
 
 		// Calculate smoothed timestep over several frames,
 		// to help with microstuttering.  Maintain a ring buffer
