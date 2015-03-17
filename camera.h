@@ -30,7 +30,6 @@ namespace Framework
 
 		MBUTTON				m_mbuttonCur;
 		int					m_wheelDelta;
-		float4x4			m_worldToClip;		// Subclass should fill this in
 	};
 
 	// Perspective camera - implements a perspective projection matrix
@@ -50,6 +49,7 @@ namespace Framework
 		affine3				m_viewToWorld;
 		affine3				m_worldToView;
 		float4x4			m_projection;
+		float4x4			m_worldToClip;
 
 		void				UpdateWorldToClip();
 	};
@@ -111,5 +111,35 @@ namespace Framework
 		point3				m_pos;				// Position of camera itself
 
 		void				UpdateOrientation();
+	};
+
+	// 2D camera with mouse translation and zooming, but no rotation
+	class TwoDCamera : public Camera
+	{
+	public:
+		typedef Camera super;
+
+							TwoDCamera();
+
+		virtual void		Update(float timestep);
+
+		void				FrameBox(box2_arg box)
+							{
+								m_pos = box.center();
+								m_scale = maxComponent(box.diagonal());
+								UpdateTransforms();
+							}
+
+		int2				m_dimsWindow;		// Pixel dims of window
+		float				m_zoomWheelSpeed;	// Mouse zoom speed in nepers/wheel-tick
+		MBUTTON				m_mbuttonActivate;	// Which mouse button enables motion?
+		ipoint2				m_mousePosPrev;
+
+		point2				m_pos;				// World position of center of screen
+		float				m_scale;			// Scale from screen V [0, 1] to world space
+		affine2				m_viewToWorld;		// Transform from screen UV [0, 1] to world space
+		affine2				m_worldToView;		// Transform from world space to screen UV [0, 1]
+
+		void				UpdateTransforms();
 	};
 }

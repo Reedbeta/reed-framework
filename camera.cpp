@@ -7,8 +7,7 @@ namespace Framework
 
 	Camera::Camera()
 	:	m_mbuttonCur(MBUTTON_None),
-		m_wheelDelta(0),
-		m_worldToClip(float4x4::identity())
+		m_wheelDelta(0)
 	{
 	}
 
@@ -59,7 +58,8 @@ namespace Framework
 	:	super(),
 		m_viewToWorld(affine3::identity()),
 		m_worldToView(affine3::identity()),
-		m_projection(float4x4::identity())
+		m_projection(float4x4::identity()),
+		m_worldToClip(float4x4::identity())
 	{
 	}
 
@@ -391,5 +391,56 @@ namespace Framework
 		float3 right = { sinYaw, 0, cosYaw };
 		float3 up = cross(right, forward);
 		m_viewToWorld.m_linear = makefloat3x3(right, up, -forward);
+	}
+
+
+
+	// TwoDCamera implementation
+
+	TwoDCamera::TwoDCamera()
+	:	super(),
+		m_dimsWindow(makeint2(1, 1)),
+		m_zoomWheelSpeed(0.001f),
+		m_mbuttonActivate(MBUTTON_Left),
+		m_mousePosPrev(makeipoint2(0, 0)),
+		m_pos(makepoint2(0.5f, 0.5f)),
+		m_scale(1.0f),
+		m_viewToWorld(affine2::identity()),
+		m_worldToView(affine2::identity())
+	{
+	}
+
+	void TwoDCamera::Update(float timestep)
+	{
+		(void)timestep;
+
+		// Track mouse motion
+		ipoint2 mousePos;
+		GetCursorPos((POINT *)&mousePos);
+		int2 mouseMove = mousePos - m_mousePosPrev;
+		m_mousePosPrev = mousePos;
+
+		// Calculate pixels-to-world scale factor - based on height of window (width just changes aspect ratio)
+		float pixelsToWorld = m_scale / m_dimsWindow.y;
+
+		// Handle mouse translation
+		if (m_mbuttonActivate == MBUTTON_None ||
+			m_mbuttonCur == m_mbuttonActivate)
+		{
+			m_pos -= pixelsToWorld * makefloat2(mouseMove);
+		}
+
+		// Handle mouse wheel zoom
+		m_scale *= expf(-m_wheelDelta * m_zoomWheelSpeed);
+		m_wheelDelta = 0;
+
+		UpdateTransforms();
+	}
+
+	void TwoDCamera::UpdateTransforms()
+	{
+		float aspect = float(m_dimsWindow.x) / float(m_dimsWindow.y);
+		m_viewToWorld = makeaffine2(m_scale * aspect, 0.0f, 0.0f, m_scale, m_pos.x - 0.5f * m_scale * aspect, m_pos.y - 0.5f * m_scale);
+		m_worldToView = inverse(m_viewToWorld);
 	}
 }
