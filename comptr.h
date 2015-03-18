@@ -42,7 +42,7 @@ namespace Framework
 		int		m_cRef;
 
 		RefCount(): m_cRef(0) {}
-		virtual ~RefCount() {}
+		virtual ~RefCount() { ASSERT_ERR(m_cRef == 0); }
 
 		void AddRef()
 		{
