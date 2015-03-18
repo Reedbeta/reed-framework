@@ -690,6 +690,9 @@ namespace Framework
 		const char * path,
 		Mesh * pMeshOut)
 	{
+		ASSERT_ERR(path);
+		ASSERT_ERR(pMeshOut);
+
 		// Set up an in-memory zip stream
 		mz_zip_archive zipWrite = {};
 		CHECK_ERR(mz_zip_writer_init_heap(&zipWrite, 0, 0));
