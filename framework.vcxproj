@@ -11,6 +11,7 @@
     </ProjectConfiguration>
   </ItemGroup>
   <ItemGroup>
+    <ClInclude Include="asset-internal.h" />
     <ClInclude Include="asset.h" />
     <ClInclude Include="camera.h" />
     <ClInclude Include="cbuffer.h" />
@@ -20,7 +21,6 @@
     <ClInclude Include="gpuprofiler.h" />
     <ClInclude Include="material.h" />
     <ClInclude Include="mesh.h" />
-    <ClInclude Include="miniz.h" />
     <ClInclude Include="rendertarget.h" />
     <ClInclude Include="stb_image.h" />
     <ClInclude Include="stb_image_resize.h" />

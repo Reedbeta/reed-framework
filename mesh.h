@@ -64,4 +64,10 @@ namespace Framework
 		const char * path,
 		MaterialLib * pMtlLib,
 		Mesh * pMeshOut);
+
+	// Helper function for quick and dirty apps - just get a mesh from an
+	// .obj file, no messing around with asset packs or materials
+	bool LoadOBJMesh(
+		const char * path,
+		Mesh * pMeshOut);
 }

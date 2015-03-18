@@ -1,5 +1,5 @@
 #include "framework.h"
-#include "miniz.h"
+#include "asset-internal.h"
 
 #define STB_IMAGE_IMPLEMENTATION
 #include "stb_image.h"
@@ -67,6 +67,7 @@ namespace Framework
 		ASSERT_ERR(pACI->m_ack == ACK_TextureRaw);
 		ASSERT_ERR(pZipOut);
 
+		using namespace AssetCompiler;
 		using namespace TextureCompiler;
 
 		// Load the image
@@ -108,6 +109,7 @@ namespace Framework
 		ASSERT_ERR(pACI->m_ack == ACK_TextureWithMips);
 		ASSERT_ERR(pZipOut);
 
+		using namespace AssetCompiler;
 		using namespace TextureCompiler;
 
 		// Load the image
@@ -211,7 +213,7 @@ namespace Framework
 
 			// Write it to the .zip archive
 			int sizeBytes = dims.x * dims.y * sizeof(byte4);
-			return WriteAssetDataToZip(assetPath, suffix, pPixels, sizeBytes, pZipOut);
+			return AssetCompiler::WriteAssetDataToZip(assetPath, suffix, pPixels, sizeBytes, pZipOut);
 		}
 
 #if WRITE_BMP

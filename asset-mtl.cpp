@@ -1,5 +1,5 @@
 #include "framework.h"
-#include "miniz.h"
+#include "asset-internal.h"
 
 namespace Framework
 {
@@ -43,6 +43,7 @@ namespace Framework
 		ASSERT_ERR(pACI->m_ack == ACK_OBJMtlLib);
 		ASSERT_ERR(pZipOut);
 
+		using namespace AssetCompiler;
 		using namespace OBJMtlLibCompiler;
 
 		// Read the material definitions from the MTL file

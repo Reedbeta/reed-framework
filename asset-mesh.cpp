@@ -1,5 +1,5 @@
 #include "framework.h"
-#include "miniz.h"
+#include "asset-internal.h"
 #include <algorithm>
 
 namespace Framework
@@ -69,6 +69,7 @@ namespace Framework
 		ASSERT_ERR(pACI->m_ack == ACK_OBJMesh);
 		ASSERT_ERR(pZipOut);
 
+		using namespace AssetCompiler;
 		using namespace OBJMeshCompiler;
 
 		// Read the mesh data from the OBJ file
@@ -677,5 +678,58 @@ namespace Framework
 		}
 
 		return true;
+	}
+
+
+
+	// Helper function for quick and dirty apps - just compile and load a mesh in one step.
+	// Totally unnecessarily serializing, compressing, decompressing, and deserializing
+	// all the data here...but whatever.
+
+	bool LoadOBJMesh(
+		const char * path,
+		Mesh * pMeshOut)
+	{
+		// Set up an in-memory zip stream
+		mz_zip_archive zipWrite = {};
+		CHECK_ERR(mz_zip_writer_init_heap(&zipWrite, 0, 0));
+
+		// Compile the mesh to it
+		AssetCompileInfo aci = { path, ACK_OBJMesh };
+		if (!AssetCompiler::CompileFullAssetPackToZip(&aci, 1, &zipWrite))
+		{
+			mz_zip_writer_end(&zipWrite);
+			return false;
+		}
+
+		void * pData;
+		size_t sizeBytes;
+		if (!mz_zip_writer_finalize_heap_archive(&zipWrite, &pData, &sizeBytes))
+		{
+			WARN("Couldn't finalize archive");
+			mz_zip_writer_end(&zipWrite);
+			return false;
+		}
+
+		// Turn around and load the pack right back in
+
+		mz_zip_archive zipRead = {};
+		CHECK_ERR(mz_zip_reader_init_mem(&zipRead, pData, sizeBytes, 0));
+
+		AssetPack * pPack = new AssetPack;
+		pPack->m_path = "(in memory)";
+
+		if (!AssetCompiler::LoadAssetPackFromZip(&zipRead, pPack))
+		{
+			mz_zip_writer_end(&zipRead);
+			mz_zip_writer_end(&zipWrite);
+			return false;
+		}
+
+		mz_zip_writer_end(&zipRead);
+		mz_zip_writer_end(&zipWrite);
+
+		// And extract the mesh from it
+		return LoadMeshFromAssetPack(pPack, path, nullptr, pMeshOut);
 	}
 }

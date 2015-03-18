@@ -77,9 +77,6 @@
     <ClInclude Include="mesh.h">
       <Filter>Header Files</Filter>
     </ClInclude>
-    <ClInclude Include="miniz.h">
-      <Filter>Header Files</Filter>
-    </ClInclude>
     <ClInclude Include="rendertarget.h">
       <Filter>Header Files</Filter>
     </ClInclude>
@@ -96,6 +93,9 @@
       <Filter>Header Files</Filter>
     </ClInclude>
     <ClInclude Include="material.h">
+      <Filter>Header Files</Filter>
+    </ClInclude>
+    <ClInclude Include="asset-internal.h">
       <Filter>Header Files</Filter>
     </ClInclude>
   </ItemGroup>
