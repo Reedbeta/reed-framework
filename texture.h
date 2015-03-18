@@ -203,6 +203,12 @@ namespace Framework
 
 	// !!!UNDONE: load cubemaps and 3D textures as well
 
+	// Helper function for quick and dirty apps - just get a texture from
+	// an image file, no messing around with asset packs or mipmaps
+	bool LoadTexture2DRaw(
+		const char * path,
+		Texture2D * pTexOut);
+
 	// Creating textures directly in memory
 
 	void CreateTexture1x1(
