@@ -95,7 +95,7 @@ namespace Framework
 			ASSERT_ERR(SUCCEEDED(hr));
 
 			DXGI_ADAPTER_DESC adapterDesc;
-			pAdapter->GetDesc(&adapterDesc);
+			CHECK_D3D(pAdapter->GetDesc(&adapterDesc));
 			if (adapterDesc.DedicatedVideoMemory > 0)
 				LOG("Adapter %d: %ls (%dMB VRAM)", iAdapter, adapterDesc.Description, adapterDesc.DedicatedVideoMemory / 1048576);
 			else
