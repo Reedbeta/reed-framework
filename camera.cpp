@@ -442,5 +442,6 @@ namespace Framework
 		float aspect = float(m_dimsWindow.x) / float(m_dimsWindow.y);
 		m_viewToWorld = makeaffine2(m_scale * aspect, 0.0f, 0.0f, m_scale, m_pos.x - 0.5f * m_scale * aspect, m_pos.y - 0.5f * m_scale);
 		m_worldToView = inverse(m_viewToWorld);
+		m_worldToClip = m_worldToView * makeaffine2(2.0f, 0.0f, 0.0f, -2.0f, -1.0f, 1.0f);
 	}
 }

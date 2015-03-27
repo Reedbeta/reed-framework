@@ -139,6 +139,7 @@ namespace Framework
 		float				m_scale;			// Scale from screen V [0, 1] to world space
 		affine2				m_viewToWorld;		// Transform from screen UV [0, 1] to world space
 		affine2				m_worldToView;		// Transform from world space to screen UV [0, 1]
+		affine2				m_worldToClip;		// Transform from world space to clip space [-1, 1]
 
 		void				UpdateTransforms();
 	};
