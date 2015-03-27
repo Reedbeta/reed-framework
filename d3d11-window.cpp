@@ -4,41 +4,22 @@
 #include "fullscreen_vs.h"
 #include "rect_vs.h"
 #include "copy_ps.h"
+#include "lines_vs.h"
+#include "lines_ps.h"
 
 
 
 namespace Framework
 {
+	static const int s_lineVerticesPerDraw = 1024;
+
 	static LRESULT CALLBACK StaticMsgProc(HWND hWnd, UINT message, WPARAM wParam, LPARAM lParam);
 
 	D3D11Window::D3D11Window()
 	:	m_hInstance(nullptr),
 		m_hWnd(nullptr),
-		m_pSwapChain(),
-		m_pDevice(),
-		m_pCtx(),
 		m_dims(makeint2(0)),
-		m_pRtvSRGB(),
-		m_pRtvRaw(),
-		m_hasDepthBuffer(true),
-		m_pDsv(),
-		m_pSrvDepth(),
-		m_pRsDefault(),
-		m_pRsDoubleSided(),
-		m_pDssDepthTest(),
-		m_pDssNoDepthWrite(),
-		m_pDssNoDepthTest(),
-		m_pBsAdditive(),
-		m_pBsAlphaBlend(),
-		m_pSsPointClamp(),
-		m_pSsBilinearClamp(),
-		m_pSsTrilinearRepeat(),
-		m_pSsTrilinearRepeatAniso(),
-		m_pSsPCF(),
-		m_pVsFullscreen(),
-		m_pVsRect(),
-		m_pPsCopy(),
-		m_cbBlit()
+		m_hasDepthBuffer(true)
 	{
 	}
 
@@ -259,9 +240,32 @@ namespace Framework
 		CHECK_D3D(m_pDevice->CreateVertexShader(fullscreen_vs_bytecode, dim(fullscreen_vs_bytecode), nullptr, &m_pVsFullscreen));
 		CHECK_D3D(m_pDevice->CreateVertexShader(rect_vs_bytecode, dim(rect_vs_bytecode), nullptr, &m_pVsRect));
 		CHECK_D3D(m_pDevice->CreatePixelShader(copy_ps_bytecode, dim(copy_ps_bytecode), nullptr, &m_pPsCopy));
+		CHECK_D3D(m_pDevice->CreateVertexShader(lines_vs_bytecode, dim(lines_vs_bytecode), nullptr, &m_pVsLines));
+		CHECK_D3D(m_pDevice->CreatePixelShader(lines_ps_bytecode, dim(lines_ps_bytecode), nullptr, &m_pPsLines));
 
 		// Init CB for blits and fullscreen passes
 		m_cbBlit.Init(m_pDevice);
+
+		// Init vertex buffer for debug lines
+		D3D11_BUFFER_DESC bufDesc =
+		{
+			s_lineVerticesPerDraw * sizeof(LineVertex),
+			D3D11_USAGE_DYNAMIC,
+			D3D11_BIND_VERTEX_BUFFER,
+			D3D11_CPU_ACCESS_WRITE,
+		};
+		CHECK_D3D(m_pDevice->CreateBuffer(&bufDesc, nullptr, &m_pBufLineVertices));
+
+		// Init input layout for debug lines
+		D3D11_INPUT_ELEMENT_DESC aInputDescs[] =
+		{
+			{ "COLOR",       0, DXGI_FORMAT_R32G32B32A32_FLOAT, 0, UINT(offsetof(LineVertex, m_rgba)),    D3D11_INPUT_PER_VERTEX_DATA, 0 },
+			{ "SV_Position", 0, DXGI_FORMAT_R32G32B32A32_FLOAT, 0, UINT(offsetof(LineVertex, m_posClip)), D3D11_INPUT_PER_VERTEX_DATA, 0 },
+		};
+		CHECK_D3D(m_pDevice->CreateInputLayout(
+								aInputDescs, dim(aInputDescs),
+								lines_vs_bytecode, dim(lines_vs_bytecode),
+								&m_pInputLayoutLines));
 	}
 
 	void D3D11Window::Shutdown()
@@ -537,6 +541,229 @@ namespace Framework
 		pCtx->PSSetShaderResources(0, 1, &pSrvSrc);
 		pCtx->PSSetSamplers(0, 1, &pSampSrc);
 		pCtx->Draw(6, 0);
+	}
+
+
+
+	// Methods for debug lines
+	void D3D11Window::AddDebugLine(point2_arg p0, point2_arg p1, rgba_arg rgba)
+	{
+		LineVertex verts[2] =
+		{
+			{ rgba, { p0.x, p0.y, 0.0f, 1.0f }, },
+			{ rgba, { p1.x, p1.y, 0.0f, 1.0f }, },
+		};
+		m_lineVertices.insert(m_lineVertices.end(), &verts[0], &verts[dim(verts)]);
+	}
+
+	void D3D11Window::AddDebugLine(point2_arg p0, point2_arg p1, rgba_arg rgba, affine2_arg xfm)
+	{
+		LineVertex verts[2] =
+		{
+			{ rgba, makefloat4(makefloat2(p0 * xfm), 0.0f, 1.0f), },
+			{ rgba, makefloat4(makefloat2(p1 * xfm), 0.0f, 1.0f), },
+		};
+		m_lineVertices.insert(m_lineVertices.end(), &verts[0], &verts[dim(verts)]);
+	}
+
+	void D3D11Window::AddDebugLine(float4_arg p0, float4_arg p1, rgba_arg rgba)
+	{
+		LineVertex verts[2] =
+		{
+			{ rgba, p0, },
+			{ rgba, p1, },
+		};
+		m_lineVertices.insert(m_lineVertices.end(), &verts[0], &verts[dim(verts)]);
+	}
+
+	void D3D11Window::AddDebugLine(float4_arg p0, float4_arg p1, rgba_arg rgba, float4x4_arg xfm)
+	{
+		LineVertex verts[2] =
+		{
+			{ rgba, p0 * xfm, },
+			{ rgba, p1 * xfm, },
+		};
+		m_lineVertices.insert(m_lineVertices.end(), &verts[0], &verts[dim(verts)]);
+	}
+
+	void D3D11Window::AddDebugLineStrip(const point2 * pPoints, int numPoints, rgba_arg rgba)
+	{
+		ASSERT_ERR(pPoints);
+		ASSERT_ERR(numPoints >= 2);
+
+		int base = int(m_lineVertices.size());
+		m_lineVertices.resize(base + 2 * numPoints - 2);
+
+		const point2 * pPoint = pPoints;
+		LineVertex * pVtx = &m_lineVertices[base];
+		
+		// Store the first vertex
+		pVtx->m_rgba = rgba;
+		pVtx->m_posClip = makefloat4(pPoint->x, pPoint->y, 0.0f, 1.0f);
+		++pPoint;
+		++pVtx;
+
+		// Store the middle vertices, repeating twice each
+		for (int i = 1; i < numPoints - 1; ++i)
+		{
+			pVtx->m_rgba = rgba;
+			pVtx->m_posClip = makefloat4(pPoint->x, pPoint->y, 0.0f, 1.0f);
+			pVtx[1] = pVtx[0];
+			++pPoint;
+			pVtx += 2;
+		}
+
+		// Store the last vertex
+		pVtx->m_rgba = rgba;
+		pVtx->m_posClip = makefloat4(pPoint->x, pPoint->y, 0.0f, 1.0f);
+		++pPoint;
+		++pVtx;
+
+		ASSERT_ERR(pPoint == pPoints + numPoints);
+		ASSERT_ERR(pVtx == &m_lineVertices[0] + m_lineVertices.size());
+	}
+
+	void D3D11Window::AddDebugLineStrip(const point2 * pPoints, int numPoints, rgba_arg rgba, affine2_arg xfm)
+	{
+		ASSERT_ERR(pPoints);
+		ASSERT_ERR(numPoints >= 2);
+
+		int base = int(m_lineVertices.size());
+		m_lineVertices.resize(base + 2 * numPoints - 2);
+
+		const point2 * pPoint = pPoints;
+		LineVertex * pVtx = &m_lineVertices[base];
+		
+		// Store the first vertex
+		pVtx->m_rgba = rgba;
+		pVtx->m_posClip = makefloat4(makefloat2(*pPoint * xfm), 0.0f, 1.0f);
+		++pPoint;
+		++pVtx;
+
+		// Store the middle vertices, repeating twice each
+		for (int i = 1; i < numPoints - 1; ++i)
+		{
+			pVtx->m_rgba = rgba;
+			pVtx->m_posClip = makefloat4(makefloat2(*pPoint * xfm), 0.0f, 1.0f);
+			pVtx[1] = pVtx[0];
+			++pPoint;
+			pVtx += 2;
+		}
+
+		// Store the last vertex
+		pVtx->m_rgba = rgba;
+		pVtx->m_posClip = makefloat4(makefloat2(*pPoint * xfm), 0.0f, 1.0f);
+		++pPoint;
+		++pVtx;
+
+		ASSERT_ERR(pPoint == pPoints + numPoints);
+		ASSERT_ERR(pVtx == &m_lineVertices[0] + m_lineVertices.size());
+	}
+
+	void D3D11Window::AddDebugLineStrip(const float4 * pPoints, int numPoints, rgba_arg rgba)
+	{
+		ASSERT_ERR(pPoints);
+		ASSERT_ERR(numPoints >= 2);
+
+		int base = int(m_lineVertices.size());
+		m_lineVertices.resize(base + 2 * numPoints - 2);
+
+		const float4 * pPoint = pPoints;
+		LineVertex * pVtx = &m_lineVertices[base];
+		
+		// Store the first vertex
+		pVtx->m_rgba = rgba;
+		pVtx->m_posClip = *pPoint;
+		++pPoint;
+		++pVtx;
+
+		// Store the middle vertices, repeating twice each
+		for (int i = 1; i < numPoints - 1; ++i)
+		{
+			pVtx->m_rgba = rgba;
+			pVtx->m_posClip = *pPoint;
+			pVtx[1] = pVtx[0];
+			++pPoint;
+			pVtx += 2;
+		}
+
+		// Store the last vertex
+		pVtx->m_rgba = rgba;
+		pVtx->m_posClip = *pPoint;
+		++pPoint;
+		++pVtx;
+
+		ASSERT_ERR(pPoint == pPoints + numPoints);
+		ASSERT_ERR(pVtx == &m_lineVertices[0] + m_lineVertices.size());
+	}
+
+	void D3D11Window::AddDebugLineStrip(const float4 * pPoints, int numPoints, rgba_arg rgba, float4x4_arg xfm)
+	{
+		ASSERT_ERR(pPoints);
+		ASSERT_ERR(numPoints >= 2);
+
+		int base = int(m_lineVertices.size());
+		m_lineVertices.resize(base + 2 * numPoints - 2);
+
+		const float4 * pPoint = pPoints;
+		LineVertex * pVtx = &m_lineVertices[base];
+		
+		// Store the first vertex
+		pVtx->m_rgba = rgba;
+		pVtx->m_posClip = *pPoint * xfm;
+		++pPoint;
+		++pVtx;
+
+		// Store the middle vertices, repeating twice each
+		for (int i = 1; i < numPoints - 1; ++i)
+		{
+			pVtx->m_rgba = rgba;
+			pVtx->m_posClip = *pPoint * xfm;
+			pVtx[1] = pVtx[0];
+			++pPoint;
+			pVtx += 2;
+		}
+
+		// Store the last vertex
+		pVtx->m_rgba = rgba;
+		pVtx->m_posClip = *pPoint * xfm;
+		++pPoint;
+		++pVtx;
+
+		ASSERT_ERR(pPoint == pPoints + numPoints);
+		ASSERT_ERR(pVtx == &m_lineVertices[0] + m_lineVertices.size());
+	}
+
+	void D3D11Window::DrawDebugLines(ID3D11DeviceContext * pCtx)
+	{
+		// Batch up into draw calls based on how many vertices the buffer can hold
+
+		if (m_lineVertices.empty())
+			return;
+
+		pCtx->IASetInputLayout(m_pInputLayoutLines);
+		pCtx->IASetPrimitiveTopology(D3D11_PRIMITIVE_TOPOLOGY_LINELIST);
+		UINT stride = sizeof(LineVertex), zero = 0;
+		pCtx->IASetVertexBuffers(0, 1, &m_pBufLineVertices, &stride, &zero);
+		pCtx->IASetIndexBuffer(nullptr, DXGI_FORMAT_UNKNOWN, 0);
+		pCtx->VSSetShader(m_pVsLines, nullptr, 0);
+		pCtx->PSSetShader(m_pPsLines, nullptr, 0);
+
+		int numVerts = int(m_lineVertices.size());
+		for (int baseVert = 0; baseVert < numVerts; baseVert += s_lineVerticesPerDraw)
+		{
+			int numVertsThisDraw = min(numVerts - baseVert, s_lineVerticesPerDraw);
+
+			// Update the vertex buffer
+			D3D11_MAPPED_SUBRESOURCE mapped = {};
+			CHECK_D3D_WARN(m_pCtx->Map(m_pBufLineVertices, 0, D3D11_MAP_WRITE_DISCARD, 0, &mapped));
+			memcpy(mapped.pData, &m_lineVertices[baseVert], numVertsThisDraw * sizeof(LineVertex));
+			m_pCtx->Unmap(m_pBufLineVertices, 0);
+
+			m_pCtx->Draw(numVertsThisDraw, 0);
+		}
+
+		m_lineVertices.clear();
 	}
 }
 

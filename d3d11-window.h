@@ -8,6 +8,12 @@ namespace Framework
 		box2	m_boxDst;
 	};
 
+	struct LineVertex	// Matches struct LineVertex in lines_vs.hlsl and lines_ps.hlsl
+	{
+		float4	m_rgba;
+		float4	m_posClip;
+	};
+
 	class D3D11Window
 	{
 	public:
@@ -60,6 +66,17 @@ namespace Framework
 								box2_arg boxSrc,
 								box2_arg boxDst);
 
+		// Methods for debug lines
+		void				AddDebugLine(point2_arg p0, point2_arg p1, rgba_arg rgba);
+		void				AddDebugLine(point2_arg p0, point2_arg p1, rgba_arg rgba, affine2_arg xfm);
+		void				AddDebugLine(float4_arg p0, float4_arg p1, rgba_arg rgba);
+		void				AddDebugLine(float4_arg p0, float4_arg p1, rgba_arg rgba, float4x4_arg xfm);
+		void				AddDebugLineStrip(const point2 * pPoints, int numPoints, rgba_arg rgba);
+		void				AddDebugLineStrip(const point2 * pPoints, int numPoints, rgba_arg rgba, affine2_arg xfm);
+		void				AddDebugLineStrip(const float4 * pPoints, int numPoints, rgba_arg rgba);
+		void				AddDebugLineStrip(const float4 * pPoints, int numPoints, rgba_arg rgba, float4x4_arg xfm);
+		void				DrawDebugLines(ID3D11DeviceContext * pCtx);
+
 		// Basic resources
 		HINSTANCE							m_hInstance;
 		HWND								m_hWnd;
@@ -102,5 +119,12 @@ namespace Framework
 
 		// CB for doing blits and fullscreen passes
 		CB<CBBlit>							m_cbBlit;
+
+		// Stuff for drawing debug lines
+		std::vector<LineVertex>				m_lineVertices;
+		comptr<ID3D11Buffer>				m_pBufLineVertices;
+		comptr<ID3D11InputLayout>			m_pInputLayoutLines;
+		comptr<ID3D11VertexShader>			m_pVsLines;
+		comptr<ID3D11PixelShader>			m_pPsLines;
 	};
 }

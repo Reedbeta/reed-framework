@@ -10,6 +10,12 @@
     <FxCompile Include="copy_ps.hlsl">
       <Filter>Shader Files</Filter>
     </FxCompile>
+    <FxCompile Include="lines_vs.hlsl">
+      <Filter>Shader Files</Filter>
+    </FxCompile>
+    <FxCompile Include="lines_ps.hlsl">
+      <Filter>Shader Files</Filter>
+    </FxCompile>
   </ItemGroup>
   <ItemGroup>
     <ClCompile Include="asset-mesh.cpp">
