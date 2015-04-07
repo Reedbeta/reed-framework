@@ -588,8 +588,10 @@ namespace Framework
 
 	void D3D11Window::AddDebugLineStrip(const point2 * pPoints, int numPoints, rgba_arg rgba)
 	{
+		if (numPoints < 2)
+			return;
+
 		ASSERT_ERR(pPoints);
-		ASSERT_ERR(numPoints >= 2);
 
 		int base = int(m_lineVertices.size());
 		m_lineVertices.resize(base + 2 * numPoints - 2);
@@ -625,8 +627,10 @@ namespace Framework
 
 	void D3D11Window::AddDebugLineStrip(const point2 * pPoints, int numPoints, rgba_arg rgba, affine2_arg xfm)
 	{
+		if (numPoints < 2)
+			return;
+
 		ASSERT_ERR(pPoints);
-		ASSERT_ERR(numPoints >= 2);
 
 		int base = int(m_lineVertices.size());
 		m_lineVertices.resize(base + 2 * numPoints - 2);
@@ -662,8 +666,10 @@ namespace Framework
 
 	void D3D11Window::AddDebugLineStrip(const float4 * pPoints, int numPoints, rgba_arg rgba)
 	{
+		if (numPoints < 2)
+			return;
+
 		ASSERT_ERR(pPoints);
-		ASSERT_ERR(numPoints >= 2);
 
 		int base = int(m_lineVertices.size());
 		m_lineVertices.resize(base + 2 * numPoints - 2);
@@ -699,8 +705,10 @@ namespace Framework
 
 	void D3D11Window::AddDebugLineStrip(const float4 * pPoints, int numPoints, rgba_arg rgba, float4x4_arg xfm)
 	{
+		if (numPoints < 2)
+			return;
+
 		ASSERT_ERR(pPoints);
-		ASSERT_ERR(numPoints >= 2);
 
 		int base = int(m_lineVertices.size());
 		m_lineVertices.resize(base + 2 * numPoints - 2);
