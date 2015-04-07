@@ -10,6 +10,7 @@ namespace Framework
 		void	Init(ID3D11Device * pDevice);
 		void	Update(ID3D11DeviceContext * pCtx, const T * pData);
 		void	Bind(ID3D11DeviceContext * pCtx, int slot);
+		void	Reset();
 
 		comptr<ID3D11Buffer>	m_pBuf;
 	};
@@ -55,5 +56,11 @@ namespace Framework
 		pCtx->GSSetConstantBuffers(slot, 1, &m_pBuf);
 		pCtx->PSSetConstantBuffers(slot, 1, &m_pBuf);
 		pCtx->CSSetConstantBuffers(slot, 1, &m_pBuf);
+	}
+
+	template <typename T>
+	inline void CB<T>::Reset()
+	{
+		m_pBuf.release();
 	}
 }

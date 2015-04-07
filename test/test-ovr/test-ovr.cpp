@@ -359,6 +359,20 @@ void TestWindow::Shutdown()
 	TwTerminate();
 #endif
 
+	m_rtEyes.Reset();
+	m_dstEyes.Reset();
+	m_pSrvEyesRaw.release();
+	m_meshSponza.Reset();
+	m_mtlLibSponza.Reset();
+	m_texLibSponza.Reset();
+	m_pVsWorld.release();
+	m_pPsSimple.release();
+	m_pInputLayout.release();
+	m_cbFrame.Reset();
+	m_cbDebug.Reset();
+
+	super::Shutdown();
+
 	// Shutdown OVR stuff
 	if (m_hmd)
 	{
@@ -366,8 +380,6 @@ void TestWindow::Shutdown()
 		m_hmd = nullptr;
 	}
 	ovr_Shutdown();
-
-	super::Shutdown();
 }
 
 LRESULT TestWindow::MsgProc(HWND hWnd, UINT message, WPARAM wParam, LPARAM lParam)

@@ -227,6 +227,16 @@ bool TestWindow::Init(HINSTANCE hInstance)
 void TestWindow::Shutdown()
 {
 	TwTerminate();
+
+	m_meshSponza.Reset();
+	m_mtlLibSponza.Reset();
+	m_texLibSponza.Reset();
+	m_pVsWorld.release();
+	m_pPsSimple.release();
+	m_pInputLayout.release();
+	m_cbFrame.Reset();
+	m_cbDebug.Reset();
+
 	super::Shutdown();
 }
 
