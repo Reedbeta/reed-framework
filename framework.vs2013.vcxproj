@@ -11,6 +11,7 @@
     </ProjectConfiguration>
   </ItemGroup>
   <ItemGroup>
+    <ClInclude Include="asset-internal.h" />
     <ClInclude Include="asset.h" />
     <ClInclude Include="camera.h" />
     <ClInclude Include="cbuffer.h" />
@@ -18,8 +19,8 @@
     <ClInclude Include="d3d11-window.h" />
     <ClInclude Include="framework.h" />
     <ClInclude Include="gpuprofiler.h" />
+    <ClInclude Include="material.h" />
     <ClInclude Include="mesh.h" />
-    <ClInclude Include="miniz.h" />
     <ClInclude Include="rendertarget.h" />
     <ClInclude Include="stb_image.h" />
     <ClInclude Include="stb_image_resize.h" />
@@ -28,11 +29,13 @@
   </ItemGroup>
   <ItemGroup>
     <ClCompile Include="asset-mesh.cpp" />
+    <ClCompile Include="asset-mtl.cpp" />
     <ClCompile Include="asset-texture.cpp" />
     <ClCompile Include="asset.cpp" />
     <ClCompile Include="camera.cpp" />
     <ClCompile Include="d3d11-window.cpp" />
     <ClCompile Include="gpuprofiler.cpp" />
+    <ClCompile Include="material.cpp" />
     <ClCompile Include="mesh.cpp" />
     <ClCompile Include="miniz.c" />
     <ClCompile Include="rendertarget.cpp" />
@@ -41,14 +44,27 @@
   </ItemGroup>
   <ItemGroup>
     <FxCompile Include="copy_ps.hlsl">
+      <FileType>Document</FileType>
       <ShaderType Condition="'$(Configuration)|$(Platform)'=='Debug|x64'">Pixel</ShaderType>
       <ShaderType Condition="'$(Configuration)|$(Platform)'=='Release|x64'">Pixel</ShaderType>
     </FxCompile>
     <FxCompile Include="fullscreen_vs.hlsl">
+      <FileType>Document</FileType>
+      <ShaderType Condition="'$(Configuration)|$(Platform)'=='Debug|x64'">Vertex</ShaderType>
+      <ShaderType Condition="'$(Configuration)|$(Platform)'=='Release|x64'">Vertex</ShaderType>
+    </FxCompile>
+    <FxCompile Include="lines_ps.hlsl">
+      <FileType>Document</FileType>
+      <ShaderType Condition="'$(Configuration)|$(Platform)'=='Debug|x64'">Pixel</ShaderType>
+      <ShaderType Condition="'$(Configuration)|$(Platform)'=='Release|x64'">Pixel</ShaderType>
+    </FxCompile>
+    <FxCompile Include="lines_vs.hlsl">
+      <FileType>Document</FileType>
       <ShaderType Condition="'$(Configuration)|$(Platform)'=='Debug|x64'">Vertex</ShaderType>
       <ShaderType Condition="'$(Configuration)|$(Platform)'=='Release|x64'">Vertex</ShaderType>
     </FxCompile>
     <FxCompile Include="rect_vs.hlsl">
+      <FileType>Document</FileType>
       <ShaderType Condition="'$(Configuration)|$(Platform)'=='Debug|x64'">Vertex</ShaderType>
       <ShaderType Condition="'$(Configuration)|$(Platform)'=='Release|x64'">Vertex</ShaderType>
     </FxCompile>
@@ -98,7 +114,7 @@
       <PreprocessorDefinitions>WIN32;_DEBUG;_LIB;%(PreprocessorDefinitions)</PreprocessorDefinitions>
       <SDLCheck>true</SDLCheck>
       <TreatWarningAsError>true</TreatWarningAsError>
-      <AdditionalIncludeDirectories>..\reed-util;d3dx11;$(Platform)\$(Configuration)\shaders\</AdditionalIncludeDirectories>
+      <AdditionalIncludeDirectories>..\reed-util;$(Platform)\$(Configuration)\shaders\</AdditionalIncludeDirectories>
       <AdditionalOptions>/d2Zi+</AdditionalOptions>
     </ClCompile>
     <Link>
@@ -112,6 +128,7 @@
       <HeaderFileOutput>$(Platform)\$(Configuration)\shaders\%(Filename).h</HeaderFileOutput>
       <ObjectFileOutput />
       <AdditionalOptions>/Gfp</AdditionalOptions>
+      <DisableOptimizations>false</DisableOptimizations>
     </FxCompile>
   </ItemDefinitionGroup>
   <ItemDefinitionGroup Condition="'$(Configuration)|$(Platform)'=='Release|x64'">
@@ -125,7 +142,7 @@
       <PreprocessorDefinitions>WIN32;NDEBUG;_LIB;%(PreprocessorDefinitions)</PreprocessorDefinitions>
       <SDLCheck>true</SDLCheck>
       <TreatWarningAsError>true</TreatWarningAsError>
-      <AdditionalIncludeDirectories>..\reed-util;d3dx11;$(Platform)\$(Configuration)\shaders\</AdditionalIncludeDirectories>
+      <AdditionalIncludeDirectories>..\reed-util;$(Platform)\$(Configuration)\shaders\</AdditionalIncludeDirectories>
       <AdditionalOptions>/d2Zi+</AdditionalOptions>
     </ClCompile>
     <Link>
@@ -135,7 +152,7 @@
       <OptimizeReferences>true</OptimizeReferences>
     </Link>
     <FxCompile>
-      <DisableOptimizations>true</DisableOptimizations>
+      <DisableOptimizations>false</DisableOptimizations>
     </FxCompile>
     <FxCompile>
       <EnableDebuggingInformation>true</EnableDebuggingInformation>

@@ -63,8 +63,8 @@
     <Link>
       <SubSystem>Windows</SubSystem>
       <GenerateDebugInformation>true</GenerateDebugInformation>
-      <AdditionalDependencies>kernel32.lib;user32.lib;d3d11.lib;dxguid.lib;d3dcompiler.lib;AntTweakBar64.lib;d3dx11.lib;xinput9_1_0.lib</AdditionalDependencies>
-      <AdditionalLibraryDirectories>..\d3dx11;..\..\AntTweakBar\lib</AdditionalLibraryDirectories>
+      <AdditionalDependencies>kernel32.lib;user32.lib;d3d11.lib;dxgi.lib;AntTweakBar64.lib;xinput9_1_0.lib</AdditionalDependencies>
+      <AdditionalLibraryDirectories>..\..\AntTweakBar\lib</AdditionalLibraryDirectories>
     </Link>
     <FxCompile>
       <ShaderModel>5.0</ShaderModel>
@@ -75,19 +75,16 @@
       <AdditionalOptions>/Gfp</AdditionalOptions>
     </FxCompile>
     <CustomBuildStep>
-      <Command>copy /y $(ProjectDir)AntTweakBar64.dll $(OutDir)
-copy /y $(ProjectDir)d3dcompiler_46.dll $(OutDir)
-copy /y $(ProjectDir)d3dx11_43.dll $(OutDir)
-</Command>
+      <Command>copy /y $(ProjectDir)AntTweakBar64.dll $(OutDir)</Command>
     </CustomBuildStep>
     <CustomBuildStep>
       <Message>Copying .dlls to output directory</Message>
     </CustomBuildStep>
     <CustomBuildStep>
-      <Outputs>$(OutDir)AntTweakBar64.dll;$(OutDir)d3dcompiler_46.dll;$(OutDir)d3dx11_43.dll;%(Outputs)</Outputs>
+      <Outputs>$(OutDir)AntTweakBar64.dll;%(Outputs)</Outputs>
     </CustomBuildStep>
     <CustomBuildStep>
-      <Inputs>$(ProjectDir)AntTweakBar64.dll;$(ProjectDir)d3dcompiler_46.dll;$(ProjectDir)d3dx11_43.dll;%(Inputs)</Inputs>
+      <Inputs>$(ProjectDir)AntTweakBar64.dll;%(Inputs)</Inputs>
     </CustomBuildStep>
     <Manifest>
       <EnableDpiAwareness>true</EnableDpiAwareness>
@@ -112,8 +109,8 @@ copy /y $(ProjectDir)d3dx11_43.dll $(OutDir)
       <GenerateDebugInformation>true</GenerateDebugInformation>
       <EnableCOMDATFolding>true</EnableCOMDATFolding>
       <OptimizeReferences>true</OptimizeReferences>
-      <AdditionalDependencies>kernel32.lib;user32.lib;d3d11.lib;dxguid.lib;d3dcompiler.lib;AntTweakBar64.lib;d3dx11.lib;xinput9_1_0.lib</AdditionalDependencies>
-      <AdditionalLibraryDirectories>..\d3dx11;..\..\AntTweakBar\lib</AdditionalLibraryDirectories>
+      <AdditionalDependencies>kernel32.lib;user32.lib;d3d11.lib;dxgi.lib;AntTweakBar64.lib;xinput9_1_0.lib</AdditionalDependencies>
+      <AdditionalLibraryDirectories>..\..\AntTweakBar\lib</AdditionalLibraryDirectories>
     </Link>
     <FxCompile>
       <DisableOptimizations>true</DisableOptimizations>
@@ -130,19 +127,16 @@ copy /y $(ProjectDir)d3dx11_43.dll $(OutDir)
       <AdditionalOptions>/Gfp</AdditionalOptions>
     </FxCompile>
     <CustomBuildStep>
-      <Command>copy /y $(ProjectDir)AntTweakBar64.dll $(OutDir)
-copy /y $(ProjectDir)d3dcompiler_46.dll $(OutDir)
-copy /y $(ProjectDir)d3dx11_43.dll $(OutDir)
-</Command>
+      <Command>copy /y $(ProjectDir)AntTweakBar64.dll $(OutDir)</Command>
     </CustomBuildStep>
     <CustomBuildStep>
       <Message>Copying .dlls to output directory</Message>
     </CustomBuildStep>
     <CustomBuildStep>
-      <Outputs>$(OutDir)AntTweakBar64.dll;$(OutDir)d3dcompiler_46.dll;$(OutDir)d3dx11_43.dll;%(Outputs)</Outputs>
+      <Outputs>$(OutDir)AntTweakBar64.dll;%(Outputs)</Outputs>
     </CustomBuildStep>
     <CustomBuildStep>
-      <Inputs>$(ProjectDir)AntTweakBar64.dll;$(ProjectDir)d3dcompiler_46.dll;$(ProjectDir)d3dx11_43.dll;%(Inputs)</Inputs>
+      <Inputs>$(ProjectDir)AntTweakBar64.dll;%(Inputs)</Inputs>
     </CustomBuildStep>
     <Manifest>
       <EnableDpiAwareness>true</EnableDpiAwareness>
