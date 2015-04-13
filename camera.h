@@ -126,7 +126,9 @@ namespace Framework
 		void				FrameBox(box2_arg box)
 							{
 								m_pos = box.center();
-								m_scale = maxComponent(box.diagonal());
+								float2 diagonal = box.diagonal();
+								diagonal.x *= float(m_dimsWindow.y) / float(m_dimsWindow.x);
+								m_scale = maxComponent(diagonal);
 								UpdateTransforms();
 							}
 
