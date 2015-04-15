@@ -86,8 +86,16 @@ namespace Framework
 		DXGI_FORMAT							m_formatSrvStencil;
 	};
 
+
+
 	// Utility functions for binding multiple render targets
 	void BindRenderTargets(ID3D11DeviceContext * pCtx, RenderTarget * pRt, DepthStencilTarget * pDst);
 	void BindRenderTargets(ID3D11DeviceContext * pCtx, RenderTarget * pRt, DepthStencilTarget * pDst, box2_arg viewport);
 	void BindRenderTargets(ID3D11DeviceContext * pCtx, RenderTarget * pRt, DepthStencilTarget * pDst, box3_arg viewport);
+
+	// Helper functions for saving out screenshots of render targets
+	bool WriteRenderTargetToBMP(
+		ID3D11DeviceContext * pCtx,
+		RenderTarget * pRt,
+		const char * path);
 }

@@ -1106,4 +1106,118 @@ namespace Framework
 
 		return s_typelessFormat[format];
 	}
+
+
+
+	// Helper functions for saving out screenshots of textures
+
+	void WriteBMPToMemory(
+		const byte4 * pPixels,
+		int2_arg dims,
+		std::vector<byte> * pDataOut)
+	{
+		ASSERT_ERR(pPixels);
+		ASSERT_ERR(all(dims > 0));
+		ASSERT_ERR(pDataOut);
+
+		// Compose the .bmp headers
+		BITMAPFILEHEADER bfh =
+		{
+			0x4d42,		// "BM"
+			0, 0, 0,
+			sizeof(BITMAPFILEHEADER) + sizeof(BITMAPINFOHEADER),
+		};
+		BITMAPINFOHEADER bih =
+		{
+			sizeof(BITMAPINFOHEADER),
+			dims.x, -dims.y,	// Negative height makes it go top-down
+			1, 32, BI_RGB,
+		};
+
+		// Allocate a buffer to compose the .bmp file
+		int imageSizeBytes = dims.x * dims.y * sizeof(byte4);
+		int totalSizeBytes = sizeof(bfh) + sizeof(bih) + imageSizeBytes;
+		pDataOut->resize(totalSizeBytes);
+
+		// Compose the file
+		memcpy(&(*pDataOut)[0], &bfh, sizeof(bfh));
+		memcpy(&(*pDataOut)[sizeof(bfh)], &bih, sizeof(bih));
+		for (int i = 0, c = dims.x * dims.y; i < c; ++i)
+		{
+			byte4 rgba = pPixels[i];
+			byte4 bgra = { rgba.b, rgba.g, rgba.r, rgba.a };
+			*(byte4 *)&(*pDataOut)[sizeof(bfh) + sizeof(bih) + i * sizeof(byte4)] = bgra;
+		}
+	}
+
+	bool WriteBMPToFile(
+		const byte4 * pPixels,
+		int2_arg dims,
+		const char * path)
+	{
+		ASSERT_ERR(pPixels);
+		ASSERT_ERR(all(dims > 0));
+		ASSERT_ERR(path);
+
+		FILE * pFile = nullptr;
+		if (fopen_s(&pFile, path, "wb") != 0)
+			return false;
+
+		std::vector<byte> buffer;
+		WriteBMPToMemory(pPixels, dims, &buffer);
+		if (fwrite(&buffer[0], buffer.size(), 1, pFile) < 1)
+		{
+			fclose(pFile);
+			return false;
+		}
+
+		fclose(pFile);
+		return true;
+	}
+
+	bool WriteTexToBMP(
+		ID3D11DeviceContext * pCtx,
+		Texture2D * pTex,
+		int level,
+		const char * path)
+	{
+		ASSERT_ERR(pCtx);
+		ASSERT_ERR(pTex);
+		ASSERT_ERR(all(pTex->m_dims > 0));
+		ASSERT_ERR(level >= 0 && level < pTex->m_mipLevels);
+		ASSERT_ERR(path);
+
+		// Currently the texture must be in RGBA8 format
+		ASSERT_ERR(pTex->m_format == DXGI_FORMAT_R8G8B8A8_UNORM || pTex->m_format == DXGI_FORMAT_R8G8B8A8_UNORM_SRGB);
+
+		int2 mipDims = CalculateMipDims(pTex->m_dims, level);
+		std::vector<byte4> pixels(mipDims.x * mipDims.y);
+		pTex->Readback(pCtx, level, &pixels[0]);
+
+		return WriteBMPToFile(&pixels[0], mipDims, path);
+	}
+
+	bool WriteTexToBMP(
+		ID3D11DeviceContext * pCtx,
+		TextureCube * pTex,
+		int face,
+		int level,
+		const char * path)
+	{
+		ASSERT_ERR(pCtx);
+		ASSERT_ERR(pTex);
+		ASSERT_ERR(pTex->m_cubeSize > 0);
+		ASSERT_ERR(face >= 0 && face < 6);
+		ASSERT_ERR(level >= 0 && level < pTex->m_mipLevels);
+		ASSERT_ERR(path);
+
+		// Currently the texture must be in RGBA8 format
+		ASSERT_ERR(pTex->m_format == DXGI_FORMAT_R8G8B8A8_UNORM || pTex->m_format == DXGI_FORMAT_R8G8B8A8_UNORM_SRGB);
+
+		int mipDim = CalculateMipDims(pTex->m_cubeSize, level);
+		std::vector<byte4> pixels(mipDim * mipDim);
+		pTex->Readback(pCtx, face, level, &pixels[0]);
+
+		return WriteBMPToFile(&pixels[0], makeint2(mipDim, mipDim), path);
+	}
 }

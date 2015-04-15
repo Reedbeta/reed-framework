@@ -255,4 +255,27 @@ namespace Framework
 		const AssetCompileInfo * assets,
 		int numAssets,
 		TextureLib * pTexLibOut);
+
+
+
+	// Helper functions for saving out screenshots of textures
+	void WriteBMPToMemory(
+		const byte4 * pPixels,
+		int2_arg dims,
+		std::vector<byte> * pDataOut);
+	bool WriteBMPToFile(
+		const byte4 * pPixels,
+		int2_arg dims,
+		const char * path);
+	bool WriteTexToBMP(
+		ID3D11DeviceContext * pCtx,
+		Texture2D * pTex,
+		int level,
+		const char * path);
+	bool WriteTexToBMP(
+		ID3D11DeviceContext * pCtx,
+		TextureCube * pTex,
+		int face,
+		int level,
+		const char * path);
 }

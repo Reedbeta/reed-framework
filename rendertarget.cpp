@@ -5,11 +5,7 @@ namespace Framework
 	// RenderTarget implementation
 
 	RenderTarget::RenderTarget()
-	:	m_pTex(),
-		m_pRtv(),
-		m_pSrv(),
-		m_pUav(),
-		m_dims(makeint2(0)),
+	:	m_dims(makeint2(0)),
 		m_sampleCount(0),
 		m_format(DXGI_FORMAT_UNKNOWN)
 	{
@@ -212,13 +208,7 @@ namespace Framework
 	};
 
 	DepthStencilTarget::DepthStencilTarget()
-	:	m_pTex(),
-		m_pDsv(),
-		m_pSrvDepth(),
-		m_pSrvStencil(),
-		m_pUavDepth(),
-		m_pUavStencil(),
-		m_dims(makeint2(0)),
+	:	m_dims(makeint2(0)),
 		m_sampleCount(0),
 		m_formatDsv(DXGI_FORMAT_UNKNOWN),
 		m_formatSrvDepth(DXGI_FORMAT_UNKNOWN),
@@ -416,5 +406,29 @@ namespace Framework
 			viewport.m_mins.z, viewport.m_maxs.z,
 		};
 		pCtx->RSSetViewports(1, &d3dViewport);
+	}
+
+
+
+	// Helper functions for saving out screenshots of render targets
+
+	bool WriteRenderTargetToBMP(
+		ID3D11DeviceContext * pCtx,
+		RenderTarget * pRt,
+		const char * path)
+	{
+		ASSERT_ERR(pCtx);
+		ASSERT_ERR(pRt);
+		ASSERT_ERR(all(pRt->m_dims > 0));
+		ASSERT_ERR(path);
+
+		// Currently the texture must be in RGBA8 format and can't be multisampled
+		ASSERT_ERR(pRt->m_format == DXGI_FORMAT_R8G8B8A8_UNORM || pRt->m_format == DXGI_FORMAT_R8G8B8A8_UNORM_SRGB);
+		ASSERT_ERR(pRt->m_sampleCount == 1);
+
+		std::vector<byte4> pixels(pRt->m_dims.x * pRt->m_dims.y);
+		pRt->Readback(pCtx, &pixels[0]);
+
+		return WriteBMPToFile(&pixels[0], pRt->m_dims, path);
 	}
 }

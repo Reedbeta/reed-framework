@@ -230,41 +230,15 @@ namespace Framework
 			ASSERT_ERR(all(dims > 0));
 			ASSERT_ERR(pZipOut);
 
-			// Compose the .bmp headers
-			BITMAPFILEHEADER bfh =
-			{
-				0x4d42,		// "BM"
-				0, 0, 0,
-				sizeof(BITMAPFILEHEADER) + sizeof(BITMAPINFOHEADER),
-			};
-			BITMAPINFOHEADER bih =
-			{
-				sizeof(BITMAPINFOHEADER),
-				dims.x, -dims.y,	// Negative height makes it go top-down
-				1, 32, BI_RGB,
-			};
-
-			// Allocate a buffer to compose the .bmp file
-			int imageSizeBytes = dims.x * dims.y * sizeof(byte4);
-			int totalSizeBytes = sizeof(bfh) + sizeof(bih) + imageSizeBytes;
-			std::vector<byte> buffer(totalSizeBytes);
-
-			// Compose the file
-			memcpy(&buffer[0], &bfh, sizeof(bfh));
-			memcpy(&buffer[sizeof(bfh)], &bih, sizeof(bih));
-			for (int i = 0, c = dims.x * dims.y; i < c; ++i)
-			{
-				byte4 rgba = pPixels[i];
-				byte4 bgra = { rgba.b, rgba.g, rgba.r, rgba.a };
-				*(byte4 *)&buffer[sizeof(bfh) + sizeof(bih) + i * sizeof(byte4)] = bgra;
-			}
+			std::vector<byte> buffer;
+			WriteBMPToMemory(pPixels, dims, &buffer);
 
 			// Compose the suffix
 			char suffix[16] = {};
 			sprintf_s(suffix, "/%d.bmp", mipLevel);
 
 			// Write it to the .zip archive
-			return WriteAssetDataToZip(assetPath, suffix, &buffer[0], totalSizeBytes, pZipOut);
+			return AssetCompiler::WriteAssetDataToZip(assetPath, suffix, &buffer[0], buffer.size(), pZipOut);
 		}
 #endif // WRITE_BMP
 	}
