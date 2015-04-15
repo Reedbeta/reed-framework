@@ -536,7 +536,25 @@ void TestWindow::OnRender()
 	CHECK_WARN(TwDraw());
 #endif
 
+	// Switch off break-on-warn around ovrHmd_EndFrame, since distortion rendering can produce D3D11 warnings
+#ifdef _DEBUG
+	comptr<ID3D11InfoQueue> pInfoQueue;
+	bool breakOnWarnPrev = false;
+	if (SUCCEEDED(m_pDevice->QueryInterface(__uuidof(ID3D11InfoQueue), (void **)&pInfoQueue)))
+	{
+		breakOnWarnPrev = (pInfoQueue->GetBreakOnSeverity(D3D11_MESSAGE_SEVERITY_WARNING) != 0);
+		pInfoQueue->SetBreakOnSeverity(D3D11_MESSAGE_SEVERITY_WARNING, false);
+	}
+#endif
+
 	ovrHmd_EndFrame(m_hmd, renderedEyePoses, &m_ovrEyeTextures[0].Texture);
+
+#ifdef _DEBUG
+	if (pInfoQueue && breakOnWarnPrev)
+	{
+		pInfoQueue->SetBreakOnSeverity(D3D11_MESSAGE_SEVERITY_WARNING, true);
+	}
+#endif
 }
 
 
