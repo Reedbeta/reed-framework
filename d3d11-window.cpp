@@ -272,6 +272,11 @@ namespace Framework
 	{
 		LOG("Shutting down");
 
+		if (m_pSwapChain)
+		{
+			CHECK_D3D(m_pSwapChain->SetFullscreenState(false, nullptr));
+		}
+
 		m_pSwapChain.release();
 		m_pDevice.release();
 		m_pCtx.release();
@@ -381,16 +386,24 @@ namespace Framework
 				if (all(dimsNew > 0) && any(dimsNew != m_dims))
 				{
 					OnResize(dimsNew);
-					OnRender();
+					// Note: not calling OnRender here because it causes problems with startup/shutdown,
+					// during which we may get WM_SIZE messages while we're in a partially-inited state.
 				}
 				return 0;
 			}
 
 		case WM_SIZING:
 			{
-				RECT clientRect;
-				GetClientRect(hWnd, &clientRect);
-				int2 dimsNew = { clientRect.right - clientRect.left, clientRect.bottom - clientRect.top };
+				RECT * pRectNew = (RECT *)lParam;				
+				int2 dimsNew = { pRectNew->right - pRectNew->left, pRectNew->bottom - pRectNew->top };
+
+				// The rect contains the whole window, including borders and title bar, so calculate the delta
+				// between that and the client area.
+				RECT rectEmpty = {};
+				AdjustWindowRect(&rectEmpty, GetWindowLong(m_hWnd, GWL_STYLE), (GetMenu(m_hWnd) != nullptr));
+				int2 deltaClientToWindow = { rectEmpty.right - rectEmpty.left, rectEmpty.bottom - rectEmpty.top };
+				dimsNew -= deltaClientToWindow;
+
 				if (all(dimsNew > 0) && any(dimsNew != m_dims))
 				{
 					OnResize(dimsNew);
