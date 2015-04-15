@@ -14,6 +14,8 @@ namespace Framework
 					int markerCount,
 					int framesToBuffer = 3,
 					int framesToAverage = 30);
+		void	Reset();
+
 		void	OnFrameStart(ID3D11DeviceContext * pCtx);
 		void	Mark(ID3D11DeviceContext * pCtx, int iMarker);
 		void	OnFrameEnd(ID3D11DeviceContext * pCtx);

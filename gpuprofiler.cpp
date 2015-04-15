@@ -5,11 +5,7 @@ namespace Framework
 	// GPUProfiler implementation
 
 	GPUProfiler::GPUProfiler()
-	:	m_msAvg(),
-		m_disjointQueries(),
-		m_timestampQueries(),
-		m_msSum(),
-		m_markerCount(0),
+	:	m_markerCount(0),
 		m_framesToBuffer(0),
 		m_framesToAverage(0),
 		m_iFrameCur(0),
@@ -54,6 +50,20 @@ namespace Framework
 		{
 			CHECK_D3D(pDevice->CreateQuery(&queryDesc, &m_timestampQueries[i]));
 		}
+	}
+
+	void GPUProfiler::Reset()
+	{
+		m_msAvg.clear();
+		m_disjointQueries.clear();
+		m_timestampQueries.clear();
+		m_msSum.clear();
+		m_markerCount = 0;
+		m_framesToBuffer = 0;
+		m_framesToAverage = 0;
+		m_iFrameCur = 0;
+		m_framesSummed = 0;
+		m_framesIssued = 0;
 	}
 
 	void GPUProfiler::OnFrameStart(ID3D11DeviceContext * pCtx)
