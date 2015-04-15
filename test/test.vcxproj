@@ -87,6 +87,9 @@ copy /y $(ProjectDir)d3dcompiler_46.dll $(OutDir)
     <CustomBuildStep>
       <Inputs>$(ProjectDir)AntTweakBar64.dll;$(ProjectDir)d3dcompiler_46.dll;%(Inputs)</Inputs>
     </CustomBuildStep>
+    <Manifest>
+      <EnableDpiAwareness>true</EnableDpiAwareness>
+    </Manifest>
   </ItemDefinitionGroup>
   <ItemDefinitionGroup Condition="'$(Configuration)|$(Platform)'=='Release|x64'">
     <ClCompile>
@@ -138,6 +141,9 @@ copy /y $(ProjectDir)d3dcompiler_46.dll $(OutDir)
     <CustomBuildStep>
       <Inputs>$(ProjectDir)AntTweakBar64.dll;$(ProjectDir)d3dcompiler_46.dll;%(Inputs)</Inputs>
     </CustomBuildStep>
+    <Manifest>
+      <EnableDpiAwareness>true</EnableDpiAwareness>
+    </Manifest>
   </ItemDefinitionGroup>
   <ItemGroup>
     <ClCompile Include="test.cpp" />
