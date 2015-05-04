@@ -329,7 +329,7 @@ namespace Framework
 
 				CHECK_WARN(CheckPathChars(zipPath));
 
-				if (!mz_zip_writer_add_mem(pZipOut, zipPath, pData, sizeBytes, MZ_DEFAULT_LEVEL))
+				if (!mz_zip_writer_add_mem(pZipOut, zipPath, pData, sizeBytes, MZ_NO_COMPRESSION))
 				{
 					WARN("Couldn't add file %s to archive", zipPath);
 					return false;
@@ -345,7 +345,7 @@ namespace Framework
 
 				CHECK_WARN(CheckPathChars(assetPath));
 
-				if (!mz_zip_writer_add_mem(pZipOut, assetPath, pData, sizeBytes, MZ_DEFAULT_LEVEL))
+				if (!mz_zip_writer_add_mem(pZipOut, assetPath, pData, sizeBytes, MZ_NO_COMPRESSION))
 				{
 					WARN("Couldn't add file %s to archive", assetPath);
 					return false;

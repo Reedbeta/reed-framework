@@ -27,7 +27,7 @@ namespace Framework
 	{
 		enum PACKVER
 		{
-			PACKVER_Current = 2,
+			PACKVER_Current = 3,
 		};
 
 		enum MESHVER

@@ -3588,7 +3588,8 @@ mz_bool mz_zip_reader_extract_to_mem_no_alloc(mz_zip_archive *pZip, mz_uint file
     // The file is stored or the caller has requested the compressed data.
     if (pZip->m_pRead(pZip->m_pIO_opaque, cur_file_ofs, pBuf, (size_t)needed_size) != needed_size)
       return MZ_FALSE;
-    return ((flags & MZ_ZIP_FLAG_COMPRESSED_DATA) != 0) || (mz_crc32(MZ_CRC32_INIT, (const mz_uint8 *)pBuf, (size_t)file_stat.m_uncomp_size) == file_stat.m_crc32);
+    // NRR: commented out CRC32 check to save time
+    return MZ_TRUE; /*((flags & MZ_ZIP_FLAG_COMPRESSED_DATA) != 0) || (mz_crc32(MZ_CRC32_INIT, (const mz_uint8 *)pBuf, (size_t)file_stat.m_uncomp_size) == file_stat.m_crc32);*/
   }
 
   // Decompress the file either directly from memory or from a file input buffer.
@@ -3652,7 +3653,8 @@ mz_bool mz_zip_reader_extract_to_mem_no_alloc(mz_zip_archive *pZip, mz_uint file
   if (status == TINFL_STATUS_DONE)
   {
     // Make sure the entire file was decompressed, and check its CRC.
-    if ((out_buf_ofs != file_stat.m_uncomp_size) || (mz_crc32(MZ_CRC32_INIT, (const mz_uint8 *)pBuf, (size_t)file_stat.m_uncomp_size) != file_stat.m_crc32))
+    // NRR: commented out CRC32 check to save time
+    if ((out_buf_ofs != file_stat.m_uncomp_size) /*|| (mz_crc32(MZ_CRC32_INIT, (const mz_uint8 *)pBuf, (size_t)file_stat.m_uncomp_size) != file_stat.m_crc32)*/)
       status = TINFL_STATUS_FAILED;
   }
 
