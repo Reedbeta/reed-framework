@@ -8,12 +8,12 @@ namespace Framework
 	//  * Currently uses hard-coded Vertex structure.
 	//  * Creates a single vertex buffer and index buffer, plus a material map that
 	//      identifies which faces get drawn with each material.
+	//  * Groups together all faces with the same material into a contiguous
+	//      range of indices, so they can be drawn with one draw call.
+	//  * Removes degenerate triangles.
 	//  * Deduplicates verts.
 	//  * Generates normals if necessary.
-	//  * Groups together all faces with the same material into a contiguous
-	//      range of indices so they can be drawn with one draw call.
 	//  * !!!UNDONE: Vertex cache optimization.
-	//  * !!!UNDONE: Parsing the accompanying .mtl file.
 
 	namespace OBJMeshCompiler
 	{
@@ -46,8 +46,10 @@ namespace Framework
 
 		// Prototype various helper functions
 		static bool ParseOBJ(const char * path, Context * pCtxOut);
+		static void RemoveDegenerateTriangles(Context * pCtx);
 		static void DeduplicateVerts(Context * pCtx);
 		static void CalculateNormals(Context * pCtx);
+		static void NormalizeNormals(Context * pCtx);
 #if VERTEX_TANGENT
 		static void CalculateTangents(Context * pCtx);
 #endif
@@ -78,13 +80,15 @@ namespace Framework
 			return false;
 
 		// Clean up the mesh
+		SortMaterials(&ctx);
+		RemoveDegenerateTriangles(&ctx);
 		DeduplicateVerts(&ctx);
 		if (!ctx.m_hasNormals)
 			CalculateNormals(&ctx);
+		NormalizeNormals(&ctx);
 #if VERTEX_TANGENT
 		CalculateTangents(&ctx);
 #endif
-		SortMaterials(&ctx);
 
 		// Fill out the metadata struct
 		Meta meta =
@@ -306,9 +310,66 @@ namespace Framework
 			return true;
 		}
 
+		static void RemoveDegenerateTriangles(Context * pCtx)
+		{
+			ASSERT_ERR(pCtx);
+			ASSERT_WARN(pCtx->m_indices.size() % 3 == 0);
+
+			// Remove degenerate triangles by compacting in-place
+			int iWrite = 0;
+			for (int i = 0, c = int(pCtx->m_indices.size()); i < c; i += 3)
+			{
+				int indices[3] = { pCtx->m_indices[i], pCtx->m_indices[i+1], pCtx->m_indices[i+2] };
+
+				// Gather positions for this triangle
+				point3 facePositions[3] =
+				{
+					pCtx->m_verts[indices[0]].m_pos,
+					pCtx->m_verts[indices[1]].m_pos,
+					pCtx->m_verts[indices[2]].m_pos,
+				};
+
+				// Calculate edge and normal vectors
+				float3 edge0 = facePositions[1] - facePositions[0];
+				float3 edge1 = facePositions[2] - facePositions[0];
+				float3 normal = cross(edge0, edge1);
+
+				// Triangle is degenerate if normal is near-zero
+				bool degenerate = all(isnear(normal, 0.0f));
+				if (degenerate)
+				{
+					// Fix up material ranges.  This could be done more efficiently, but on the
+					// assumption that degenerate triangles are rare and material ranges are few,
+					// this should be OK...
+					// !!!UNDONE: should remove empty material ranges after this
+					for (int iMaterial = 0, cMaterial = int(pCtx->m_mtlRanges.size()); iMaterial < cMaterial; ++iMaterial)
+					{
+						MtlRange * pMtlRange = &pCtx->m_mtlRanges[iMaterial];
+						if (iWrite < pMtlRange->m_indexStart)
+							pMtlRange->m_indexStart -= 3;
+						else if (iWrite < pMtlRange->m_indexStart + pMtlRange->m_indexCount)
+							pMtlRange->m_indexCount -= 3;
+					}
+				}
+				else
+				{
+					// Not degenerate: keep this triangle; copy its indices down to the write cursor
+					pCtx->m_indices[iWrite  ] = pCtx->m_indices[i  ];
+					pCtx->m_indices[iWrite+1] = pCtx->m_indices[i+1];
+					pCtx->m_indices[iWrite+2] = pCtx->m_indices[i+2];
+					iWrite += 3;
+				}
+			}
+
+			ASSERT_ERR(iWrite <= int(pCtx->m_indices.size()));
+			pCtx->m_indices.resize(iWrite);
+		}
+
 		static void DeduplicateVerts(Context * pCtx)
 		{
 			ASSERT_ERR(pCtx);
+
+			// Set up a hash table for vertices
 
 			struct VertexHasher
 			{
@@ -318,6 +379,8 @@ namespace Framework
 					return fh(v.m_pos.x) ^ fh(v.m_pos.y) ^ fh(v.m_pos.z) ^
 						   fh(v.m_normal.x) ^ fh(v.m_normal.y) ^ fh(v.m_normal.z) ^
 						   fh(v.m_uv.x) ^ fh(v.m_uv.y);
+					// Note: m_tangent not included because it isn't part of the .obj format,
+					// and hasn't been computed yet at this stage in the compilation process
 				}
 			};
 
@@ -328,6 +391,8 @@ namespace Framework
 					return (all(u.m_pos == v.m_pos) &&
 							all(u.m_normal == v.m_normal) &&
 							all(u.m_uv == v.m_uv));
+					// Note: m_tangent not included because it isn't part of the .obj format,
+					// and hasn't been computed yet at this stage in the compilation process
 				}
 			};
 
@@ -336,36 +401,45 @@ namespace Framework
 			std::unordered_map<Vertex, int, VertexHasher, VertexEqualityTester> mapVertToIndex;
 
 			vertsDeduplicated.reserve(pCtx->m_verts.size());
-			remappingTable.reserve(pCtx->m_verts.size());
+			remappingTable.resize(pCtx->m_verts.size(), -1);
+			mapVertToIndex.reserve(pCtx->m_verts.size());
 
-			for (int i = 0, cVert = int(pCtx->m_verts.size()); i < cVert; ++i)
+			// Iterate over indices, so that we automatically skip orphaned vertices
+			for (int i = 0, c = int(pCtx->m_indices.size()); i < c; ++i)
 			{
-				const Vertex & vert = pCtx->m_verts[i];
+				int index = pCtx->m_indices[i];
+
+				// If this vertex was already remapped, nothing to do
+				if (remappingTable[index] >= 0)
+					continue;
+
+				// Search the hash table for a match for this vertex
+				const Vertex & vert = pCtx->m_verts[index];
 				auto iter = mapVertToIndex.find(vert);
 				if (iter == mapVertToIndex.end())
 				{
-					// Found a new vertex that's not in the map yet.
+					// Found a new vertex that's not in the table yet
 					int newIndex = int(vertsDeduplicated.size());
 					vertsDeduplicated.push_back(vert);
-					remappingTable.push_back(newIndex);
+					remappingTable[index] = newIndex;
 					mapVertToIndex.insert(std::make_pair(vert, newIndex));
 				}
 				else
 				{
 					// It's already in the map; re-use the previous index
 					int newIndex = iter->second;
-					remappingTable.push_back(newIndex);
+					remappingTable[index] = newIndex;
 				}
 			}
 
 			ASSERT_ERR(vertsDeduplicated.size() <= pCtx->m_verts.size());
-			ASSERT_ERR(remappingTable.size() == pCtx->m_verts.size());
 
 			std::vector<int> indicesRemapped;
 			indicesRemapped.resize(pCtx->m_indices.size());
 
-			for (int i = 0, cIndex = int(pCtx->m_indices.size()); i < cIndex; ++i)
+			for (int i = 0, c = int(pCtx->m_indices.size()); i < c; ++i)
 			{
+				ASSERT_ERR(remappingTable[pCtx->m_indices[i]] >= 0);
 				indicesRemapped[i] = remappingTable[pCtx->m_indices[i]];
 			}
 
@@ -395,12 +469,18 @@ namespace Framework
 				float3 edge0 = facePositions[1] - facePositions[0];
 				float3 edge1 = facePositions[2] - facePositions[0];
 				float3 normal = normalize(cross(edge0, edge1));
+				ASSERT_WARN(all(isfinite(normal)));
 
 				// Accumulate onto vertices
 				pCtx->m_verts[indices[0]].m_normal += normal;
 				pCtx->m_verts[indices[1]].m_normal += normal;
 				pCtx->m_verts[indices[2]].m_normal += normal;
 			}
+		}
+
+		static void NormalizeNormals(Context * pCtx)
+		{
+			ASSERT_ERR(pCtx);
 
 			// Normalize summed normals
 			for (int i = 0, c = int(pCtx->m_verts.size()); i < c; ++i)
