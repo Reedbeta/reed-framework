@@ -37,7 +37,7 @@ namespace Framework
 
 		enum MTLVER
 		{
-			MTLVER_Current = 1,
+			MTLVER_Current = 4,
 		};
 
 		enum TEXVER

@@ -18,6 +18,7 @@ namespace Framework
 			rgb				m_rgbDiffuseColor;
 			rgb				m_rgbSpecColor;
 			float			m_specPower;
+			float			m_bumpScale;
 		};
 
 		struct Context
@@ -75,6 +76,19 @@ namespace Framework
 
 			Material * pMtlCur = nullptr;
 
+			// Set up some sane defaults for materials that don't specify all parameters
+			Material mtlDefault =
+			{
+				std::string(),			// m_mtlName
+				std::string(),			// m_texDiffuseColor
+				std::string(),			// m_texSpecColor
+				std::string(),			// m_texHeight
+				{ 1.0f, 1.0f, 1.0f, },	// m_rgbDiffuseColor
+				{ 0.0f, 0.0f, 0.0f, },	// m_rgbSpecColor
+				0.0f,					// m_specPower
+				1.0f,					// m_bumpScale
+			};
+
 			// Parse line-by-line
 			TextParsingHelper tph((char *)&data[0]);
 			while (tph.NextLine())
@@ -82,7 +96,7 @@ namespace Framework
 				char * pToken = tph.NextToken();
 				if (_stricmp(pToken, "newmtl") == 0)
 				{
-					pCtxOut->m_mtls.push_back(Material());
+					pCtxOut->m_mtls.push_back(mtlDefault);
 					pMtlCur = &pCtxOut->m_mtls.back();
 					pMtlCur->m_mtlName = tph.ExpectOneToken(path, "material name");
 					makeLowercase(pMtlCur->m_mtlName);
@@ -121,7 +135,25 @@ namespace Framework
 						continue;
 					}
 
-					pMtlCur->m_texHeight = tph.ExpectOneToken(path, "texture name");
+					pToken = tph.ExpectOneToken("texture name or options");
+
+					if (_stricmp(pToken, "-bm") == 0)
+					{
+						// Parse bump scale
+						float bumpScale = float(atof(tph.ExpectOneToken("bump scale")));
+						if (bumpScale < 0.0f)
+						{
+							WARN("%s: bump scale at line %d is less than 0; clamping", path, tph.m_iLine);
+							bumpScale = 0.0f;
+						}
+						pMtlCur->m_bumpScale = bumpScale;
+
+						pToken = tph.ExpectOneToken("texture name or options");
+					}
+
+					pMtlCur->m_texHeight = pToken;
+					tph.ExpectEOL();
+
 					makeLowercase(pMtlCur->m_texHeight);
 				}
 				else if (_stricmp(pToken, "Kd") == 0)
@@ -185,6 +217,7 @@ namespace Framework
 				sh.Write(pMtl->m_rgbDiffuseColor);
 				sh.Write(pMtl->m_rgbSpecColor);
 				sh.Write(pMtl->m_specPower);
+				sh.Write(pMtl->m_bumpScale);
 			}
 		}
 	}
@@ -232,7 +265,8 @@ namespace Framework
 				!dh.ReadString(&texHeightName) ||
 				!dh.Read(&mtl.m_rgbDiffuseColor) ||
 				!dh.Read(&mtl.m_rgbSpecColor) ||
-				!dh.Read(&mtl.m_specPower))
+				!dh.Read(&mtl.m_specPower) ||
+				!dh.Read(&mtl.m_bumpScale))
 			{
 				return false;
 			}
@@ -240,7 +274,7 @@ namespace Framework
 			// Validate data
 			if (any(mtl.m_rgbDiffuseColor < 0.0f) || any(mtl.m_rgbDiffuseColor > 1.0f) ||
 				any(mtl.m_rgbSpecColor < 0.0f) || any(mtl.m_rgbSpecColor > 1.0f) ||
-				mtl.m_specPower < 0.0f)
+				mtl.m_specPower < 0.0f || mtl.m_bumpScale < 0.0f)
 			{
 				WARN("Corrupt material lib: numeric parameter out of range");
 				return false;
