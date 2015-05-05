@@ -9,13 +9,15 @@ void main(
 	in float4 i_uvzwShadow : UVZW_SHADOW,
 	out float3 o_rgb : SV_Target)
 {
+	float3 normal = normalize(i_vtx.m_normal);
+
 	float3 diffuseColor = g_texDiffuse.Sample(g_ss, i_vtx.m_uv);
-	float3 diffuseLight = g_rgbDirectionalLight * saturate(dot(i_vtx.m_normal, g_vecDirectionalLight));
+	float3 diffuseLight = g_rgbDirectionalLight * saturate(dot(normal, g_vecDirectionalLight));
 
 	// Simple ramp ambient
 	float3 skyColor = { 0.05, 0.07, 0.2 };
 	float3 groundColor = { 0.2, 0.2, 0.15 };
-	diffuseLight += lerp(groundColor, skyColor, i_vtx.m_normal.y * 0.5 + 0.5);
+	diffuseLight += lerp(groundColor, skyColor, normal.y * 0.5 + 0.5);
 
 	o_rgb = diffuseColor * diffuseLight;
 }
