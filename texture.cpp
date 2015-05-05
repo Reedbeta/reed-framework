@@ -681,11 +681,9 @@ namespace Framework
 	{
 	}
 
-	Texture2D * TextureLib::Lookup(const char * name)
+	Texture2D * TextureLib::Lookup(const std::string & name)
 	{
-		ASSERT_ERR(name);
-
-		auto iter = m_texs.find(std::string(name));
+		auto iter = m_texs.find(name);
 		if (iter == m_texs.end())
 			return nullptr;
 

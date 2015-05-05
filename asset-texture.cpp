@@ -335,12 +335,7 @@ namespace Framework
 				continue;
 			}
 
-			// !!!HACK: only use the basename for now, so materials can find textures
-			const char * basename = pACI->m_pathSrc;
-			if (const char * pLastSlash = strrchr(pACI->m_pathSrc, '/'))
-				basename = pLastSlash + 1;
-
-			auto iterAndBool = pTexLibOut->m_texs.insert(std::make_pair(std::string(basename), Texture2D()));
+			auto iterAndBool = pTexLibOut->m_texs.insert(std::make_pair(std::string(pACI->m_pathSrc), Texture2D()));
 
 			if (!LoadTexture2DFromAssetPack(pPack, pACI->m_pathSrc, &iterAndBool.first->second))
 			{

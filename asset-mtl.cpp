@@ -112,6 +112,7 @@ namespace Framework
 
 					pMtlCur->m_texDiffuseColor = tph.ExpectOneToken(path, "texture name");
 					makeLowercase(pMtlCur->m_texDiffuseColor);
+					replaceChars(pMtlCur->m_texDiffuseColor, '\\', '/');
 				}
 				else if (_stricmp(pToken, "map_Ks") == 0)
 				{
@@ -124,6 +125,7 @@ namespace Framework
 
 					pMtlCur->m_texSpecColor = tph.ExpectOneToken(path, "texture name");
 					makeLowercase(pMtlCur->m_texSpecColor);
+					replaceChars(pMtlCur->m_texSpecColor, '\\', '/');
 				}
 				else if (_stricmp(pToken, "map_bump") == 0 ||
 						 _stricmp(pToken, "bump") == 0)
@@ -155,6 +157,7 @@ namespace Framework
 					tph.ExpectEOL();
 
 					makeLowercase(pMtlCur->m_texHeight);
+					replaceChars(pMtlCur->m_texHeight, '\\', '/');
 				}
 				else if (_stricmp(pToken, "Kd") == 0)
 				{
@@ -249,6 +252,9 @@ namespace Framework
 			return false;
 		}
 
+		// Use the MTL's path within the zip as the base for looking up relative paths of textures
+		std::string dirBase = findDirectory(path);
+
 		// Deserialize it
 		DeserializeHelper dh(pData, dataSize);
 		while (!dh.AtEOF())
@@ -285,19 +291,19 @@ namespace Framework
 			{
 				if (*texDiffuseColorName)
 				{
-					mtl.m_pTexDiffuseColor = pTexLib->Lookup(texDiffuseColorName);
+					mtl.m_pTexDiffuseColor = pTexLib->Lookup(dirBase + texDiffuseColorName);
 					ASSERT_WARN_MSG(mtl.m_pTexDiffuseColor, 
 						"Material %s: couldn't find texture %s in texture library", mtl.m_mtlName, texDiffuseColorName);
 				}
 				if (*texSpecColorName)
 				{
-					mtl.m_pTexSpecColor = pTexLib->Lookup(texSpecColorName);
+					mtl.m_pTexSpecColor = pTexLib->Lookup(dirBase + texSpecColorName);
 					ASSERT_WARN_MSG(mtl.m_pTexSpecColor, 
 						"Material %s: couldn't find texture %s in texture library", mtl.m_mtlName, texSpecColorName);
 				}
 				if (*texHeightName)
 				{
-					mtl.m_pTexHeight = pTexLib->Lookup(texHeightName);
+					mtl.m_pTexHeight = pTexLib->Lookup(dirBase + texHeightName);
 					ASSERT_WARN_MSG(mtl.m_pTexHeight, 
 						"Material %s: couldn't find texture %s in texture library", mtl.m_mtlName, texHeightName);
 				}

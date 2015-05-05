@@ -241,7 +241,9 @@ namespace Framework
 		std::unordered_map<std::string, Texture2D>	m_texs;
 
 					TextureLib();
-		Texture2D *	Lookup(const char * name);
+		Texture2D *	Lookup(const std::string & name);
+		Texture2D *	Lookup(const char * name)
+						{ return Lookup(std::string(name)); }
 		void		UploadAllToGPU(
 						ID3D11Device * pDevice,
 						int flags = TEXFLAG_Default);
