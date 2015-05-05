@@ -65,6 +65,7 @@ namespace Framework
 		virtual void		Update(float timestep);
 
 		void				LookAt(point3_arg posCamera, point3_arg posTarget);
+		void				SetPose(point3_arg posCamera, float yaw, float pitch);
 
 		float				m_moveSpeed;		// Movement speed in units/second
 		float				m_rotateSpeed;		// Mouse sensitivity in radians/pixel
@@ -93,6 +94,7 @@ namespace Framework
 		virtual void		Update(float timestep);
 
 		void				LookAt(point3_arg posCamera, point3_arg posTarget);
+		void				SetPose(point3_arg posTarget, float yaw, float pitch, float radius);
 
 		float				m_rotateSpeed;		// Mouse sensitivity in radians/pixel
 		float				m_zoomSpeed;		// Mouse zoom speed in nepers/pixel

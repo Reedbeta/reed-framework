@@ -220,6 +220,17 @@ namespace Framework
 		UpdateWorldToClip();
 	}
 
+	void FPSCamera::SetPose(point3_arg posCamera, float yaw, float pitch)
+	{
+		m_pos = posCamera;
+		m_yaw = yaw;
+		m_pitch = pitch;
+
+		// Update matrices
+		UpdateOrientation();
+		UpdateWorldToClip();
+	}
+
 	void FPSCamera::UpdateOrientation()
 	{
 		// Calculate new orientation matrix using spherical coordinates
@@ -374,6 +385,20 @@ namespace Framework
 		vecToTarget /= m_radius;
 		m_yaw = atan2f(-vecToTarget.z, vecToTarget.x);
 		m_pitch = asinf(vecToTarget.y);
+
+		// Update matrices
+		UpdateOrientation();
+		m_pos = m_posTarget + m_radius * m_viewToWorld.m_linear[2];
+		m_viewToWorld.m_translation = makefloat3(m_pos);
+		UpdateWorldToClip();
+	}
+
+	void MayaCamera::SetPose(point3_arg posTarget, float yaw, float pitch, float radius)
+	{
+		m_posTarget = posTarget;
+		m_yaw = yaw;
+		m_pitch = pitch;
+		m_radius = radius;
 
 		// Update matrices
 		UpdateOrientation();
