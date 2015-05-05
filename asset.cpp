@@ -370,11 +370,11 @@ namespace Framework
 			std::vector<char> manifestCopy(manifestSize + 1);
 			memcpy(&manifestCopy[0], manifest, manifestSize);
 
-			TextParsingHelper tph(&manifestCopy[0]);
+			TextParsingHelper tph(&manifestCopy[0], path);
 			while (tph.NextLine())
 			{
 				pManifestOut->insert(std::string(tph.NextToken()));
-				tph.ExpectEOL(path);
+				tph.ExpectEOL();
 			}
 		}
 

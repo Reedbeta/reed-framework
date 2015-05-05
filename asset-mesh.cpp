@@ -142,14 +142,15 @@ namespace Framework
 			OBJMtlRanges.push_back(initialRange);
 
 			// Parse line-by-line
-			TextParsingHelper tph((char *)&data[0]);
+			TextParsingHelper tph((char *)&data[0], path);
 			while (tph.NextLine())
 			{
 				char * pToken = tph.NextToken();
 				if (_stricmp(pToken, "v") == 0)
 				{
 					char * tokens[3] = {};
-					tph.ExpectTokens(tokens, dim(tokens), path, "vertex position");
+					tph.ExpectTokens(tokens, dim(tokens), "vertex position");
+					tph.ExpectEOL();
 
 					// Add vertex
 					point3 pos;
@@ -161,7 +162,8 @@ namespace Framework
 				else if (_stricmp(pToken, "vn") == 0)
 				{
 					char * tokens[3] = {};
-					tph.ExpectTokens(tokens, dim(tokens), path, "normal vector");
+					tph.ExpectTokens(tokens, dim(tokens), "normal vector");
+					tph.ExpectEOL();
 
 					// Add normal
 					float3 normal;
@@ -173,7 +175,8 @@ namespace Framework
 				else if (_stricmp(pToken, "vt") == 0)
 				{
 					char * tokens[2] = {};
-					tph.ExpectTokens(tokens, dim(tokens), path, "UVs");
+					tph.ExpectTokens(tokens, dim(tokens), "UVs");
+					tph.ExpectEOL();
 
 					// Add UV, flipping V-axis since OBJ UVs use a bottom-up convention
 					float2 uv;
@@ -224,7 +227,8 @@ namespace Framework
 				}
 				else if (_stricmp(pToken, "usemtl") == 0)
 				{
-					const char * pMtlName = tph.ExpectOneToken(path, "material name");
+					const char * pMtlName = tph.ExpectOneToken("material name");
+					tph.ExpectEOL();
 					if (!pMtlName)
 						continue;
 

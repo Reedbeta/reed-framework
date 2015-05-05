@@ -90,7 +90,7 @@ namespace Framework
 			};
 
 			// Parse line-by-line
-			TextParsingHelper tph((char *)&data[0]);
+			TextParsingHelper tph((char *)&data[0], path);
 			while (tph.NextLine())
 			{
 				char * pToken = tph.NextToken();
@@ -98,7 +98,9 @@ namespace Framework
 				{
 					pCtxOut->m_mtls.push_back(mtlDefault);
 					pMtlCur = &pCtxOut->m_mtls.back();
-					pMtlCur->m_mtlName = tph.ExpectOneToken(path, "material name");
+					pMtlCur->m_mtlName = tph.ExpectOneToken("material name");
+					tph.ExpectEOL();
+
 					makeLowercase(pMtlCur->m_mtlName);
 				}
 				else if (_stricmp(pToken, "map_Kd") == 0)
@@ -110,7 +112,9 @@ namespace Framework
 						continue;
 					}
 
-					pMtlCur->m_texDiffuseColor = tph.ExpectOneToken(path, "texture name");
+					pMtlCur->m_texDiffuseColor = tph.ExpectOneToken("texture name");
+					tph.ExpectEOL();
+
 					makeLowercase(pMtlCur->m_texDiffuseColor);
 					replaceChars(pMtlCur->m_texDiffuseColor, '\\', '/');
 				}
@@ -123,7 +127,9 @@ namespace Framework
 						continue;
 					}
 
-					pMtlCur->m_texSpecColor = tph.ExpectOneToken(path, "texture name");
+					pMtlCur->m_texSpecColor = tph.ExpectOneToken("texture name");
+					tph.ExpectEOL();
+
 					makeLowercase(pMtlCur->m_texSpecColor);
 					replaceChars(pMtlCur->m_texSpecColor, '\\', '/');
 				}
@@ -162,7 +168,8 @@ namespace Framework
 				else if (_stricmp(pToken, "Kd") == 0)
 				{
 					char * tokens[3] = {};
-					tph.ExpectTokens(tokens, dim(tokens), path, "RGB color");
+					tph.ExpectTokens(tokens, dim(tokens), "RGB color");
+					tph.ExpectEOL();
 
 					srgb color = makesrgb(float(atof(tokens[0])), float(atof(tokens[1])), float(atof(tokens[2])));
 					if (any(color < 0.0f) || any(color > 1.0f))
@@ -175,7 +182,8 @@ namespace Framework
 				else if (_stricmp(pToken, "Ks") == 0)
 				{
 					char * tokens[3] = {};
-					tph.ExpectTokens(tokens, dim(tokens), path, "RGB color");
+					tph.ExpectTokens(tokens, dim(tokens), "RGB color");
+					tph.ExpectEOL();
 
 					srgb color = makesrgb(float(atof(tokens[0])), float(atof(tokens[1])), float(atof(tokens[2])));
 					if (any(color < 0.0f) || any(color > 1.0f))
@@ -187,7 +195,9 @@ namespace Framework
 				}
 				else if (_stricmp(pToken, "Ns") == 0)
 				{
-					float n = float(atof(tph.ExpectOneToken(path, "specular power")));
+					float n = float(atof(tph.ExpectOneToken("specular power")));
+					tph.ExpectEOL();
+
 					if (n < 0.0f)
 					{
 						WARN("%s: specular power at line %d is below zero; clamping", path, tph.m_iLine);
