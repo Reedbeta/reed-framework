@@ -63,8 +63,7 @@ namespace Framework
 					this);
 		ASSERT_ERR(m_hWnd);
 
-#ifdef _DEBUG
-		// Take a look at the adaptors on the system, just for kicks
+		// Take a look at the adaptors and outputs on the system, just for kicks
 		comptr<IDXGIFactory> pFactory;
 		CHECK_D3D(CreateDXGIFactory(__uuidof(IDXGIFactory), (void **)&pFactory));
 		for (int iAdapter = 0; ; ++iAdapter)
@@ -81,8 +80,30 @@ namespace Framework
 				LOG("Adapter %d: %ls (%dMB VRAM)", iAdapter, adapterDesc.Description, adapterDesc.DedicatedVideoMemory / 1048576);
 			else
 				LOG("Adapter %d: %ls (%dMB shared RAM)", iAdapter, adapterDesc.Description, adapterDesc.SharedSystemMemory / 1048576);
+
+			int iOutput = 0;
+			for (; ; ++iOutput)
+			{
+				comptr<IDXGIOutput> pOutput;
+				HRESULT hr = pAdapter->EnumOutputs(iOutput, &pOutput);
+				if (hr == DXGI_ERROR_NOT_FOUND)
+					break;
+				ASSERT_ERR(SUCCEEDED(hr));
+
+				DXGI_OUTPUT_DESC outputDesc;
+				CHECK_D3D(pOutput->GetDesc(&outputDesc));
+
+				DISPLAY_DEVICEW displayDevice = { sizeof(displayDevice), };
+				CHECK_ERR(EnumDisplayDevicesW(outputDesc.DeviceName, 0, &displayDevice, 0));
+
+				LOG("    Output %d: %ls (%dx%d)",
+					iOutput, displayDevice.DeviceString,
+					outputDesc.DesktopCoordinates.right - outputDesc.DesktopCoordinates.left,
+					outputDesc.DesktopCoordinates.bottom - outputDesc.DesktopCoordinates.top);
+			}
+			if (iOutput == 0)
+				LOG("    No outputs");
 		}
-#endif // _DEBUG
 
 		// Initialize D3D11
 		UINT flags = 0;
