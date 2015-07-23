@@ -298,15 +298,16 @@ namespace Framework
 			CHECK_D3D(m_pSwapChain->SetFullscreenState(false, nullptr));
 		}
 
-		m_pSwapChain.release();
-		m_pDevice.release();
 		m_pCtx.release();
+
 		m_pTexBackBuffer.release();
 		m_pRtvSRGB.release();
 		m_pRtvRaw.release();
+
 		m_pTexDepth.release();
 		m_pDsv.release();
 		m_pSrvDepth.release();
+
 		m_pRsDefault.release();
 		m_pRsDoubleSided.release();
 		m_pDssDepthTest.release();
@@ -314,19 +315,28 @@ namespace Framework
 		m_pDssNoDepthTest.release();
 		m_pBsAdditive.release();
 		m_pBsAlphaBlend.release();
+
 		m_pSsPointClamp.release();
 		m_pSsBilinearClamp.release();
 		m_pSsTrilinearRepeat.release();
 		m_pSsTrilinearRepeatAniso.release();
 		m_pSsPCF.release();
+
 		m_pVsFullscreen.release();
 		m_pVsRect.release();
 		m_pPsCopy.release();
+
 		m_cbBlit.Reset();
+
 		m_pBufLineVertices.release();
 		m_pInputLayoutLines.release();
 		m_pVsLines.release();
 		m_pPsLines.release();
+
+		// Note that all D3D objects must be released before the device and swap chain,
+		// or it's possible to end up with dangling objects.
+		m_pDevice.release();
+		m_pSwapChain.release();
 
 		if (m_hWnd)
 		{

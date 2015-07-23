@@ -563,7 +563,7 @@ namespace Framework
 		};
 		srvDesc.Texture2D.MipLevels = 1;
 
-		ID3D11ShaderResourceView * pSrv = nullptr;
+		comptr<ID3D11ShaderResourceView> pSrv = nullptr;
 		CHECK_D3D(pDevice->CreateShaderResourceView(pTex, &srvDesc, &pSrv));
 
 		pTexOut->m_pTex = pTex;
@@ -615,7 +615,7 @@ namespace Framework
 		};
 		srvDesc.TextureCube.MipLevels = 1;
 
-		ID3D11ShaderResourceView * pSrv = nullptr;
+		comptr<ID3D11ShaderResourceView> pSrv = nullptr;
 		CHECK_D3D(pDevice->CreateShaderResourceView(pTex, &srvDesc, &pSrv));
 
 		pTexOut->m_pTex = pTex;
@@ -663,7 +663,7 @@ namespace Framework
 		};
 		srvDesc.Texture2D.MipLevels = 1;
 
-		ID3D11ShaderResourceView * pSrv = nullptr;
+		comptr<ID3D11ShaderResourceView> pSrv = nullptr;
 		CHECK_D3D(pDevice->CreateShaderResourceView(pTex, &srvDesc, &pSrv));
 
 		pTexOut->m_pTex = pTex;
