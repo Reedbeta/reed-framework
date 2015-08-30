@@ -27,8 +27,8 @@ namespace Framework
 		};
 
 		// Prototype various helper functions
-		static bool ParseMTL(const char * path, Context * pCtxOut);
-		static void SerializeMtlLib(Context * pCtx, std::vector<byte> * pDataOut);
+		bool ParseMTL(const char * path, Context * pCtxOut);
+		void SerializeMtlLib(Context * pCtx, std::vector<byte> * pDataOut);
 	}
 
 
@@ -64,7 +64,7 @@ namespace Framework
 
 	namespace OBJMtlLibCompiler
 	{
-		static bool ParseMTL(const char * path, Context * pCtxOut)
+		bool ParseMTL(const char * path, Context * pCtxOut)
 		{
 			ASSERT_ERR(path);
 			ASSERT_ERR(pCtxOut);
@@ -214,7 +214,7 @@ namespace Framework
 			return true;
 		}
 
-		static void SerializeMtlLib(Context * pCtx, std::vector<byte> * pDataOut)
+		void SerializeMtlLib(Context * pCtx, std::vector<byte> * pDataOut)
 		{
 			ASSERT_ERR(pCtx);
 			ASSERT_ERR(pDataOut);

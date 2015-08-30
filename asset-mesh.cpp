@@ -45,17 +45,17 @@ namespace Framework
 		};
 
 		// Prototype various helper functions
-		static bool ParseOBJ(const char * path, Context * pCtxOut);
-		static void RemoveDegenerateTriangles(Context * pCtx);
-		static void DeduplicateVerts(Context * pCtx);
-		static void CalculateNormals(Context * pCtx);
-		static void NormalizeNormals(Context * pCtx);
+		bool ParseOBJ(const char * path, Context * pCtxOut);
+		void RemoveDegenerateTriangles(Context * pCtx);
+		void DeduplicateVerts(Context * pCtx);
+		void CalculateNormals(Context * pCtx);
+		void NormalizeNormals(Context * pCtx);
 #if VERTEX_TANGENT
-		static void CalculateTangents(Context * pCtx);
+		void CalculateTangents(Context * pCtx);
 #endif
-		static void SortMaterials(Context * pCtx);
+		void SortMaterials(Context * pCtx);
 
-		static void SerializeMaterialMap(Context * pCtx, std::vector<byte> * pDataOut);
+		void SerializeMaterialMap(Context * pCtx, std::vector<byte> * pDataOut);
 	}
 
 
@@ -116,7 +116,7 @@ namespace Framework
 
 	namespace OBJMeshCompiler
 	{
-		static bool ParseOBJ(const char * path, Context * pCtxOut)
+		bool ParseOBJ(const char * path, Context * pCtxOut)
 		{
 			ASSERT_ERR(path);
 			ASSERT_ERR(pCtxOut);
@@ -314,7 +314,7 @@ namespace Framework
 			return true;
 		}
 
-		static void RemoveDegenerateTriangles(Context * pCtx)
+		void RemoveDegenerateTriangles(Context * pCtx)
 		{
 			ASSERT_ERR(pCtx);
 			ASSERT_WARN(pCtx->m_indices.size() % 3 == 0);
@@ -369,7 +369,7 @@ namespace Framework
 			pCtx->m_indices.resize(iWrite);
 		}
 
-		static void DeduplicateVerts(Context * pCtx)
+		void DeduplicateVerts(Context * pCtx)
 		{
 			ASSERT_ERR(pCtx);
 
@@ -451,7 +451,7 @@ namespace Framework
 			pCtx->m_indices.swap(indicesRemapped);
 		}
 
-		static void CalculateNormals(Context * pCtx)
+		void CalculateNormals(Context * pCtx)
 		{
 			ASSERT_ERR(pCtx);
 			ASSERT_WARN(pCtx->m_indices.size() % 3 == 0);
@@ -482,7 +482,7 @@ namespace Framework
 			}
 		}
 
-		static void NormalizeNormals(Context * pCtx)
+		void NormalizeNormals(Context * pCtx)
 		{
 			ASSERT_ERR(pCtx);
 
@@ -495,7 +495,7 @@ namespace Framework
 		}
 
 #if VERTEX_TANGENT
-		static void CalculateTangents(Context * pCtx)
+		void CalculateTangents(Context * pCtx)
 		{
 			ASSERT_ERR(pCtx);
 			ASSERT_WARN(pCtx->m_indices.size() % 3 == 0);
@@ -560,7 +560,7 @@ namespace Framework
 		}
 #endif // VERTEX_TANGENT
 
-		static void SortMaterials(Context * pCtx)
+		void SortMaterials(Context * pCtx)
 		{
 			ASSERT_ERR(pCtx);
 
@@ -633,7 +633,7 @@ namespace Framework
 			pCtx->m_mtlRanges.swap(mtlRangesMerged);
 		}
 
-		static void SerializeMaterialMap(Context * pCtx, std::vector<byte> * pDataOut)
+		void SerializeMaterialMap(Context * pCtx, std::vector<byte> * pDataOut)
 		{
 			ASSERT_ERR(pCtx);
 			ASSERT_ERR(pDataOut);
@@ -653,7 +653,7 @@ namespace Framework
 
 	// Load compiled data into a runtime game object
 
-	static bool DeserializeMaterialMap(const byte * pMtlMap, int mtlMapSize, MaterialLib * pMtlLib, Mesh * pMeshOut);
+	bool DeserializeMaterialMap(const byte * pMtlMap, int mtlMapSize, MaterialLib * pMtlLib, Mesh * pMeshOut);
 
 	bool LoadMeshFromAssetPack(
 		AssetPack * pPack,
@@ -721,7 +721,7 @@ namespace Framework
 		return true;
 	}
 
-	static bool DeserializeMaterialMap(const byte * pMtlMap, int mtlMapSize, MaterialLib * pMtlLib, Mesh * pMeshOut)
+	bool DeserializeMaterialMap(const byte * pMtlMap, int mtlMapSize, MaterialLib * pMtlLib, Mesh * pMeshOut)
 	{
 		ASSERT_ERR(pMtlMap);
 		ASSERT_ERR(mtlMapSize > 0);

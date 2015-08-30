@@ -37,7 +37,7 @@ namespace Framework
 		};
 
 		// Prototype various helper functions
-		static bool WriteImageToZip(
+		bool WriteImageToZip(
 			const char * assetPath,
 			int mipLevel,
 			const byte4 * pPixels,
@@ -45,7 +45,7 @@ namespace Framework
 			mz_zip_archive * pZipOut);
 
 #if WRITE_BMP
-		static bool WriteBMPToZip(
+		bool WriteBMPToZip(
 			const char * assetPath,
 			int mipLevel,
 			const byte4 * pPixels,
@@ -188,7 +188,7 @@ namespace Framework
 
 	namespace TextureCompiler
 	{
-		static bool WriteImageToZip(
+		bool WriteImageToZip(
 			const char * assetPath,
 			int mipLevel,
 			const byte4 * pPixels,
@@ -217,7 +217,7 @@ namespace Framework
 		}
 
 #if WRITE_BMP
-		static bool WriteBMPToZip(
+		bool WriteBMPToZip(
 			const char * assetPath,
 			int mipLevel,
 			const byte4 * pPixels,
