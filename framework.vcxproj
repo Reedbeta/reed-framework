@@ -22,6 +22,7 @@
     <ClInclude Include="material.h" />
     <ClInclude Include="mesh.h" />
     <ClInclude Include="rendertarget.h" />
+    <ClInclude Include="shadow.h" />
     <ClInclude Include="stb_image.h" />
     <ClInclude Include="stb_image_resize.h" />
     <ClInclude Include="texture.h" />
@@ -39,6 +40,7 @@
     <ClCompile Include="mesh.cpp" />
     <ClCompile Include="miniz.c" />
     <ClCompile Include="rendertarget.cpp" />
+    <ClCompile Include="shadow.cpp" />
     <ClCompile Include="texture.cpp" />
     <ClCompile Include="timer.cpp" />
   </ItemGroup>

@@ -7,6 +7,7 @@
 #include "world_vs.h"
 #include "simple_ps.h"
 #include "simple_alphatest_ps.h"
+#include "shadow_alphatest_ps.h"
 
 using namespace util;
 using namespace Framework;
@@ -15,9 +16,13 @@ using namespace Framework;
 
 // Globals
 
-float3 g_vecDirectionalLight = normalize(makefloat3(1, 1, 1));
-rgb g_rgbDirectionalLight = makergb(1.0f, 1.0f, 0.77f);
+float3 g_vecDirectionalLight = normalize(makefloat3(0.5f, 10.0f, 1.5f));
+rgb g_rgbDirectionalLight = makergb(1.1f, 1.0f, 0.7f);
 rgb g_rgbSky = makergb(0.44f, 0.56f, 1.0f);
+float g_shadowFilterWidth = 0.013f;		// meters
+float g_normalOffsetShadow = 1e-5f;		// meters
+float g_shadowSharpening = 2.0f;
+float g_exposure = 1.1f;
 
 float g_debugSlider0 = 0.0f;
 float g_debugSlider1 = 0.0f;
@@ -32,13 +37,19 @@ struct CBFrame								// matches cbuffer CBFrame in shader-common.h
 {
 	float4x4	m_matWorldToClip;
 	float4x4	m_matWorldToUvzwShadow;
+	float3x4	m_matWorldToUvzShadowNormal;	// actually float3x3, but constant buffer packing rules...
 	point3		m_posCamera;
-	float		m_dummy0;
+	float		m_padding0;
 
 	float3		m_vecDirectionalLight;
-	float		m_dummy1;
+	float		m_padding1;
 
 	rgb			m_rgbDirectionalLight;
+
+	float		m_shadowSharpening;
+	float3		m_shadowFilterUVZScale;
+	float		m_normalOffsetShadow;
+
 	float		m_exposure;					// Exposure multiplier
 };
 
@@ -68,13 +79,17 @@ public:
 	virtual void		OnResize(int2_arg dimsNew) override;
 	virtual void		OnRender() override;
 	void				ResetCamera();
+	void				RenderScene();
+	void				RenderShadowMap();
 
 	Mesh								m_meshSponza;
 	MaterialLib							m_mtlLibSponza;
 	TextureLib							m_texLibSponza;
+	ShadowMap							m_shmp;
 	comptr<ID3D11VertexShader>			m_pVsWorld;
 	comptr<ID3D11PixelShader>			m_pPsSimple;
 	comptr<ID3D11PixelShader>			m_pPsSimpleAlphaTest;
+	comptr<ID3D11PixelShader>			m_pPsShadowAlphaTest;
 	comptr<ID3D11InputLayout>			m_pInputLayout;
 	CB<CBFrame>							m_cbFrame;
 	CB<CBDebug>							m_cbDebug;
@@ -194,10 +209,14 @@ bool TestWindow::Init(HINSTANCE hInstance)
 	m_meshSponza.UploadToGPU(m_pDevice);
 	m_texLibSponza.UploadAllToGPU(m_pDevice);
 
+	// Init shadow map
+	m_shmp.Init(m_pDevice, makeint2(4096));
+
 	// Load shaders
 	CHECK_D3D(m_pDevice->CreateVertexShader(world_vs_bytecode, dim(world_vs_bytecode), nullptr, &m_pVsWorld));
 	CHECK_D3D(m_pDevice->CreatePixelShader(simple_ps_bytecode, dim(simple_ps_bytecode), nullptr, &m_pPsSimple));
 	CHECK_D3D(m_pDevice->CreatePixelShader(simple_alphatest_ps_bytecode, dim(simple_alphatest_ps_bytecode), nullptr, &m_pPsSimpleAlphaTest));
+	CHECK_D3D(m_pDevice->CreatePixelShader(shadow_alphatest_ps_bytecode, dim(shadow_alphatest_ps_bytecode), nullptr, &m_pPsShadowAlphaTest));
 
 	// Initialize the input layout, and validate it against all the vertex shaders
 
@@ -234,14 +253,6 @@ bool TestWindow::Init(HINSTANCE hInstance)
 	TwBar * pTwBarFPS = TwNewBar("FPS");
 	TwDefine("FPS position='15 15' size='225 80' valueswidth=75 refresh=0.5");
 	TwAddVarCB(
-			pTwBarFPS, "Frame time (ms)", TW_TYPE_FLOAT,
-			nullptr,
-			[](void * value, void * timestep) { 
-				*(float *)value = 1000.0f * *(float *)timestep;
-			},
-			&m_timer.m_timestep,
-			"precision=2");
-	TwAddVarCB(
 			pTwBarFPS, "FPS", TW_TYPE_FLOAT,
 			nullptr,
 			[](void * value, void * timestep) { 
@@ -249,6 +260,14 @@ bool TestWindow::Init(HINSTANCE hInstance)
 			},
 			&m_timer.m_timestep,
 			"precision=1");
+	TwAddVarCB(
+			pTwBarFPS, "Frame time (ms)", TW_TYPE_FLOAT,
+			nullptr,
+			[](void * value, void * timestep) { 
+				*(float *)value = 1000.0f * *(float *)timestep;
+			},
+			&m_timer.m_timestep,
+			"precision=2");
 
 	// Create bar for debug sliders
 	TwBar * pTwBarDebug = TwNewBar("Debug");
@@ -264,6 +283,10 @@ bool TestWindow::Init(HINSTANCE hInstance)
 	TwAddVarRW(pTwBarLight, "Light direction", TW_TYPE_DIR3F, &g_vecDirectionalLight, nullptr);
 	TwAddVarRW(pTwBarLight, "Light color", TW_TYPE_COLOR3F, &g_rgbDirectionalLight, nullptr);
 	TwAddVarRW(pTwBarLight, "Sky color", TW_TYPE_COLOR3F, &g_rgbSky, nullptr);
+	TwAddVarRW(pTwBarLight, "Filter Width", TW_TYPE_FLOAT, &g_shadowFilterWidth, "min=0.0 max=0.1 step=0.001 precision=3 group=Shadow");
+	TwAddVarRW(pTwBarLight, "Normal Offset", TW_TYPE_FLOAT, &g_normalOffsetShadow, "min=0.0 max=1e-4 step=1e-6 precision=6 group=Shadow");
+	TwAddVarRW(pTwBarLight, "Sharpening", TW_TYPE_FLOAT, &g_shadowSharpening, "min=0.0 max=5.0 step=0.01 precision=2 group=Shadow");
+	TwAddVarRW(pTwBarLight, "Exposure", TW_TYPE_FLOAT, &g_exposure, "min=0.0 max=5.0 step=0.01 precision=2");
 
 	// Create bar for camera position and orientation
 	TwBar * pTwBarCamera = TwNewBar("Camera");
@@ -291,6 +314,7 @@ void TestWindow::Shutdown()
 	m_pVsWorld.release();
 	m_pPsSimple.release();
 	m_pPsSimpleAlphaTest.release();
+	m_pPsShadowAlphaTest.release();
 	m_pInputLayout.release();
 	m_cbFrame.Reset();
 	m_cbDebug.Reset();
@@ -353,23 +377,6 @@ void TestWindow::OnRender()
 
 	// Set up whole-frame constant buffers
 
-	// Crytek Sponza is authored in centimeters; convert to meters
-	float sceneScale = 0.01f;
-
-	CBFrame cbFrame =
-	{
-		diagonal(makefloat4(sceneScale, sceneScale, sceneScale, 1.0f)) * m_camera.m_worldToClip,
-		float4x4::identity(),
-		m_camera.m_pos,
-		0,
-		g_vecDirectionalLight,
-		0,
-		g_rgbDirectionalLight,
-		1.0f,
-	};
-	m_cbFrame.Update(m_pCtx, &cbFrame);
-	m_cbFrame.Bind(m_pCtx, CB_FRAME);
-
 	XINPUT_STATE controllerState = {};
 	{
 		static bool controllerPresent = true;
@@ -389,15 +396,51 @@ void TestWindow::OnRender()
 	m_cbDebug.Update(m_pCtx, &cbDebug);
 	m_cbDebug.Bind(m_pCtx, CB_DEBUG);
 
+	RenderShadowMap();
+	RenderScene();
+
+	CHECK_WARN(TwDraw());
+	CHECK_D3D(m_pSwapChain->Present(1, 0));
+}
+
+void TestWindow::RenderScene()
+{
+	// Crytek Sponza is authored in centimeters; convert to meters
+	float sceneScale = 0.01f;
+	float4x4 matSceneScale = diagonal(makefloat4(sceneScale, sceneScale, sceneScale, 1.0f));
+
+	// Set up constant buffer for rendering to shadow map
+	CBFrame cbFrame =
+	{
+		matSceneScale * m_camera.m_worldToClip,
+		matSceneScale * m_shmp.m_matWorldToUvzw,
+		makefloat3x4(m_shmp.m_matWorldToUvzNormal),
+		m_camera.m_pos,
+		0,
+		g_vecDirectionalLight,
+		0,
+		g_rgbDirectionalLight,
+		g_shadowSharpening,
+		m_shmp.CalcFilterUVZScale(g_shadowFilterWidth),
+		g_normalOffsetShadow,
+		1.0f,	// exposure
+	};
+	m_cbFrame.Update(m_pCtx, &cbFrame);
+	m_cbFrame.Bind(m_pCtx, CB_FRAME);
+
 	m_pCtx->ClearRenderTargetView(m_pRtvRaw, makergba(g_rgbSky, 1.0f));
 	m_pCtx->ClearDepthStencilView(m_pDsv, D3D11_CLEAR_DEPTH, 1.0f, 0);
 	BindSRGBBackBuffer(m_pCtx);
 
 	m_pCtx->VSSetShader(m_pVsWorld, nullptr, 0);
-	m_pCtx->PSSetSamplers(0, 1, &m_pSsTrilinearRepeatAniso);
 
-	// Draw the individual material ranges of the mesh: first the regular ones, then the alpha-tested ones
+	m_pCtx->PSSetShaderResources(TEX_SHADOW, 1, &m_shmp.m_dst.m_pSrvDepth);
+	m_pCtx->PSSetSamplers(SAMP_DEFAULT, 1, &m_pSsTrilinearRepeatAniso);
+	m_pCtx->PSSetSamplers(SAMP_SHADOW, 1, &m_pSsPCF);
 
+	// Draw the individual material ranges of the mesh
+
+	// Non-alpha-tested materials
 	m_pCtx->PSSetShader(m_pPsSimple, nullptr, 0);
 	m_pCtx->RSSetState(m_pRsDefault);
 	for (int i = 0, c = int(m_meshSponza.m_mtlRanges.size()); i < c; ++i)
@@ -412,10 +455,11 @@ void TestWindow::OnRender()
 		if (Texture2D * pTex = pMtl->m_pTexDiffuseColor)
 			pSrv = pTex->m_pSrv;
 
-		m_pCtx->PSSetShaderResources(0, 1, &pSrv);
+		m_pCtx->PSSetShaderResources(TEX_DIFFUSE, 1, &pSrv);
 		m_meshSponza.DrawMtlRange(m_pCtx, i);
 	}
 
+	// Alpha-tested materials
 	m_pCtx->PSSetShader(m_pPsSimpleAlphaTest, nullptr, 0);
 	m_pCtx->RSSetState(m_pRsDoubleSided);
 	for (int i = 0, c = int(m_meshSponza.m_mtlRanges.size()); i < c; ++i)
@@ -430,12 +474,73 @@ void TestWindow::OnRender()
 		if (Texture2D * pTex = pMtl->m_pTexDiffuseColor)
 			pSrv = pTex->m_pSrv;
 
-		m_pCtx->PSSetShaderResources(0, 1, &pSrv);
+		m_pCtx->PSSetShaderResources(TEX_DIFFUSE, 1, &pSrv);
+		m_meshSponza.DrawMtlRange(m_pCtx, i);
+	}
+}
+
+void TestWindow::RenderShadowMap()
+{
+	// Crytek Sponza is authored in centimeters; convert to meters
+	float sceneScale = 0.01f;
+	float4x4 matSceneScale = diagonal(makefloat4(sceneScale, sceneScale, sceneScale, 1.0f));
+
+	// Calculate shadow map matrices
+	m_shmp.m_vecLight = g_vecDirectionalLight;
+	m_shmp.m_boundsScene = makebox3(m_meshSponza.m_bounds.m_mins * sceneScale, m_meshSponza.m_bounds.m_maxs * sceneScale);
+	m_shmp.UpdateMatrix();
+
+	m_pCtx->IASetInputLayout(m_pInputLayout);
+	m_pCtx->OMSetDepthStencilState(m_pDssDepthTest, 0);
+
+	// Set up constant buffer for rendering to shadow map
+	CBFrame cbFrame =
+	{
+		matSceneScale * m_shmp.m_matWorldToClip,
+	};
+	m_cbFrame.Update(m_pCtx, &cbFrame);
+	m_cbFrame.Bind(m_pCtx, CB_FRAME);
+
+	m_pCtx->ClearDepthStencilView(m_shmp.m_dst.m_pDsv, D3D11_CLEAR_DEPTH, 1.0f, 0);
+	m_shmp.Bind(m_pCtx);
+
+	m_pCtx->VSSetShader(m_pVsWorld, nullptr, 0);
+	m_pCtx->PSSetSamplers(SAMP_DEFAULT, 1, &m_pSsTrilinearRepeatAniso);
+
+	// Draw the individual material ranges of the mesh
+
+	// Non-alpha-tested materials
+	m_pCtx->PSSetShader(nullptr, nullptr, 0);
+	m_pCtx->RSSetState(m_pRsDefault);
+	for (int i = 0, c = int(m_meshSponza.m_mtlRanges.size()); i < c; ++i)
+	{
+		Material * pMtl = m_meshSponza.m_mtlRanges[i].m_pMtl;
+		ASSERT_ERR(pMtl);
+
+		if (pMtl->m_alphaTest)
+			continue;
+
 		m_meshSponza.DrawMtlRange(m_pCtx, i);
 	}
 
-	CHECK_WARN(TwDraw());
-	CHECK_D3D(m_pSwapChain->Present(1, 0));
+	// Alpha-tested materials
+	m_pCtx->PSSetShader(m_pPsShadowAlphaTest, nullptr, 0);
+	m_pCtx->RSSetState(m_pRsDoubleSided);
+	for (int i = 0, c = int(m_meshSponza.m_mtlRanges.size()); i < c; ++i)
+	{
+		Material * pMtl = m_meshSponza.m_mtlRanges[i].m_pMtl;
+		ASSERT_ERR(pMtl);
+
+		if (!pMtl->m_alphaTest)
+			continue;
+
+		ID3D11ShaderResourceView * pSrvDiffuse = m_tex1x1White.m_pSrv;
+		if (Texture2D * pTex = pMtl->m_pTexDiffuseColor)
+			pSrvDiffuse = pTex->m_pSrv;
+
+		m_pCtx->PSSetShaderResources(TEX_DIFFUSE, 1, &pSrvDiffuse);
+		m_meshSponza.DrawMtlRange(m_pCtx, i);
+	}
 }
 
 

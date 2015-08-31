@@ -40,6 +40,7 @@ namespace Framework
 #include "material.h"
 #include "mesh.h"
 #include "rendertarget.h"
+#include "shadow.h"
 #include "texture.h"
 #include "timer.h"
 
