@@ -213,7 +213,16 @@ namespace Framework
 						vert.iUv = atoi(pIdx);
 
 						vert.iNormal = atoi(pCtxVert);
-				
+
+						// Handle negative indices - a bizarre OBJ feature that lets you reference
+						// verts by counting backward from the most recent one
+						if (vert.iPos < 0)
+							vert.iPos += int(positions.size()) + 1;
+						if (vert.iUv < 0)
+							vert.iUv += int(uvs.size()) + 1;
+						if (vert.iNormal < 0)
+							vert.iNormal += int(normals.size()) + 1;
+
 						OBJverts.push_back(vert);
 					}
 
