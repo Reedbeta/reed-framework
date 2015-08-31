@@ -36,6 +36,7 @@ namespace Framework
 		void				BindSRGBBackBuffer(ID3D11DeviceContext * pCtx);
 		void				BindRawBackBuffer(ID3D11DeviceContext * pCtx);
 
+		void				SetViewport(ID3D11DeviceContext * pCtx, int2_arg dims);
 		void				SetViewport(ID3D11DeviceContext * pCtx, box2_arg viewport);
 		void				SetViewport(ID3D11DeviceContext * pCtx, box3_arg viewport);
 

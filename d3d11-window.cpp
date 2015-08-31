@@ -530,6 +530,17 @@ namespace Framework
 		pCtx->RSSetViewports(1, &viewport);
 	}
 
+	void D3D11Window::SetViewport(ID3D11DeviceContext * pCtx, int2_arg dims)
+	{
+		D3D11_VIEWPORT vp =
+		{
+			0.0f, 0.0f,
+			float(dims.x), float(dims.y),
+			0.0f, 1.0f,
+		};
+		pCtx->RSSetViewports(1, &vp);
+	}
+
 	void D3D11Window::SetViewport(ID3D11DeviceContext * pCtx, box2_arg viewport)
 	{
 		D3D11_VIEWPORT vp =
