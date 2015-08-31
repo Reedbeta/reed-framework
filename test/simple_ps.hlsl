@@ -15,9 +15,11 @@ void main(
 	float3 diffuseLight = g_rgbDirectionalLight * saturate(dot(normal, g_vecDirectionalLight));
 
 	// Simple ramp ambient
-	float3 skyColor = { 0.05, 0.07, 0.2 };
-	float3 groundColor = { 0.2, 0.2, 0.15 };
+	float3 skyColor = { 0.09, 0.11, 0.2 };
+	float3 groundColor = { 0.15, 0.15, 0.15 };
+	float3 sideColor = { 0.03, 0.02, 0.01 };
 	diffuseLight += lerp(groundColor, skyColor, normal.y * 0.5 + 0.5);
+	diffuseLight += sideColor * square(saturate(normal.z));
 
 	o_rgb = diffuseColor * diffuseLight;
 }

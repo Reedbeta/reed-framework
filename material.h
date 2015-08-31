@@ -16,6 +16,7 @@ namespace Framework
 		rgb				m_rgbSpecColor;
 		float			m_specPower;
 		float			m_bumpScale;
+		bool			m_alphaTest;
 	};
 
 	class MaterialLib
