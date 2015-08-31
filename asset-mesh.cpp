@@ -47,6 +47,7 @@ namespace Framework
 		// Prototype various helper functions
 		bool ParseOBJ(const char * path, Context * pCtxOut);
 		void RemoveDegenerateTriangles(Context * pCtx);
+		void RemoveEmptyMaterialRanges(Context * pCtx);
 		void DeduplicateVerts(Context * pCtx);
 		void CalculateNormals(Context * pCtx);
 		void NormalizeNormals(Context * pCtx);
@@ -82,6 +83,7 @@ namespace Framework
 		// Clean up the mesh
 		SortMaterials(&ctx);
 		RemoveDegenerateTriangles(&ctx);
+		RemoveEmptyMaterialRanges(&ctx);
 		DeduplicateVerts(&ctx);
 		if (!ctx.m_hasNormals)
 			CalculateNormals(&ctx);
@@ -317,7 +319,7 @@ namespace Framework
 		void RemoveDegenerateTriangles(Context * pCtx)
 		{
 			ASSERT_ERR(pCtx);
-			ASSERT_WARN(pCtx->m_indices.size() % 3 == 0);
+			ASSERT_ERR(pCtx->m_indices.size() % 3 == 0);
 
 			// Remove degenerate triangles by compacting in-place
 			int iWrite = 0;
@@ -345,7 +347,6 @@ namespace Framework
 					// Fix up material ranges.  This could be done more efficiently, but on the
 					// assumption that degenerate triangles are rare and material ranges are few,
 					// this should be OK...
-					// !!!UNDONE: should remove empty material ranges after this
 					for (int iMaterial = 0, cMaterial = int(pCtx->m_mtlRanges.size()); iMaterial < cMaterial; ++iMaterial)
 					{
 						MtlRange * pMtlRange = &pCtx->m_mtlRanges[iMaterial];
@@ -367,6 +368,35 @@ namespace Framework
 
 			ASSERT_ERR(iWrite <= int(pCtx->m_indices.size()));
 			pCtx->m_indices.resize(iWrite);
+		}
+
+		void RemoveEmptyMaterialRanges(Context * pCtx)
+		{
+			ASSERT_ERR(pCtx);
+
+			// Remove empty material ranges by compacting in-place
+			int iWrite = 0;
+			for (int i = 0, c = int(pCtx->m_mtlRanges.size()); i < c; ++i)
+			{
+				MtlRange * pMtlRange = &pCtx->m_mtlRanges[i];
+
+				ASSERT_ERR(pMtlRange->m_indexCount >= 0);
+
+				// Skip empty ones
+				if (pMtlRange->m_indexCount == 0)
+					continue;
+
+				if (iWrite < i)
+				{
+					// Not empty: keep this material; move it down to the write cursor
+					pCtx->m_mtlRanges[iWrite] = std::move(*pMtlRange);
+				}
+
+				++iWrite;
+			}
+
+			ASSERT_ERR(iWrite <= int(pCtx->m_mtlRanges.size()));
+			pCtx->m_mtlRanges.resize(iWrite);
 		}
 
 		void DeduplicateVerts(Context * pCtx)
@@ -454,7 +484,7 @@ namespace Framework
 		void CalculateNormals(Context * pCtx)
 		{
 			ASSERT_ERR(pCtx);
-			ASSERT_WARN(pCtx->m_indices.size() % 3 == 0);
+			ASSERT_ERR(pCtx->m_indices.size() % 3 == 0);
 
 			// Generate a normal for each triangle, and accumulate onto vertex
 			for (int i = 0, c = int(pCtx->m_indices.size()); i < c; i += 3)
@@ -498,7 +528,7 @@ namespace Framework
 		void CalculateTangents(Context * pCtx)
 		{
 			ASSERT_ERR(pCtx);
-			ASSERT_WARN(pCtx->m_indices.size() % 3 == 0);
+			ASSERT_ERR(pCtx->m_indices.size() % 3 == 0);
 
 			// Generate a tangent for each triangle, based on triangle's UV mapping,
 			// and accumulate onto vertex
