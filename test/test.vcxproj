@@ -55,7 +55,7 @@
       <Optimization>Disabled</Optimization>
       <PreprocessorDefinitions>WIN32;_DEBUG;_WINDOWS;%(PreprocessorDefinitions)</PreprocessorDefinitions>
       <SDLCheck>true</SDLCheck>
-      <AdditionalIncludeDirectories>..;..\..\reed-util;..\..\AntTweakBar\include;$(Platform)\$(Configuration)\shaders</AdditionalIncludeDirectories>
+      <AdditionalIncludeDirectories>..;..\..\reed-util;..\..\extern\AntTweakBar\include;$(Platform)\$(Configuration)\shaders</AdditionalIncludeDirectories>
       <TreatWarningAsError>true</TreatWarningAsError>
       <AdditionalOptions>/d2Zi+</AdditionalOptions>
     </ClCompile>
@@ -63,7 +63,7 @@
       <SubSystem>Windows</SubSystem>
       <GenerateDebugInformation>true</GenerateDebugInformation>
       <AdditionalDependencies>kernel32.lib;user32.lib;dxgi.lib;d3d11.lib;AntTweakBar64.lib;xinput9_1_0.lib</AdditionalDependencies>
-      <AdditionalLibraryDirectories>..\..\AntTweakBar\lib</AdditionalLibraryDirectories>
+      <AdditionalLibraryDirectories>..\..\extern\AntTweakBar\lib</AdditionalLibraryDirectories>
     </Link>
     <FxCompile>
       <ShaderModel>5.0</ShaderModel>
@@ -74,18 +74,17 @@
       <AdditionalOptions>/Gfp</AdditionalOptions>
     </FxCompile>
     <CustomBuildStep>
-      <Command>copy /y $(ProjectDir)AntTweakBar64.dll $(OutDir)
-copy /y $(ProjectDir)d3dcompiler_46.dll $(OutDir)
+      <Command>copy /y $(ProjectDir)..\..\extern\AntTweakBar\lib\AntTweakBar64.dll $(OutDir)
 </Command>
     </CustomBuildStep>
     <CustomBuildStep>
       <Message>Copying .dlls to output directory</Message>
     </CustomBuildStep>
     <CustomBuildStep>
-      <Outputs>$(OutDir)AntTweakBar64.dll;$(OutDir)d3dcompiler_46.dll;%(Outputs)</Outputs>
+      <Outputs>$(OutDir)AntTweakBar64.dll;%(Outputs)</Outputs>
     </CustomBuildStep>
     <CustomBuildStep>
-      <Inputs>$(ProjectDir)AntTweakBar64.dll;$(ProjectDir)d3dcompiler_46.dll;%(Inputs)</Inputs>
+      <Inputs>$(ProjectDir)..\..\extern\AntTweakBar\lib\AntTweakBar64.dll</Inputs>
     </CustomBuildStep>
     <Manifest>
       <EnableDpiAwareness>true</EnableDpiAwareness>
@@ -101,7 +100,7 @@ copy /y $(ProjectDir)d3dcompiler_46.dll $(OutDir)
       <IntrinsicFunctions>true</IntrinsicFunctions>
       <PreprocessorDefinitions>WIN32;NDEBUG;_WINDOWS;%(PreprocessorDefinitions)</PreprocessorDefinitions>
       <SDLCheck>true</SDLCheck>
-      <AdditionalIncludeDirectories>..;..\..\reed-util;..\..\AntTweakBar\include;$(Platform)\$(Configuration)\shaders</AdditionalIncludeDirectories>
+      <AdditionalIncludeDirectories>..;..\..\reed-util;..\..\extern\AntTweakBar\include;$(Platform)\$(Configuration)\shaders</AdditionalIncludeDirectories>
       <TreatWarningAsError>true</TreatWarningAsError>
       <AdditionalOptions>/d2Zi+</AdditionalOptions>
     </ClCompile>
@@ -111,7 +110,7 @@ copy /y $(ProjectDir)d3dcompiler_46.dll $(OutDir)
       <EnableCOMDATFolding>true</EnableCOMDATFolding>
       <OptimizeReferences>true</OptimizeReferences>
       <AdditionalDependencies>kernel32.lib;user32.lib;dxgi.lib;d3d11.lib;AntTweakBar64.lib;xinput9_1_0.lib</AdditionalDependencies>
-      <AdditionalLibraryDirectories>..\..\AntTweakBar\lib</AdditionalLibraryDirectories>
+      <AdditionalLibraryDirectories>..\..\extern\AntTweakBar\lib</AdditionalLibraryDirectories>
     </Link>
     <FxCompile>
       <DisableOptimizations>true</DisableOptimizations>
@@ -128,18 +127,17 @@ copy /y $(ProjectDir)d3dcompiler_46.dll $(OutDir)
       <AdditionalOptions>/Gfp</AdditionalOptions>
     </FxCompile>
     <CustomBuildStep>
-      <Command>copy /y $(ProjectDir)AntTweakBar64.dll $(OutDir)
-copy /y $(ProjectDir)d3dcompiler_46.dll $(OutDir)
+      <Command>copy /y $(ProjectDir)..\..\extern\AntTweakBar\lib\AntTweakBar64.dll $(OutDir)
 </Command>
     </CustomBuildStep>
     <CustomBuildStep>
       <Message>Copying .dlls to output directory</Message>
     </CustomBuildStep>
     <CustomBuildStep>
-      <Outputs>$(OutDir)AntTweakBar64.dll;$(OutDir)d3dcompiler_46.dll;%(Outputs)</Outputs>
+      <Outputs>$(OutDir)AntTweakBar64.dll;%(Outputs)</Outputs>
     </CustomBuildStep>
     <CustomBuildStep>
-      <Inputs>$(ProjectDir)AntTweakBar64.dll;$(ProjectDir)d3dcompiler_46.dll;%(Inputs)</Inputs>
+      <Inputs>$(ProjectDir)..\..\extern\AntTweakBar\lib\AntTweakBar64.dll</Inputs>
     </CustomBuildStep>
     <Manifest>
       <EnableDpiAwareness>true</EnableDpiAwareness>
