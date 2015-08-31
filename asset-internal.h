@@ -32,7 +32,7 @@ namespace Framework
 
 		enum MESHVER
 		{
-			MESHVER_Current = 4,
+			MESHVER_Current = 5,
 		};
 
 		enum MTLVER

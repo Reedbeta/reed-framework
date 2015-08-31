@@ -1,6 +1,7 @@
 #include "framework.h"
 #include "asset-internal.h"
 #include <algorithm>
+#include <deque>
 
 namespace Framework
 {
@@ -55,6 +56,9 @@ namespace Framework
 		void CalculateTangents(Context * pCtx);
 #endif
 		void SortMaterials(Context * pCtx);
+		void SortTrianglesForVertexCache(Context * pCtx);
+		void SortVerticesForMemoryCache(Context * pCtx);
+		float ComputeACMR(const Context * pCtx, int cacheSize = 32);
 
 		void SerializeMaterialMap(Context * pCtx, std::vector<byte> * pDataOut);
 	}
@@ -90,6 +94,13 @@ namespace Framework
 		NormalizeNormals(&ctx);
 #if VERTEX_TANGENT
 		CalculateTangents(&ctx);
+#endif
+		SortTrianglesForVertexCache(&ctx);
+		SortVerticesForMemoryCache(&ctx);
+
+#if 0
+		// This can take awhile on a big mesh, so it's commented out by default
+		LOG("%s ACMR: %0.2f", pACI->m_pathSrc, ComputeACMR(&ctx));
 #endif
 
 		// Fill out the metadata struct
@@ -446,19 +457,24 @@ namespace Framework
 			std::vector<Vertex> vertsDeduplicated;
 			std::vector<int> remappingTable;
 			std::unordered_map<Vertex, int, VertexHasher, VertexEqualityTester> mapVertToIndex;
+			std::vector<int> indicesRemapped;
 
 			vertsDeduplicated.reserve(pCtx->m_verts.size());
 			remappingTable.resize(pCtx->m_verts.size(), -1);
 			mapVertToIndex.reserve(pCtx->m_verts.size());
+			indicesRemapped.resize(pCtx->m_indices.size());
 
 			// Iterate over indices, so that we automatically skip orphaned vertices
 			for (int i = 0, c = int(pCtx->m_indices.size()); i < c; ++i)
 			{
 				int index = pCtx->m_indices[i];
 
-				// If this vertex was already remapped, nothing to do
+				// If this vertex was already remapped, update the index
 				if (remappingTable[index] >= 0)
+				{
+					indicesRemapped[i] = remappingTable[index];
 					continue;
+				}
 
 				// Search the hash table for a match for this vertex
 				const Vertex & vert = pCtx->m_verts[index];
@@ -470,25 +486,18 @@ namespace Framework
 					vertsDeduplicated.push_back(vert);
 					remappingTable[index] = newIndex;
 					mapVertToIndex.insert(std::make_pair(vert, newIndex));
+					indicesRemapped[i] = newIndex;
 				}
 				else
 				{
 					// It's already in the map; re-use the previous index
 					int newIndex = iter->second;
 					remappingTable[index] = newIndex;
+					indicesRemapped[i] = newIndex;
 				}
 			}
 
 			ASSERT_ERR(vertsDeduplicated.size() <= pCtx->m_verts.size());
-
-			std::vector<int> indicesRemapped;
-			indicesRemapped.resize(pCtx->m_indices.size());
-
-			for (int i = 0, c = int(pCtx->m_indices.size()); i < c; ++i)
-			{
-				ASSERT_ERR(remappingTable[pCtx->m_indices[i]] >= 0);
-				indicesRemapped[i] = remappingTable[pCtx->m_indices[i]];
-			}
 
 			pCtx->m_verts.swap(vertsDeduplicated);
 			pCtx->m_indices.swap(indicesRemapped);
@@ -674,6 +683,346 @@ namespace Framework
 
 			pCtx->m_indices.swap(indicesReordered);
 			pCtx->m_mtlRanges.swap(mtlRangesMerged);
+		}
+
+		void SortTrianglesForVertexCache(Context * pCtx)
+		{
+			ASSERT_ERR(pCtx);
+
+			// Implementation of "Linear-Speed Vertex Cache Optimization" by Tom Forsyth
+			// https://home.comcast.net/~tom_forsyth/papers/fast_vert_cache_opt.html
+
+			static const int s_cacheSize = 32;
+
+			// Initialize ancillary data that we keep per vertex and per triangle
+
+			struct ExtraVertexData
+			{
+				int	cachePosition;
+				float score;
+				int triangles;			// Count of not-yet-sorted triangles using this vertex
+				int iTriStart;			// Index into trianglesByVert where this vertex's triangles start
+
+				void RecalcScore()
+				{
+					// Verts with no unsorted triangles remaining are no longer in play
+					if (triangles == 0)
+					{
+						score = -1.0f;
+						return;
+					}
+
+					// Calculate part of score based on cache position
+					float cacheScore;
+					if (cachePosition < 0)
+					{
+						cacheScore = 0.0f;	// Not in the cache: score zero
+					}
+					else if (cachePosition < 3)
+					{
+						// Fixed score for verts in the latest triangle - disfavors them slightly
+						// relative to other recently-used verts, to avoid excessive strip-ifying
+						cacheScore = 0.75f;
+					}
+					else
+					{
+						// Calculate score based on how recently it was used
+						ASSERT_ERR(cachePosition < s_cacheSize);
+						static const float scale = 1.0f / (s_cacheSize - 3);
+						cacheScore = powf(1.0f - (cachePosition - 3) * scale, 1.5f);
+					}
+
+					// Calculate part of score based on number of triangles that use this vert -
+					// favors verts with only a few triangles left, to favor completing a region of
+					// the mesh before jumping to a new region
+					float valenceScore = 2.0f * powf(float(triangles), -0.5f);
+
+					score = cacheScore + valenceScore;
+				}
+			};
+			std::vector<ExtraVertexData> extraVertexDatas(pCtx->m_verts.size());
+
+			struct ExtraTriData
+			{
+				float score;	// Sum of vertex scores, or set to -1 when triangle is sorted
+			};
+			std::vector<ExtraTriData> extraTriDatas;
+
+			std::vector<int> trianglesByVert;
+
+			// Sort each material range's triangles separately
+			for (int iRange = 0, cRange = int(pCtx->m_mtlRanges.size()); iRange < cRange; ++iRange)
+			{
+				MtlRange range = pCtx->m_mtlRanges[iRange];
+
+				ASSERT_ERR(range.m_indexCount > 0 && range.m_indexCount % 3 == 0);
+
+				memset(&extraVertexDatas[0], 0, sizeof(ExtraVertexData) * extraVertexDatas.size());
+				extraTriDatas.resize(range.m_indexCount / 3);
+				memset(&extraTriDatas[0], 0, sizeof(ExtraTriData) * extraTriDatas.size());
+				trianglesByVert.assign(range.m_indexCount, -1);	// Each triangle is in exactly 3 verts' lists
+
+				// Build table of references from verts to triangles that use them
+
+				// Count triangles per vertex
+				for (int iIdx = range.m_indexStart, iIdxEnd = range.m_indexStart + range.m_indexCount;
+					 iIdx < iIdxEnd; ++iIdx)
+				{
+					++extraVertexDatas[pCtx->m_indices[iIdx]].triangles;
+				}
+
+				// Build list of triangles per vertex, also calculate initial scores for verts
+				// and triangles, and keep track of the best triangle found
+				int trianglesByVertAllocated = 0;
+				int bestTri = -1;
+				float bestTriScore = 0.0f;
+				for (int iIdx = range.m_indexStart, iIdxEnd = range.m_indexStart + range.m_indexCount;
+					 iIdx < iIdxEnd; ++iIdx)
+				{
+					ExtraVertexData * pEvd = &extraVertexDatas[pCtx->m_indices[iIdx]];
+					
+					// We reuse cachePosition as the negative index where to store the next triangle
+					// index into the vert's list of triangles.  Negative values indicate the vertex
+					// is not in cache, so this also sets up for the following section.
+					int iTriStore;
+					if (pEvd->cachePosition < 0)
+					{
+						// Find where to add the current triangle to the list
+						iTriStore = pEvd->iTriStart + (-pEvd->cachePosition);
+						--pEvd->cachePosition;
+					}
+					else
+					{
+						// Allocate space for triangle indices
+						pEvd->iTriStart = trianglesByVertAllocated;
+						iTriStore = trianglesByVertAllocated;
+						trianglesByVertAllocated += pEvd->triangles;
+						pEvd->cachePosition = -1;
+
+						// Also calculate initial vertex score
+						pEvd->RecalcScore();
+					}
+
+					// Store the triangle to the array
+					ASSERT_ERR(iTriStore < int(trianglesByVert.size()));
+					ASSERT_ERR(iTriStore - pEvd->iTriStart < pEvd->triangles);
+					ASSERT_ERR(trianglesByVert[iTriStore] == -1);
+					int iTri = (iIdx - range.m_indexStart) / 3;
+					trianglesByVert[iTriStore] = iTri;
+
+					// Add the vertex score into the triangle score
+					ExtraTriData * pEtd = &extraTriDatas[iTri];
+					pEtd->score += pEvd->score;
+
+					// Keep track of the best triangle seen
+					if (pEtd->score > bestTriScore)
+					{
+						bestTri = iTri;
+						bestTriScore = pEtd->score;
+					}
+				}
+
+				ASSERT_ERR(trianglesByVertAllocated == int(trianglesByVert.size()));
+				ASSERT_ERR(bestTri >= 0 && bestTri < int(extraTriDatas.size()));
+
+				int vertexCache[2][s_cacheSize + 3] = {};
+				for (int i = 0; i < dim(vertexCache); ++i)
+					for (int j = 0; j < dim(vertexCache[0]); ++j)
+						vertexCache[i][j] = -1;
+
+				std::vector<int> indicesReordered;
+				indicesReordered.reserve(range.m_indexCount);
+				
+				// Iterate through triangles, picking the one to add to indicesReordered next
+				for (int iTriAdd = 0, cTriAdd = range.m_indexCount/3;;)
+				{
+					// Add the best triangle seen so far to the new indices
+					int indices[3] =
+					{
+						pCtx->m_indices[range.m_indexStart + 3*bestTri],
+						pCtx->m_indices[range.m_indexStart + 3*bestTri + 1],
+						pCtx->m_indices[range.m_indexStart + 3*bestTri + 2],
+					};
+					indicesReordered.insert(indicesReordered.end(), &indices[0], &indices[dim(indices)]);
+
+					++iTriAdd;
+					if (iTriAdd >= cTriAdd)
+						break;
+
+					// Reset the triangle's score to indicate that it's been sorted
+					extraTriDatas[bestTri].score = -1.0f;
+
+					// Update the vertices
+					for (int i = 0; i < dim(indices); ++i)
+					{
+						ExtraVertexData * pEvd = &extraVertexDatas[indices[i]];
+
+						// Remove the triangle we just added from the vertex's list of triangles
+						auto it = std::find(
+									&trianglesByVert[pEvd->iTriStart], 
+									&trianglesByVert[pEvd->iTriStart] + pEvd->triangles,
+									bestTri);
+						ASSERT_ERR(it < &trianglesByVert[pEvd->iTriStart] + pEvd->triangles);
+						*it = trianglesByVert[pEvd->iTriStart + pEvd->triangles - 1];
+
+						// Decrement the not-yet-sorted-triangles count
+						--pEvd->triangles;
+					}
+
+					// Update the LRU cache, putting the newly used vertices at the top
+					// (and preserving the order of the other elements)
+					int * vertexCachePrev = vertexCache[iTriAdd & 1];
+					int * vertexCacheNext = vertexCache[!(iTriAdd & 1)];
+					vertexCacheNext[0] = indices[0];
+					vertexCacheNext[1] = indices[1];
+					vertexCacheNext[2] = indices[2];
+					int iCacheWrite = 3;
+					for (int iRead = 0; iRead < s_cacheSize; ++iRead)
+					{
+						int cachedVal = vertexCachePrev[iRead];
+						if (cachedVal < 0)
+							break;
+						if (cachedVal != indices[0] &&
+							cachedVal != indices[1] &&
+							cachedVal != indices[2])
+						{
+							vertexCacheNext[iCacheWrite] = cachedVal;
+							++iCacheWrite;
+						}
+					}
+					ASSERT_ERR(iCacheWrite <= dim(vertexCache[0]));
+
+					// Update the cache indices of all the verts and recompute their scores
+					for (int i = 0; i < iCacheWrite; ++i)
+					{
+						ExtraVertexData * pEvd = &extraVertexDatas[vertexCacheNext[i]];
+						pEvd->cachePosition = (i >= s_cacheSize) ? -1 : i;
+						pEvd->RecalcScore();
+					}
+
+					// Recompute the scores of tris that use verts in the cache,
+					// and keep track of the new best tri as we go
+					bestTri = -1;
+					bestTriScore = 0.0f;
+					for (int i = 0; i < iCacheWrite; ++i)
+					{
+						ExtraVertexData * pEvd = &extraVertexDatas[vertexCacheNext[i]];
+
+						// Update all the unsorted tris that use this vertex
+						for (int j = 0; j < pEvd->triangles; ++j)
+						{
+							int iTri = trianglesByVert[pEvd->iTriStart + j];
+							int indices[3] =
+							{
+								pCtx->m_indices[range.m_indexStart + 3*iTri],
+								pCtx->m_indices[range.m_indexStart + 3*iTri + 1],
+								pCtx->m_indices[range.m_indexStart + 3*iTri + 2],
+							};
+							float triScore = extraVertexDatas[indices[0]].score +
+											 extraVertexDatas[indices[1]].score +
+											 extraVertexDatas[indices[2]].score;
+							extraTriDatas[iTri].score = triScore;
+
+							if (triScore > bestTriScore)
+							{
+								bestTri = iTri;
+								bestTriScore = triScore;
+							}
+						}
+					}
+
+					// If we didn't find a tri above (e.g. because all verts in the cache are
+					// out of unsorted tris) then fallback to searching the entire list of tris
+					if (bestTri < 0)
+					{
+						for (int i = 0, cTri = int(extraTriDatas.size()); i < cTri; ++i)
+						{
+							float triScore = extraTriDatas[i].score;
+							if (triScore > bestTriScore)
+							{
+								bestTri = i;
+								bestTriScore = triScore;
+							}
+						}
+					}
+
+					ASSERT_ERR(bestTri >= 0 && bestTri < int(extraTriDatas.size()));
+				}
+
+				ASSERT_ERR(int(indicesReordered.size()) == range.m_indexCount);
+
+				// Replace the old indices with the new indices for this range
+				memcpy(&pCtx->m_indices[range.m_indexStart], &indicesReordered[0], sizeof(int) * range.m_indexCount);
+			}
+		}
+
+		void SortVerticesForMemoryCache(Context * pCtx)
+		{
+			ASSERT_ERR(pCtx);
+
+			std::vector<Vertex> vertsReordered;
+			std::vector<int> remappingTable;
+			std::vector<int> indicesRemapped;
+
+			vertsReordered.reserve(pCtx->m_verts.size());
+			remappingTable.resize(pCtx->m_verts.size(), -1);
+			indicesRemapped.resize(pCtx->m_indices.size());
+
+			// Iterate over indices, so that we see vertices in the order they'll be fetched
+			for (int i = 0, c = int(pCtx->m_indices.size()); i < c; ++i)
+			{
+				int index = pCtx->m_indices[i];
+
+				// If this vertex was already remapped, update the index
+				if (remappingTable[index] >= 0)
+				{
+					indicesRemapped[i] = remappingTable[index];
+					continue;
+				}
+
+				// Append vertex to the reordered buffer and record its new index
+				int newIndex = int(vertsReordered.size());
+				vertsReordered.push_back(pCtx->m_verts[index]);
+				remappingTable[index] = newIndex;
+				indicesRemapped[i] = newIndex;
+			}
+
+			ASSERT_ERR(vertsReordered.size() == pCtx->m_verts.size());
+
+			pCtx->m_verts.swap(vertsReordered);
+			pCtx->m_indices.swap(indicesRemapped);
+		}
+
+		float ComputeACMR(const Context * pCtx, int cacheSize /*= 32*/)
+		{
+			// Compute the average cache miss rate (ACMR) of the mesh.  This is the number of
+			// vertices per triangle that miss the cache.  Worst case is 3.0, and for typical
+			// connected meshes, values between 0.6 and 0.8 are considered very good.
+
+			// Vertex cache is a FIFO cache rather than LRU (simulates hardware better).
+			std::deque<int> vertexCache;
+
+			int indexCount = int(pCtx->m_indices.size());
+			int missCount = 0;
+			for (int i = 0; i < indexCount; ++i)
+			{
+				int index = pCtx->m_indices[i];
+
+				// If we don't find it in the cache, it's a miss
+				auto it = std::find(vertexCache.begin(), vertexCache.end(), index);
+				if (it == vertexCache.end())
+				{
+					// Add it to the back of the FIFO cache
+					++missCount;
+					vertexCache.push_back(index);
+					if (int(vertexCache.size()) > cacheSize)
+						vertexCache.pop_front();
+				}
+			}
+
+			ASSERT_ERR(int(vertexCache.size()) <= cacheSize);
+
+			return float(missCount) / float(max(indexCount / 3, 1));
 		}
 
 		void SerializeMaterialMap(Context * pCtx, std::vector<byte> * pDataOut)
