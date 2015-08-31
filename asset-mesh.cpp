@@ -178,6 +178,10 @@ namespace Framework
 				{
 					char * tokens[2] = {};
 					tph.ExpectTokens(tokens, dim(tokens), "UVs");
+
+					// OBJ files can have a third texture coordinate, but
+					// currently we just throw it away if it's there
+					(void)tph.NextToken();
 					tph.ExpectEOL();
 
 					// Add UV, flipping V-axis since OBJ UVs use a bottom-up convention
