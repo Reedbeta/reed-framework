@@ -63,10 +63,10 @@ public:
 						TestWindow();
 
 	bool				Init(HINSTANCE hInstance);
-	virtual void		Shutdown();
-	virtual LRESULT		MsgProc(HWND hWnd, UINT message, WPARAM wParam, LPARAM lParam);
-	virtual void		OnResize(int2_arg dimsNew);
-	virtual void		OnRender();
+	virtual void		Shutdown() override;
+	virtual LRESULT		MsgProc(HWND hWnd, UINT message, WPARAM wParam, LPARAM lParam) override;
+	virtual void		OnResize(int2_arg dimsNew) override;
+	virtual void		OnRender() override;
 	void				ResetCamera();
 
 	Mesh								m_meshSponza;
