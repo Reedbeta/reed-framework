@@ -245,11 +245,11 @@ namespace Framework
 
 		// PCF shadow comparison filter, with border color set to 1.0 so areas outside
 		// the shadow map will be unshadowed
-		sampDesc.Filter = D3D11_FILTER_COMPARISON_MIN_MAG_LINEAR_MIP_POINT;
+		sampDesc.Filter = D3D11_FILTER_COMPARISON_ANISOTROPIC;
 		sampDesc.AddressU = D3D11_TEXTURE_ADDRESS_BORDER;
 		sampDesc.AddressV = D3D11_TEXTURE_ADDRESS_BORDER;
 		sampDesc.AddressW = D3D11_TEXTURE_ADDRESS_BORDER;
-		sampDesc.MaxAnisotropy = 1;
+		sampDesc.MaxAnisotropy = 16;
 		sampDesc.ComparisonFunc = D3D11_COMPARISON_LESS_EQUAL;
 		sampDesc.BorderColor[0] = 1.0f;
 		sampDesc.BorderColor[1] = 1.0f;
