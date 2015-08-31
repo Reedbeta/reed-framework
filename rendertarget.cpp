@@ -308,6 +308,43 @@ namespace Framework
 		m_formatSrvStencil = DXGI_FORMAT_UNKNOWN;
 	}
 
+	void DepthStencilTarget::Bind(ID3D11DeviceContext * pCtx)
+	{
+		ASSERT_ERR(pCtx);
+
+		pCtx->OMSetRenderTargets(0, nullptr, m_pDsv);
+		D3D11_VIEWPORT d3dViewport = { 0.0f, 0.0f, float(m_dims.x), float(m_dims.y), 0.0f, 1.0f, };
+		pCtx->RSSetViewports(1, &d3dViewport);
+	}
+
+	void DepthStencilTarget::Bind(ID3D11DeviceContext * pCtx, box2_arg viewport)
+	{
+		ASSERT_ERR(pCtx);
+
+		pCtx->OMSetRenderTargets(0, nullptr, m_pDsv);
+		D3D11_VIEWPORT d3dViewport =
+		{
+			viewport.m_mins.x, viewport.m_mins.y,
+			viewport.diagonal().x, viewport.diagonal().y,
+			0.0f, 1.0f,
+		};
+		pCtx->RSSetViewports(1, &d3dViewport);
+	}
+
+	void DepthStencilTarget::Bind(ID3D11DeviceContext * pCtx, box3_arg viewport)
+	{
+		ASSERT_ERR(pCtx);
+
+		pCtx->OMSetRenderTargets(0, nullptr, m_pDsv);
+		D3D11_VIEWPORT d3dViewport =
+		{
+			viewport.m_mins.x, viewport.m_mins.y,
+			viewport.diagonal().x, viewport.diagonal().y,
+			viewport.m_mins.z, viewport.m_maxs.z,
+		};
+		pCtx->RSSetViewports(1, &d3dViewport);
+	}
+
 	void DepthStencilTarget::Readback(
 		ID3D11DeviceContext * pCtx,
 		void * pDataOut)
