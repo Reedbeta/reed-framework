@@ -82,15 +82,23 @@ public:
 	void				RenderScene();
 	void				RenderShadowMap();
 
+	// Sponza assets
 	Mesh								m_meshSponza;
 	MaterialLib							m_mtlLibSponza;
 	TextureLib							m_texLibSponza;
+
+	// Render targets
+	RenderTarget						m_rtSceneMSAA;
+	DepthStencilTarget					m_dstSceneMSAA;
 	ShadowMap							m_shmp;
+
+	// Shaders
 	comptr<ID3D11VertexShader>			m_pVsWorld;
 	comptr<ID3D11PixelShader>			m_pPsSimple;
 	comptr<ID3D11PixelShader>			m_pPsSimpleAlphaTest;
 	comptr<ID3D11PixelShader>			m_pPsShadowAlphaTest;
 	comptr<ID3D11InputLayout>			m_pInputLayout;
+
 	CB<CBFrame>							m_cbFrame;
 	CB<CBDebug>							m_cbDebug;
 	Texture2D							m_tex1x1White;
@@ -102,6 +110,8 @@ public:
 
 TestWindow::TestWindow()
 {
+	// Disable framework's automatic depth buffer, since we'll create our own
+	m_hasDepthBuffer = false;
 }
 
 bool TestWindow::Init(HINSTANCE hInstance)
@@ -311,6 +321,11 @@ void TestWindow::Shutdown()
 	m_meshSponza.Reset();
 	m_mtlLibSponza.Reset();
 	m_texLibSponza.Reset();
+
+	m_rtSceneMSAA.Reset();
+	m_dstSceneMSAA.Reset();
+	m_shmp.Reset();
+
 	m_pVsWorld.release();
 	m_pPsSimple.release();
 	m_pPsSimpleAlphaTest.release();
@@ -362,6 +377,12 @@ void TestWindow::OnResize(int2_arg dimsNew)
 {
 	super::OnResize(dimsNew);
 
+	// Recreate MSAA render targets for the new size
+	m_rtSceneMSAA.Reset();
+	m_dstSceneMSAA.Reset();
+	m_rtSceneMSAA.Init(m_pDevice, dimsNew, DXGI_FORMAT_R8G8B8A8_UNORM_SRGB, 4);
+	m_dstSceneMSAA.Init(m_pDevice, dimsNew, DXGI_FORMAT_D32_FLOAT, 4);
+
 	// Update projection matrix for new aspect ratio
 	m_camera.SetProjection(1.0f, float(dimsNew.x) / float(dimsNew.y), 0.1f, 1000.0f);
 }
@@ -399,7 +420,10 @@ void TestWindow::OnRender()
 	RenderShadowMap();
 	RenderScene();
 
+	// Draw AntTweakBar UI
+	BindRawBackBuffer(m_pCtx);
 	CHECK_WARN(TwDraw());
+
 	CHECK_D3D(m_pSwapChain->Present(1, 0));
 }
 
@@ -428,9 +452,9 @@ void TestWindow::RenderScene()
 	m_cbFrame.Update(m_pCtx, &cbFrame);
 	m_cbFrame.Bind(m_pCtx, CB_FRAME);
 
-	m_pCtx->ClearRenderTargetView(m_pRtvRaw, makergba(g_rgbSky, 1.0f));
-	m_pCtx->ClearDepthStencilView(m_pDsv, D3D11_CLEAR_DEPTH, 1.0f, 0);
-	BindSRGBBackBuffer(m_pCtx);
+	m_pCtx->ClearRenderTargetView(m_rtSceneMSAA.m_pRtv, makergba(toLinear(g_rgbSky), 1.0f));
+	m_pCtx->ClearDepthStencilView(m_dstSceneMSAA.m_pDsv, D3D11_CLEAR_DEPTH, 1.0f, 0);
+	BindRenderTargets(m_pCtx, &m_rtSceneMSAA, &m_dstSceneMSAA);
 
 	m_pCtx->VSSetShader(m_pVsWorld, nullptr, 0);
 
@@ -477,6 +501,9 @@ void TestWindow::RenderScene()
 		m_pCtx->PSSetShaderResources(TEX_DIFFUSE, 1, &pSrv);
 		m_meshSponza.DrawMtlRange(m_pCtx, i);
 	}
+
+	// Resolve to the back buffer
+	m_pCtx->ResolveSubresource(m_pTexBackBuffer, 0, m_rtSceneMSAA.m_pTex, 0, DXGI_FORMAT_R8G8B8A8_UNORM_SRGB);
 }
 
 void TestWindow::RenderShadowMap()

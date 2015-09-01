@@ -112,7 +112,7 @@ namespace Framework
 #endif
 		DXGI_SWAP_CHAIN_DESC swapChainDesc =
 		{
-			{ 1, 1, {}, DXGI_FORMAT_R8G8B8A8_UNORM, },
+			{ 1, 1, {}, DXGI_FORMAT_R8G8B8A8_UNORM_SRGB, },
 			{ 1, 0, },
 			DXGI_USAGE_RENDER_TARGET_OUTPUT | DXGI_USAGE_BACK_BUFFER,
 			2,
