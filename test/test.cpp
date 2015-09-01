@@ -8,6 +8,7 @@
 #include "simple_ps.h"
 #include "simple_alphatest_ps.h"
 #include "shadow_alphatest_ps.h"
+#include "tonemap_ps.h"
 
 using namespace util;
 using namespace Framework;
@@ -19,11 +20,15 @@ using namespace Framework;
 float3 g_vecDirectionalLight = normalize(makefloat3(0.5f, 10.0f, 1.5f));
 rgb g_rgbDirectionalLight = makergb(1.1f, 1.0f, 0.7f);
 rgb g_rgbSky = makergb(0.44f, 0.56f, 1.0f);
+
 float g_shadowFilterWidth = 0.013f;		// meters
 float g_normalOffsetShadow = 1e-5f;		// meters
 float g_shadowSharpening = 2.0f;
-float g_exposure = 1.1f;
 
+bool g_useTonemapping = true;
+float g_exposure = 1.0f;
+
+bool g_debugKey = false;
 float g_debugSlider0 = 0.0f;
 float g_debugSlider1 = 0.0f;
 float g_debugSlider2 = 0.0f;
@@ -97,8 +102,10 @@ public:
 	comptr<ID3D11PixelShader>			m_pPsSimple;
 	comptr<ID3D11PixelShader>			m_pPsSimpleAlphaTest;
 	comptr<ID3D11PixelShader>			m_pPsShadowAlphaTest;
-	comptr<ID3D11InputLayout>			m_pInputLayout;
+	comptr<ID3D11PixelShader>			m_pPsTonemap;
 
+	// Other stuff
+	comptr<ID3D11InputLayout>			m_pInputLayout;
 	CB<CBFrame>							m_cbFrame;
 	CB<CBDebug>							m_cbDebug;
 	Texture2D							m_tex1x1White;
@@ -227,6 +234,7 @@ bool TestWindow::Init(HINSTANCE hInstance)
 	CHECK_D3D(m_pDevice->CreatePixelShader(simple_ps_bytecode, dim(simple_ps_bytecode), nullptr, &m_pPsSimple));
 	CHECK_D3D(m_pDevice->CreatePixelShader(simple_alphatest_ps_bytecode, dim(simple_alphatest_ps_bytecode), nullptr, &m_pPsSimpleAlphaTest));
 	CHECK_D3D(m_pDevice->CreatePixelShader(shadow_alphatest_ps_bytecode, dim(shadow_alphatest_ps_bytecode), nullptr, &m_pPsShadowAlphaTest));
+	CHECK_D3D(m_pDevice->CreatePixelShader(tonemap_ps_bytecode, dim(tonemap_ps_bytecode), nullptr, &m_pPsTonemap));
 
 	// Initialize the input layout, and validate it against all the vertex shaders
 
@@ -287,16 +295,17 @@ bool TestWindow::Init(HINSTANCE hInstance)
 	TwAddVarRW(pTwBarDebug, "g_debugSlider2", TW_TYPE_FLOAT, &g_debugSlider2, "min=0.0 step=0.01 precision=2");
 	TwAddVarRW(pTwBarDebug, "g_debugSlider3", TW_TYPE_FLOAT, &g_debugSlider3, "min=0.0 step=0.01 precision=2");
 
-	// Create bar for lighting
-	TwBar * pTwBarLight = TwNewBar("Lighting");
-	TwDefine("Lighting position='15 240' size='275 355' valueswidth=130");
-	TwAddVarRW(pTwBarLight, "Light direction", TW_TYPE_DIR3F, &g_vecDirectionalLight, nullptr);
-	TwAddVarRW(pTwBarLight, "Light color", TW_TYPE_COLOR3F, &g_rgbDirectionalLight, nullptr);
-	TwAddVarRW(pTwBarLight, "Sky color", TW_TYPE_COLOR3F, &g_rgbSky, nullptr);
-	TwAddVarRW(pTwBarLight, "Filter Width", TW_TYPE_FLOAT, &g_shadowFilterWidth, "min=0.0 max=0.1 step=0.001 precision=3 group=Shadow");
-	TwAddVarRW(pTwBarLight, "Normal Offset", TW_TYPE_FLOAT, &g_normalOffsetShadow, "min=0.0 max=1e-4 step=1e-6 precision=6 group=Shadow");
-	TwAddVarRW(pTwBarLight, "Sharpening", TW_TYPE_FLOAT, &g_shadowSharpening, "min=0.0 max=5.0 step=0.01 precision=2 group=Shadow");
-	TwAddVarRW(pTwBarLight, "Exposure", TW_TYPE_FLOAT, &g_exposure, "min=0.0 max=5.0 step=0.01 precision=2");
+	// Create bar for rendering options
+	TwBar * pTwBarRendering = TwNewBar("Rendering");
+	TwDefine("Rendering position='15 240' size='275 355' valueswidth=130");
+	TwAddVarRW(pTwBarRendering, "Light direction", TW_TYPE_DIR3F, &g_vecDirectionalLight, nullptr);
+	TwAddVarRW(pTwBarRendering, "Light color", TW_TYPE_COLOR3F, &g_rgbDirectionalLight, nullptr);
+	TwAddVarRW(pTwBarRendering, "Sky color", TW_TYPE_COLOR3F, &g_rgbSky, nullptr);
+	TwAddVarRW(pTwBarRendering, "Filter Width", TW_TYPE_FLOAT, &g_shadowFilterWidth, "min=0.0 max=0.1 step=0.001 precision=3 group=Shadow");
+	TwAddVarRW(pTwBarRendering, "Normal Offset", TW_TYPE_FLOAT, &g_normalOffsetShadow, "min=0.0 max=1e-4 step=1e-6 precision=6 group=Shadow");
+	TwAddVarRW(pTwBarRendering, "Sharpening", TW_TYPE_FLOAT, &g_shadowSharpening, "min=0.01 max=5.0 step=0.01 precision=2 group=Shadow");
+	TwAddVarRW(pTwBarRendering, "Tonemapping", TW_TYPE_BOOLCPP, &g_useTonemapping, nullptr);
+	TwAddVarRW(pTwBarRendering, "Exposure", TW_TYPE_FLOAT, &g_exposure, "min=0.01 max=5.0 step=0.01 precision=2");
 
 	// Create bar for camera position and orientation
 	TwBar * pTwBarCamera = TwNewBar("Camera");
@@ -330,6 +339,8 @@ void TestWindow::Shutdown()
 	m_pPsSimple.release();
 	m_pPsSimpleAlphaTest.release();
 	m_pPsShadowAlphaTest.release();
+	m_pPsTonemap.release();
+
 	m_pInputLayout.release();
 	m_cbFrame.Reset();
 	m_cbDebug.Reset();
@@ -396,7 +407,7 @@ void TestWindow::OnRender()
 	m_pCtx->IASetInputLayout(m_pInputLayout);
 	m_pCtx->OMSetDepthStencilState(m_pDssDepthTest, 0);
 
-	// Set up whole-frame constant buffers
+	// Set up debug parameters constant buffer
 
 	XINPUT_STATE controllerState = {};
 	{
@@ -404,11 +415,13 @@ void TestWindow::OnRender()
 		if (controllerPresent && XInputGetState(0, &controllerState) != ERROR_SUCCESS)
 			controllerPresent = false;
 	}
+	// !!!UNDONE: move keyboard tracking into an input system that respects focus, etc.
+	g_debugKey = (GetAsyncKeyState(' ') || (controllerState.Gamepad.wButtons & XINPUT_GAMEPAD_A));
 
 	CBDebug cbDebug =
 	{
 		// !!!UNDONE: move keyboard tracking into an input system that respects focus, etc.
-		(GetAsyncKeyState(' ') || (controllerState.Gamepad.wButtons & XINPUT_GAMEPAD_A)) ? 1.0f : 0.0f,
+		g_debugKey ? 1.0f : 0.0f,
 		g_debugSlider0,
 		g_debugSlider1,
 		g_debugSlider2,
@@ -447,7 +460,7 @@ void TestWindow::RenderScene()
 		g_shadowSharpening,
 		m_shmp.CalcFilterUVZScale(g_shadowFilterWidth),
 		g_normalOffsetShadow,
-		1.0f,	// exposure
+		g_exposure,
 	};
 	m_cbFrame.Update(m_pCtx, &cbFrame);
 	m_cbFrame.Bind(m_pCtx, CB_FRAME);
@@ -502,8 +515,21 @@ void TestWindow::RenderScene()
 		m_meshSponza.DrawMtlRange(m_pCtx, i);
 	}
 
-	// Resolve to the back buffer
-	m_pCtx->ResolveSubresource(m_pTexBackBuffer, 0, m_rtSceneMSAA.m_pTex, 0, DXGI_FORMAT_R8G8B8A8_UNORM_SRGB);
+	// Resolve from the MSAA buffer to the back buffer
+	if (g_useTonemapping)
+	{
+		// Custom resolve + tonemapping pass
+		BindSRGBBackBuffer(m_pCtx);
+		m_pCtx->OMSetDepthStencilState(m_pDssNoDepthTest, 0);
+		m_pCtx->PSSetShader(m_pPsTonemap, nullptr, 0);
+		m_pCtx->PSSetShaderResources(0, 1, &m_rtSceneMSAA.m_pSrv);
+		DrawFullscreenPass(m_pCtx);
+	}
+	else
+	{
+		// Standard box filter resolve
+		m_pCtx->ResolveSubresource(m_pTexBackBuffer, 0, m_rtSceneMSAA.m_pTex, 0, DXGI_FORMAT_R8G8B8A8_UNORM_SRGB);
+	}
 }
 
 void TestWindow::RenderShadowMap()
