@@ -39,8 +39,8 @@ namespace Framework
 
 		D3D11_TEXTURE2D_DESC texDesc =
 		{
-			dims.x, dims.y,
-			(flags & TEXFLAG_Mipmaps) ? CalculateMipCount(dims) : 1,
+			UINT(dims.x), UINT(dims.y),
+			UINT((flags & TEXFLAG_Mipmaps) ? CalculateMipCount(dims) : 1),
 			1,
 			formatTex,
 			{ 1, 0 },
@@ -84,8 +84,8 @@ namespace Framework
 
 		D3D11_TEXTURE2D_DESC texDesc =
 		{
-			m_dims.x, m_dims.y,
-			m_mipLevels, 1,
+			UINT(m_dims.x), UINT(m_dims.y),
+			UINT(m_mipLevels), 1,
 			formatTex,
 			{ 1, 0 },
 			D3D11_USAGE_DEFAULT,
@@ -137,7 +137,7 @@ namespace Framework
 		// Create a staging resource
 		D3D11_TEXTURE2D_DESC texDesc =
 		{
-			mipDims.x, mipDims.y, 1, 1,
+			UINT(mipDims.x), UINT(mipDims.y), 1, 1,
 			m_format,
 			{ 1, 0 },
 			D3D11_USAGE_STAGING,
@@ -208,8 +208,8 @@ namespace Framework
 
 		D3D11_TEXTURE2D_DESC texDesc =
 		{
-			cubeSize, cubeSize,
-			(flags & TEXFLAG_Mipmaps) ? CalculateMipCount(cubeSize) : 1,
+			UINT(cubeSize), UINT(cubeSize),
+			UINT((flags & TEXFLAG_Mipmaps) ? CalculateMipCount(cubeSize) : 1),
 			6,
 			formatTex,
 			{ 1, 0 },
@@ -255,8 +255,8 @@ namespace Framework
 
 		D3D11_TEXTURE2D_DESC texDesc =
 		{
-			m_cubeSize, m_cubeSize,
-			m_mipLevels, 6,
+			UINT(m_cubeSize), UINT(m_cubeSize),
+			UINT(m_mipLevels), 6,
 			formatTex,
 			{ 1, 0 },
 			D3D11_USAGE_DEFAULT,
@@ -315,7 +315,7 @@ namespace Framework
 		// Create a staging resource
 		D3D11_TEXTURE2D_DESC texDesc =
 		{
-			mipDim, mipDim, 1, 1,
+			UINT(mipDim), UINT(mipDim), 1, 1,
 			m_format,
 			{ 1, 0 },
 			D3D11_USAGE_STAGING,
@@ -386,8 +386,8 @@ namespace Framework
 
 		D3D11_TEXTURE3D_DESC texDesc =
 		{
-			dims.x, dims.y, dims.z,
-			(flags & TEXFLAG_Mipmaps) ? CalculateMipCount(dims) : 1,
+			UINT(dims.x), UINT(dims.y), UINT(dims.z),
+			UINT((flags & TEXFLAG_Mipmaps) ? CalculateMipCount(dims) : 1),
 			formatTex,
 			D3D11_USAGE_DEFAULT,
 			D3D11_BIND_SHADER_RESOURCE,
@@ -430,8 +430,8 @@ namespace Framework
 
 		D3D11_TEXTURE3D_DESC texDesc =
 		{
-			m_dims.x, m_dims.y, m_dims.z,
-			m_mipLevels,
+			UINT(m_dims.x), UINT(m_dims.y), UINT(m_dims.z),
+			UINT(m_mipLevels),
 			formatTex,
 			D3D11_USAGE_DEFAULT,
 			D3D11_BIND_SHADER_RESOURCE,
@@ -484,7 +484,7 @@ namespace Framework
 		// Create a staging resource
 		D3D11_TEXTURE3D_DESC texDesc =
 		{
-			mipDims.x, mipDims.y, mipDims.z, 1,
+			UINT(mipDims.x), UINT(mipDims.y), UINT(mipDims.z), 1,
 			m_format,
 			D3D11_USAGE_STAGING,
 			0,
@@ -644,7 +644,7 @@ namespace Framework
 
 		D3D11_TEXTURE2D_DESC texDesc =
 		{
-			dims.x, dims.y, 1, 1,
+			UINT(dims.x), UINT(dims.y), 1, 1,
 			formatTex,
 			{ 1, 0 },
 			D3D11_USAGE_IMMUTABLE,
@@ -652,7 +652,7 @@ namespace Framework
 			0, 0,
 		};
 
-		D3D11_SUBRESOURCE_DATA initialData = { pPixels, dims.x * BitsPerPixel(format) / 8 };
+		D3D11_SUBRESOURCE_DATA initialData = { pPixels, UINT(dims.x * BitsPerPixel(format) / 8) };
 		comptr<ID3D11Texture2D> pTex;
 		CHECK_D3D(pDevice->CreateTexture2D(&texDesc, &initialData, &pTex));
 

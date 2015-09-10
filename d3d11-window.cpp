@@ -85,7 +85,7 @@ namespace Framework
 			for (; ; ++iOutput)
 			{
 				comptr<IDXGIOutput> pOutput;
-				HRESULT hr = pAdapter->EnumOutputs(iOutput, &pOutput);
+				hr = pAdapter->EnumOutputs(iOutput, &pOutput);
 				if (hr == DXGI_ERROR_NOT_FOUND)
 					break;
 				ASSERT_ERR(SUCCEEDED(hr));
@@ -487,7 +487,7 @@ namespace Framework
 
 			D3D11_TEXTURE2D_DESC texDesc =
 			{
-				dimsNew.x, dimsNew.y, 1, 1,
+				UINT(dimsNew.x), UINT(dimsNew.y), 1, 1,
 				DXGI_FORMAT_R32_TYPELESS,
 				{ 1, 0 },
 				D3D11_USAGE_DEFAULT,

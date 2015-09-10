@@ -21,14 +21,14 @@ namespace Framework
 
 #define CHECK_D3D(f) \
 		{ \
-			HRESULT hr = f; \
-			CHECK_ERR_MSG(SUCCEEDED(hr), "D3D call failed with error code: 0x%08x\nFailed call: %s", hr, #f); \
+			HRESULT hr##__LINE__ = f; \
+			CHECK_ERR_MSG(SUCCEEDED(hr##__LINE__), "D3D call failed with error code: 0x%08x\nFailed call: %s", hr##__LINE__, #f); \
 		}
 
 #define CHECK_D3D_WARN(f) \
 		{ \
-			HRESULT hr = f; \
-			CHECK_WARN_MSG(SUCCEEDED(hr), "D3D call failed with error code: 0x%08x\nFailed call: %s", hr, #f); \
+			HRESULT hr##__LINE__  = f; \
+			CHECK_WARN_MSG(SUCCEEDED(hr##__LINE__), "D3D call failed with error code: 0x%08x\nFailed call: %s", hr##__LINE__, #f); \
 		}
 
 #include "comptr.h"

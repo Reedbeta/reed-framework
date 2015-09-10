@@ -1,5 +1,5 @@
 ﻿<?xml version="1.0" encoding="utf-8"?>
-<Project DefaultTargets="Build" ToolsVersion="12.0" xmlns="http://schemas.microsoft.com/developer/msbuild/2003">
+<Project DefaultTargets="Build" ToolsVersion="14.0" xmlns="http://schemas.microsoft.com/developer/msbuild/2003">
   <ItemGroup Label="ProjectConfigurations">
     <ProjectConfiguration Include="Debug|x64">
       <Configuration>Debug</Configuration>
@@ -15,18 +15,19 @@
     <Keyword>Win32Proj</Keyword>
     <RootNamespace>test</RootNamespace>
     <ProjectName>test</ProjectName>
+    <WindowsTargetPlatformVersion>8.1</WindowsTargetPlatformVersion>
   </PropertyGroup>
   <Import Project="$(VCTargetsPath)\Microsoft.Cpp.Default.props" />
   <PropertyGroup Condition="'$(Configuration)|$(Platform)'=='Debug|x64'" Label="Configuration">
     <ConfigurationType>Application</ConfigurationType>
     <UseDebugLibraries>true</UseDebugLibraries>
-    <PlatformToolset>v120</PlatformToolset>
+    <PlatformToolset>v140</PlatformToolset>
     <CharacterSet>MultiByte</CharacterSet>
   </PropertyGroup>
   <PropertyGroup Condition="'$(Configuration)|$(Platform)'=='Release|x64'" Label="Configuration">
     <ConfigurationType>Application</ConfigurationType>
     <UseDebugLibraries>false</UseDebugLibraries>
-    <PlatformToolset>v120</PlatformToolset>
+    <PlatformToolset>v140</PlatformToolset>
     <WholeProgramOptimization>true</WholeProgramOptimization>
     <CharacterSet>MultiByte</CharacterSet>
   </PropertyGroup>
@@ -42,13 +43,13 @@
   <PropertyGroup Label="UserMacros" />
   <PropertyGroup Condition="'$(Configuration)|$(Platform)'=='Debug|x64'">
     <LinkIncremental>true</LinkIncremental>
-    <OutDir>vs2013\$(Platform)\$(Configuration)\</OutDir>
-    <IntDir>vs2013\$(Platform)\$(Configuration)\</IntDir>
+    <OutDir>vs2015\$(Platform)\$(Configuration)\</OutDir>
+    <IntDir>vs2015\$(Platform)\$(Configuration)\</IntDir>
   </PropertyGroup>
   <PropertyGroup Condition="'$(Configuration)|$(Platform)'=='Release|x64'">
     <LinkIncremental>false</LinkIncremental>
-    <OutDir>vs2013\$(Platform)\$(Configuration)\</OutDir>
-    <IntDir>vs2013\$(Platform)\$(Configuration)\</IntDir>
+    <OutDir>vs2015\$(Platform)\$(Configuration)\</OutDir>
+    <IntDir>vs2015\$(Platform)\$(Configuration)\</IntDir>
   </PropertyGroup>
   <ItemDefinitionGroup Condition="'$(Configuration)|$(Platform)'=='Debug|x64'">
     <ClCompile>
@@ -58,7 +59,7 @@
       <Optimization>Disabled</Optimization>
       <PreprocessorDefinitions>WIN32;_DEBUG;_WINDOWS;%(PreprocessorDefinitions)</PreprocessorDefinitions>
       <SDLCheck>true</SDLCheck>
-      <AdditionalIncludeDirectories>..;..\..\reed-util;..\..\extern\AntTweakBar\include;vs2013\$(Platform)\$(Configuration)\shaders</AdditionalIncludeDirectories>
+      <AdditionalIncludeDirectories>..;..\..\reed-util;..\..\extern\AntTweakBar\include;vs2015\$(Platform)\$(Configuration)\shaders</AdditionalIncludeDirectories>
       <TreatWarningAsError>true</TreatWarningAsError>
       <AdditionalOptions>/d2Zi+</AdditionalOptions>
     </ClCompile>
@@ -72,7 +73,7 @@
       <ShaderModel>5.0</ShaderModel>
       <TreatWarningAsError>true</TreatWarningAsError>
       <VariableName>%(Filename)_bytecode</VariableName>
-      <HeaderFileOutput>vs2013\$(Platform)\$(Configuration)\shaders\%(Filename).h</HeaderFileOutput>
+      <HeaderFileOutput>vs2015\$(Platform)\$(Configuration)\shaders\%(Filename).h</HeaderFileOutput>
       <ObjectFileOutput />
       <AdditionalOptions>/Gfp</AdditionalOptions>
     </FxCompile>
@@ -103,7 +104,7 @@
       <IntrinsicFunctions>true</IntrinsicFunctions>
       <PreprocessorDefinitions>WIN32;NDEBUG;_WINDOWS;%(PreprocessorDefinitions)</PreprocessorDefinitions>
       <SDLCheck>true</SDLCheck>
-      <AdditionalIncludeDirectories>..;..\..\reed-util;..\..\extern\AntTweakBar\include;vs2013\$(Platform)\$(Configuration)\shaders</AdditionalIncludeDirectories>
+      <AdditionalIncludeDirectories>..;..\..\reed-util;..\..\extern\AntTweakBar\include;vs2015\$(Platform)\$(Configuration)\shaders</AdditionalIncludeDirectories>
       <TreatWarningAsError>true</TreatWarningAsError>
       <AdditionalOptions>/d2Zi+</AdditionalOptions>
     </ClCompile>
@@ -125,7 +126,7 @@
       <ShaderModel>5.0</ShaderModel>
       <TreatWarningAsError>true</TreatWarningAsError>
       <VariableName>%(Filename)_bytecode</VariableName>
-      <HeaderFileOutput>vs2013\$(Platform)\$(Configuration)\shaders\%(Filename).h</HeaderFileOutput>
+      <HeaderFileOutput>vs2015\$(Platform)\$(Configuration)\shaders\%(Filename).h</HeaderFileOutput>
       <ObjectFileOutput />
       <AdditionalOptions>/Gfp</AdditionalOptions>
     </FxCompile>
@@ -150,10 +151,10 @@
     <ClCompile Include="test.cpp" />
   </ItemGroup>
   <ItemGroup>
-    <ProjectReference Include="..\..\reed-util\util.vs2013.vcxproj">
+    <ProjectReference Include="..\..\reed-util\util.vs2015.vcxproj">
       <Project>{059adadd-603c-4508-b2c6-8b0ba87ba4c9}</Project>
     </ProjectReference>
-    <ProjectReference Include="..\framework.vs2013.vcxproj">
+    <ProjectReference Include="..\framework.vs2015.vcxproj">
       <Project>{6d779109-842e-4c23-a10d-2345ffccea60}</Project>
     </ProjectReference>
   </ItemGroup>

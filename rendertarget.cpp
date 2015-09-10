@@ -28,9 +28,9 @@ namespace Framework
 
 		D3D11_TEXTURE2D_DESC texDesc =
 		{
-			dims.x, dims.y, 1, 1,
+			UINT(dims.x), UINT(dims.y), 1, 1,
 			formatTex,
-			{ sampleCount, 0 },
+			{ UINT(sampleCount), 0 },
 			D3D11_USAGE_DEFAULT,
 			D3D11_BIND_RENDER_TARGET | D3D11_BIND_SHADER_RESOURCE,
 			0, 0,
@@ -131,7 +131,7 @@ namespace Framework
 		// Create a staging resource
 		D3D11_TEXTURE2D_DESC texDesc =
 		{
-			m_dims.x, m_dims.y, 1, 1,
+			UINT(m_dims.x), UINT(m_dims.y), 1, 1,
 			m_format,
 			{ 1, 0 },
 			D3D11_USAGE_STAGING,
@@ -239,9 +239,9 @@ namespace Framework
 
 		D3D11_TEXTURE2D_DESC texDesc =
 		{
-			dims.x, dims.y, 1, 1,
+			UINT(dims.x), UINT(dims.y), 1, 1,
 			formats.m_formatTypeless,
-			{ sampleCount, 0 },
+			{ UINT(sampleCount), 0 },
 			D3D11_USAGE_DEFAULT,
 			D3D11_BIND_DEPTH_STENCIL | D3D11_BIND_SHADER_RESOURCE,
 			0, 0,
@@ -360,7 +360,7 @@ namespace Framework
 		// Create a staging resource
 		D3D11_TEXTURE2D_DESC texDesc =
 		{
-			m_dims.x, m_dims.y, 1, 1,
+			UINT(m_dims.x), UINT(m_dims.y), 1, 1,
 			m_formatDsv,
 			{ 1, 0 },
 			D3D11_USAGE_STAGING,

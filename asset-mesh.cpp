@@ -837,13 +837,13 @@ namespace Framework
 				for (int iTriAdd = 0, cTriAdd = range.m_indexCount/3;;)
 				{
 					// Add the best triangle seen so far to the new indices
-					int indices[3] =
+					int indicesAdd[3] =
 					{
 						pCtx->m_indices[range.m_indexStart + 3*bestTri],
 						pCtx->m_indices[range.m_indexStart + 3*bestTri + 1],
 						pCtx->m_indices[range.m_indexStart + 3*bestTri + 2],
 					};
-					indicesReordered.insert(indicesReordered.end(), &indices[0], &indices[dim(indices)]);
+					indicesReordered.insert(indicesReordered.end(), &indicesAdd[0], &indicesAdd[dim(indicesAdd)]);
 
 					++iTriAdd;
 					if (iTriAdd >= cTriAdd)
@@ -853,9 +853,9 @@ namespace Framework
 					extraTriDatas[bestTri].score = -1.0f;
 
 					// Update the vertices
-					for (int i = 0; i < dim(indices); ++i)
+					for (int i = 0; i < dim(indicesAdd); ++i)
 					{
-						ExtraVertexData * pEvd = &extraVertexDatas[indices[i]];
+						ExtraVertexData * pEvd = &extraVertexDatas[indicesAdd[i]];
 
 						// Remove the triangle we just added from the vertex's list of triangles
 						auto it = std::find(
@@ -873,18 +873,18 @@ namespace Framework
 					// (and preserving the order of the other elements)
 					int * vertexCachePrev = vertexCache[iTriAdd & 1];
 					int * vertexCacheNext = vertexCache[!(iTriAdd & 1)];
-					vertexCacheNext[0] = indices[0];
-					vertexCacheNext[1] = indices[1];
-					vertexCacheNext[2] = indices[2];
+					vertexCacheNext[0] = indicesAdd[0];
+					vertexCacheNext[1] = indicesAdd[1];
+					vertexCacheNext[2] = indicesAdd[2];
 					int iCacheWrite = 3;
 					for (int iRead = 0; iRead < s_cacheSize; ++iRead)
 					{
 						int cachedVal = vertexCachePrev[iRead];
 						if (cachedVal < 0)
 							break;
-						if (cachedVal != indices[0] &&
-							cachedVal != indices[1] &&
-							cachedVal != indices[2])
+						if (cachedVal != indicesAdd[0] &&
+							cachedVal != indicesAdd[1] &&
+							cachedVal != indicesAdd[2])
 						{
 							vertexCacheNext[iCacheWrite] = cachedVal;
 							++iCacheWrite;
