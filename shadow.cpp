@@ -41,9 +41,9 @@ namespace Framework
 	{
 		// Calculate view matrix based on light direction
 
-		// Choose an up-vector; handle the light being straight up or down
-		float3 vecUp = { 0.0f, 1.0f, 0.0f };
-		if (isnear(m_vecLight.x, 0.0f) && isnear(m_vecLight.z, 0.0f))
+		// Choose a world-space up-vector
+		float3 vecUp = { 0.0f, 0.0f, 1.0f };
+		if (all(isnear(m_vecLight.xy, 0.0f)))
 			vecUp = makefloat3(1.0f, 0.0f, 0.0f);
 
 		affine3 viewToWorld = lookatZ(-m_vecLight, vecUp);
@@ -51,8 +51,12 @@ namespace Framework
 
 		// Transform scene AABB into view space and recalculate bounds
 		box3 boundsView = boxTransform(m_boundsScene, worldToView);
+		float3 vecDiamOriginal = boundsView.diagonal();
 
-		m_vecDiam = boundsView.diagonal();
+		// Select maximum diameter along X and Y, so that shadow map texels will be square
+		float maxXY = max(vecDiamOriginal.x, vecDiamOriginal.y);
+		m_vecDiam = makefloat3(maxXY, maxXY, vecDiamOriginal.z);
+		boundsView = boxGrow(boundsView, 0.5f * (m_vecDiam - vecDiamOriginal));
 
 		// Calculate orthogonal projection matrix to fit the scene bounds
 		m_matProj = orthoProjD3DStyle(
@@ -65,7 +69,7 @@ namespace Framework
 
 		m_matWorldToClip = affineToHomogeneous(worldToView) * m_matProj;
 
-		// Calculate matrix that maps to [0, 1] UV space instead of [-1, 1] clip space
+		// Calculate alternate matrix that maps to [0, 1] UV space instead of [-1, 1] clip space
 		float4x4 matClipToUvzw =
 		{
 			0.5f,  0,    0, 0,
