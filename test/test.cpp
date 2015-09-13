@@ -21,9 +21,8 @@ float3 g_vecDirectionalLight = normalize(makefloat3(1.0f, 10.0f, 1.5f));
 rgb g_rgbDirectionalLight = makergb(1.1f, 1.0f, 0.7f);
 rgb g_rgbSky = makergb(0.37f, 0.52f, 1.0f);
 
-float g_shadowFilterWidth = 0.013f;		// meters
 float g_normalOffsetShadow = 1e-5f;		// meters
-float g_shadowSharpening = 2.0f;
+float g_shadowSharpening = 5.0f;
 
 bool g_useTonemapping = true;
 float g_exposure = 1.0f;
@@ -50,11 +49,11 @@ struct CBFrame								// matches cbuffer CBFrame in shader-common.h
 	float		m_padding1;
 
 	rgb			m_rgbDirectionalLight;
+	float		m_padding2;
 
-	float		m_shadowSharpening;
-	float3		m_shadowFilterUVZScale;
-	float		m_normalOffsetShadow;
 	float2		m_dimsShadowMap;
+	float		m_normalOffsetShadow;
+	float		m_shadowSharpening;
 
 	float		m_exposure;					// Exposure multiplier
 };
@@ -302,9 +301,8 @@ bool TestWindow::Init(HINSTANCE hInstance)
 	TwAddVarRW(pTwBarRendering, "Light direction", TW_TYPE_DIR3F, &g_vecDirectionalLight, nullptr);
 	TwAddVarRW(pTwBarRendering, "Light color", TW_TYPE_COLOR3F, &g_rgbDirectionalLight, nullptr);
 	TwAddVarRW(pTwBarRendering, "Sky color", TW_TYPE_COLOR3F, &g_rgbSky, nullptr);
-	TwAddVarRW(pTwBarRendering, "Filter Width", TW_TYPE_FLOAT, &g_shadowFilterWidth, "min=0.0 max=0.1 step=0.001 precision=3 group=Shadow");
 	TwAddVarRW(pTwBarRendering, "Normal Offset", TW_TYPE_FLOAT, &g_normalOffsetShadow, "min=0.0 max=1e-4 step=1e-6 precision=6 group=Shadow");
-	TwAddVarRW(pTwBarRendering, "Sharpening", TW_TYPE_FLOAT, &g_shadowSharpening, "min=0.01 max=5.0 step=0.01 precision=2 group=Shadow");
+	TwAddVarRW(pTwBarRendering, "Sharpening", TW_TYPE_FLOAT, &g_shadowSharpening, "min=0.01 max=10.0 step=0.01 precision=2 group=Shadow");
 	TwAddVarRW(pTwBarRendering, "Tonemapping", TW_TYPE_BOOLCPP, &g_useTonemapping, nullptr);
 	TwAddVarRW(pTwBarRendering, "Exposure", TW_TYPE_FLOAT, &g_exposure, "min=0.01 max=5.0 step=0.01 precision=2");
 
@@ -454,14 +452,14 @@ void TestWindow::RenderScene()
 		matSceneScale * m_shmp.m_matWorldToUvzw,
 		makefloat3x4(m_shmp.m_matWorldToUvzNormal),
 		m_camera.m_pos,
-		0,
+		0,	// padding
 		g_vecDirectionalLight,
-		0,
+		0,	// padding
 		g_rgbDirectionalLight,
-		g_shadowSharpening,
-		m_shmp.CalcFilterUVZScale(g_shadowFilterWidth),
-		g_normalOffsetShadow,
+		0,	// padding
 		makefloat2(m_shmp.m_dst.m_dims),
+		g_normalOffsetShadow,
+		g_shadowSharpening,
 		g_exposure,
 	};
 	m_cbFrame.Update(m_pCtx, &cbFrame);

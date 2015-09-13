@@ -16,8 +16,6 @@ namespace Framework
 		void	UpdateMatrix();
 		void	Bind(ID3D11DeviceContext * pCtx);
 
-		float3	CalcFilterUVZScale(float filterRadius);
-
 		DepthStencilTarget	m_dst;
 		float3				m_vecLight;					// Unit vector toward directional light
 		box3				m_boundsScene;				// AABB of scene in world space

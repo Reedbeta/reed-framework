@@ -88,17 +88,4 @@ namespace Framework
 	{
 		m_dst.Bind(pCtx);
 	}
-
-	float3 ShadowMap::CalcFilterUVZScale(float filterRadius)
-	{
-		// Expand the filter in the Z direction (this controls how far
-		// the filter can tilt before it starts contracting).
-		// Tuned empirically.
-		float zScale = 4.0f;
-
-		return makefloat3(
-				filterRadius / m_vecDiam.x,
-				filterRadius / m_vecDiam.y,
-				zScale * filterRadius / m_vecDiam.z);
-	}
 }
