@@ -160,6 +160,7 @@
   </ItemGroup>
   <ItemGroup>
     <ClInclude Include="shader-common.h" />
+    <ClInclude Include="shader-slots.h" />
   </ItemGroup>
   <ItemGroup>
     <FxCompile Include="shadow_alphatest_ps.hlsl">

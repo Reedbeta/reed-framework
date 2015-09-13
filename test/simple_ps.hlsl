@@ -12,7 +12,7 @@ void main(
 	float3 normal = normalize(i_vtx.m_normal);
 
 	// Sample shadow map
-	float shadow = EvaluateShadowPCF8(i_uvzwShadow, normal);
+	float shadow = EvaluateShadow(i_uvzwShadow, normal);
 
 	// Evaluate diffuse lighting
 	float3 diffuseColor = g_texDiffuse.Sample(g_ss, i_vtx.m_uv);

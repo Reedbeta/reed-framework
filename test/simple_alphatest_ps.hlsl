@@ -17,7 +17,7 @@ void main(
 		discard;
 
 	// Sample shadow map
-	float shadow = EvaluateShadowPCF8(i_uvzwShadow, normal);
+	float shadow = EvaluateShadow(i_uvzwShadow, normal);
 
 	// Evaluate diffuse lighting
 	float3 diffuseLight = g_rgbDirectionalLight * (shadow * saturate(dot(normal, g_vecDirectionalLight)));

@@ -1,30 +1,7 @@
 #ifndef SHADER_COMMON_H
 #define SHADER_COMMON_H
 
-// This file is included from both C++ and HLSL; it defines shared resource slot assignments
-
-#ifdef __cplusplus
-#	define CBREG(n)						n
-#	define TEXREG(n)					n
-#	define SAMPREG(n)					n
-#else
-#	define CBREG(n)						register(b##n)
-#	define TEXREG(n)					register(t##n)
-#	define SAMPREG(n)					register(s##n)
-#endif
-
-#define CB_FRAME						CBREG(0)
-#define CB_SHADER						CBREG(1)
-#define CB_DEBUG						CBREG(2)
-
-#define TEX_DIFFUSE						TEXREG(0)
-#define TEX_SHADOW						TEXREG(1)
-
-#define SAMP_DEFAULT					SAMPREG(0)
-#define SAMP_SHADOW						SAMPREG(1)
-
-
-#ifndef __cplusplus
+#include "shader-slots.h"
 
 #pragma pack_matrix(row_major)
 
@@ -48,6 +25,7 @@ cbuffer CBFrame : CB_FRAME					// matches struct CBFrame in test.cpp
 	float		g_shadowSharpening;
 	float3		g_shadowFilterUVZScale;
 	float		g_normalOffsetShadow;
+	float2		g_dimsShadowMap;
 
 	float		g_exposure;					// Exposure multiplier
 }
@@ -105,7 +83,7 @@ static const float2 s_aPoisson8[] =
 	{ 0.8084122f, 0.533884f },
 };
 
-float EvaluateShadowPCF8(
+float EvaluateShadowPoisson8(
 	float4 uvzwShadow,
 	float3 normalGeom)
 {
@@ -140,5 +118,50 @@ float EvaluateShadowPCF8(
 	return sharpen(sampleSum * (1.0 / 8.0), g_shadowSharpening);
 }
 
-#endif // !defined(__cplusplus)
+float EvaluateShadowGather16(
+	float4 uvzwShadow,
+	float3 normalGeom)
+{
+	float3 uvzShadow = uvzwShadow.xyz / uvzwShadow.w;
+
+	// Apply normal offset to avoid self-shadowing artifacts
+	float3 normalShadow = mul(normalGeom, g_matWorldToUvzShadowNormal);
+	uvzShadow += normalShadow * g_normalOffsetShadow;
+
+	// Do the samples - each one a 2x2 GatherCmp
+	// !!!UNDONE: not offsetting the z value by uvSlopes
+	float4 samplesNW = g_texShadowMap.GatherCmp(g_ssShadow, uvzShadow.xy, uvzShadow.z, int2(-1, -1));
+	float4 samplesNE = g_texShadowMap.GatherCmp(g_ssShadow, uvzShadow.xy, uvzShadow.z, int2( 1, -1));
+	float4 samplesSW = g_texShadowMap.GatherCmp(g_ssShadow, uvzShadow.xy, uvzShadow.z, int2(-1,  1));
+	float4 samplesSE = g_texShadowMap.GatherCmp(g_ssShadow, uvzShadow.xy, uvzShadow.z, int2( 1,  1));
+
+	// Calculate fractional location relative to texel centers.  The 1/512 offset is needed to ensure
+	// that frac()'s output steps from 1 to 0 at the exact same point that GatherCmp switches texels.
+	float2 offset = frac(uvzShadow.xy * g_dimsShadowMap + (-0.5 + 1.0/512.0));
+
+	// Calculate weights for the samples based on a 2px-radius triangle filter
+	static const float radius = 2.0, invR = 1.0 / radius, invRSq = 1.0 / square(radius);
+	// Readable version: float4 xWeights = { 1.0 - (offset+1)/radius, 1.0 - offset/radius, 1.0 - (1-offset)/radius, 1.0 - (2-offset)/radius } / radius;
+	float4 xWeights = offset.x * float4(-invRSq.xx, invRSq.xx) + (invR + float4(-invRSq, 0.0, -invRSq, -2.0*invRSq));
+	float4 yWeights = offset.y * float4(-invRSq.xx, invRSq.xx) + (invR + float4(-invRSq, 0.0, -invRSq, -2.0*invRSq));
+
+	// Calculate weighted sum of samples
+	float sampleSum = dot(xWeights.xyyx, yWeights.yyxx * samplesNW) +
+					  dot(xWeights.zwwz, yWeights.yyxx * samplesNE) +
+					  dot(xWeights.xyyx, yWeights.wwzz * samplesSW) +
+					  dot(xWeights.zwwz, yWeights.wwzz * samplesSE);
+
+	return sharpen(sampleSum, g_shadowSharpening);
+}
+
+float EvaluateShadow(
+	float4 uvzwShadow,
+	float3 normalGeom)
+{
+	if (g_debugKey)
+		return EvaluateShadowGather16(uvzwShadow, normalGeom);
+	else
+		return EvaluateShadowPoisson8(uvzwShadow, normalGeom);
+}
+
 #endif // !defined(SHADER_COMMON_H)
