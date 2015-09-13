@@ -17,9 +17,9 @@ using namespace Framework;
 
 // Globals
 
-float3 g_vecDirectionalLight = normalize(makefloat3(0.5f, 10.0f, 1.5f));
+float3 g_vecDirectionalLight = normalize(makefloat3(1.0f, 10.0f, 1.5f));
 rgb g_rgbDirectionalLight = makergb(1.1f, 1.0f, 0.7f);
-rgb g_rgbSky = makergb(0.44f, 0.56f, 1.0f);
+rgb g_rgbSky = makergb(0.37f, 0.52f, 1.0f);
 
 float g_shadowFilterWidth = 0.013f;		// meters
 float g_normalOffsetShadow = 1e-5f;		// meters
