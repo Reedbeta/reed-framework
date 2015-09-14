@@ -77,14 +77,14 @@
       <AdditionalOptions>/Gfp</AdditionalOptions>
     </FxCompile>
     <CustomBuildStep>
-      <Command>copy /y $(ProjectDir)..\..\extern\AntTweakBar\lib\AntTweakBar64.dll $(OutDir)
+      <Command>copy /y "$(ProjectDir)..\..\extern\AntTweakBar\lib\AntTweakBar64.dll" "$(OutDir)"
 </Command>
     </CustomBuildStep>
     <CustomBuildStep>
       <Message>Copying .dlls to output directory</Message>
     </CustomBuildStep>
     <CustomBuildStep>
-      <Outputs>$(OutDir)AntTweakBar64.dll;%(Outputs)</Outputs>
+      <Outputs>$(OutDir)AntTweakBar64.dll</Outputs>
     </CustomBuildStep>
     <CustomBuildStep>
       <Inputs>$(ProjectDir)..\..\extern\AntTweakBar\lib\AntTweakBar64.dll</Inputs>
@@ -130,14 +130,14 @@
       <AdditionalOptions>/Gfp</AdditionalOptions>
     </FxCompile>
     <CustomBuildStep>
-      <Command>copy /y $(ProjectDir)..\..\extern\AntTweakBar\lib\AntTweakBar64.dll $(OutDir)
+      <Command>copy /y "$(ProjectDir)..\..\extern\AntTweakBar\lib\AntTweakBar64.dll" "$(OutDir)"
 </Command>
     </CustomBuildStep>
     <CustomBuildStep>
       <Message>Copying .dlls to output directory</Message>
     </CustomBuildStep>
     <CustomBuildStep>
-      <Outputs>$(OutDir)AntTweakBar64.dll;%(Outputs)</Outputs>
+      <Outputs>$(OutDir)AntTweakBar64.dll</Outputs>
     </CustomBuildStep>
     <CustomBuildStep>
       <Inputs>$(ProjectDir)..\..\extern\AntTweakBar\lib\AntTweakBar64.dll</Inputs>
