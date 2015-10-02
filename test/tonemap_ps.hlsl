@@ -1,4 +1,4 @@
-#include "shader-common.h"
+#include "shader-common.hlsli"
 
 Texture2DMS<float3> tex : register(t0);
 static const int s_msaaSamples = 4;

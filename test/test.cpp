@@ -37,7 +37,7 @@ float g_debugSlider3 = 0.0f;
 
 // Constant buffers
 
-struct CBFrame								// matches cbuffer CBFrame in shader-common.h
+struct CBFrame								// matches cbuffer CBFrame in shader-common.hlsli
 {
 	float4x4	m_matWorldToClip;
 	float4x4	m_matWorldToUvzwShadow;
@@ -58,7 +58,7 @@ struct CBFrame								// matches cbuffer CBFrame in shader-common.h
 	float		m_exposure;					// Exposure multiplier
 };
 
-struct CBDebug								// matches cbuffer CBDebug in shader-common.h
+struct CBDebug								// matches cbuffer CBDebug in shader-common.hlsli
 {
 	float		m_debugKey;					// Mapped to spacebar - 0 if up, 1 if down
 	float		m_debugSlider0;				// Mapped to debug sliders in UI

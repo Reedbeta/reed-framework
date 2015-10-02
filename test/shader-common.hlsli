@@ -1,5 +1,5 @@
-#ifndef SHADER_COMMON_H
-#define SHADER_COMMON_H
+#ifndef SHADER_COMMON_HLSLI
+#define SHADER_COMMON_HLSLI
 
 #include "shader-slots.h"
 
@@ -118,4 +118,4 @@ float EvaluateShadow(
 	return EvaluateShadowGather16(uvzwShadow, normalGeom);
 }
 
-#endif // !defined(SHADER_COMMON_H)
+#endif // SHADER_COMMON_HLSLI

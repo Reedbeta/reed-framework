@@ -1,4 +1,4 @@
-#include "shader-common.h"
+#include "shader-common.hlsli"
 
 void main(
 	in Vertex i_vtx,

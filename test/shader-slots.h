@@ -23,4 +23,4 @@
 #define SAMP_DEFAULT					SAMPREG(0)
 #define SAMP_SHADOW						SAMPREG(1)
 
-#endif // !defined(SHADER_SLOTS_H)
+#endif // SHADER_SLOTS_H

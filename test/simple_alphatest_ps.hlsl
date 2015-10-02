@@ -1,4 +1,4 @@
-#include "shader-common.h"
+#include "shader-common.hlsli"
 
 Texture2D<float4> g_texDiffuse : register(t0);
 SamplerState g_ss : register(s0);
