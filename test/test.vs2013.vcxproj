@@ -61,6 +61,7 @@
       <AdditionalIncludeDirectories>..;..\..\reed-util;AntTweakBar\include;vs2013\$(Platform)\$(Configuration)\shaders</AdditionalIncludeDirectories>
       <TreatWarningAsError>true</TreatWarningAsError>
       <AdditionalOptions>/d2Zi+</AdditionalOptions>
+      <RuntimeLibrary>MultiThreadedDebug</RuntimeLibrary>
     </ClCompile>
     <Link>
       <SubSystem>Windows</SubSystem>
@@ -106,6 +107,7 @@
       <AdditionalIncludeDirectories>..;..\..\reed-util;AntTweakBar\include;vs2013\$(Platform)\$(Configuration)\shaders</AdditionalIncludeDirectories>
       <TreatWarningAsError>true</TreatWarningAsError>
       <AdditionalOptions>/d2Zi+</AdditionalOptions>
+      <RuntimeLibrary>MultiThreaded</RuntimeLibrary>
     </ClCompile>
     <Link>
       <SubSystem>Windows</SubSystem>

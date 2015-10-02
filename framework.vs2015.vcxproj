@@ -120,6 +120,8 @@
       <TreatWarningAsError>true</TreatWarningAsError>
       <AdditionalIncludeDirectories>..\reed-util;vs2015\$(Platform)\$(Configuration)\shaders\</AdditionalIncludeDirectories>
       <AdditionalOptions>/d2Zi+</AdditionalOptions>
+      <DebugInformationFormat>ProgramDatabase</DebugInformationFormat>
+      <RuntimeLibrary>MultiThreadedDebug</RuntimeLibrary>
     </ClCompile>
     <Link>
       <SubSystem>Windows</SubSystem>
@@ -147,6 +149,7 @@
       <TreatWarningAsError>true</TreatWarningAsError>
       <AdditionalIncludeDirectories>..\reed-util;vs2015\$(Platform)\$(Configuration)\shaders\</AdditionalIncludeDirectories>
       <AdditionalOptions>/d2Zi+</AdditionalOptions>
+      <RuntimeLibrary>MultiThreaded</RuntimeLibrary>
     </ClCompile>
     <Link>
       <SubSystem>Windows</SubSystem>
