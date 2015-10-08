@@ -1,7 +1,8 @@
 # Visual Studio files
 *.user
 *.suo
-x64/
+**/vs2013/
+**/vs2015/
 
 # Maya files
 **/.mayaSwatches/
