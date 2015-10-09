@@ -131,7 +131,7 @@ namespace Framework
 #ifdef _DEBUG
 		// Set up D3D11 debug layer settings
 		comptr<ID3D11InfoQueue> pInfoQueue;
-		if (SUCCEEDED(m_pDevice->QueryInterface(__uuidof(ID3D11InfoQueue), (void **)&pInfoQueue)))
+		if (SUCCEEDED(m_pDevice->QueryInterface<ID3D11InfoQueue>(&pInfoQueue)))
 		{
 			// Break in the debugger when an error or warning is issued
 			pInfoQueue->SetBreakOnSeverity(D3D11_MESSAGE_SEVERITY_CORRUPTION, true);
