@@ -59,7 +59,7 @@
       <Optimization>Disabled</Optimization>
       <PreprocessorDefinitions>WIN32;_DEBUG;_WINDOWS;%(PreprocessorDefinitions)</PreprocessorDefinitions>
       <SDLCheck>true</SDLCheck>
-      <AdditionalIncludeDirectories>..;..\..\reed-util;AntTweakBar\include;vs2015\$(Platform)\$(Configuration)\shaders</AdditionalIncludeDirectories>
+      <AdditionalIncludeDirectories>..;..\..\reed-util;AntTweakBar\include;LibOVR\Include;vs2015\$(Platform)\$(Configuration)\shaders</AdditionalIncludeDirectories>
       <TreatWarningAsError>true</TreatWarningAsError>
       <AdditionalOptions>/d2Zi+</AdditionalOptions>
       <DebugInformationFormat>ProgramDatabase</DebugInformationFormat>
@@ -68,8 +68,8 @@
     <Link>
       <SubSystem>Windows</SubSystem>
       <GenerateDebugInformation>true</GenerateDebugInformation>
-      <AdditionalDependencies>kernel32.lib;user32.lib;dxgi.lib;d3d11.lib;AntTweakBar64.lib;xinput9_1_0.lib</AdditionalDependencies>
-      <AdditionalLibraryDirectories>AntTweakBar\lib</AdditionalLibraryDirectories>
+      <AdditionalDependencies>kernel32.lib;user32.lib;dxgi.lib;d3d11.lib;xinput9_1_0.lib;AntTweakBar64.lib;LibOVR.lib</AdditionalDependencies>
+      <AdditionalLibraryDirectories>AntTweakBar\lib;LibOVR\lib</AdditionalLibraryDirectories>
     </Link>
     <FxCompile>
       <ShaderModel>5.0</ShaderModel>
@@ -106,7 +106,7 @@
       <IntrinsicFunctions>true</IntrinsicFunctions>
       <PreprocessorDefinitions>WIN32;NDEBUG;_WINDOWS;%(PreprocessorDefinitions)</PreprocessorDefinitions>
       <SDLCheck>true</SDLCheck>
-      <AdditionalIncludeDirectories>..;..\..\reed-util;AntTweakBar\include;vs2015\$(Platform)\$(Configuration)\shaders</AdditionalIncludeDirectories>
+      <AdditionalIncludeDirectories>..;..\..\reed-util;AntTweakBar\include;LibOVR\Include;vs2015\$(Platform)\$(Configuration)\shaders</AdditionalIncludeDirectories>
       <TreatWarningAsError>true</TreatWarningAsError>
       <AdditionalOptions>/d2Zi+</AdditionalOptions>
       <RuntimeLibrary>MultiThreaded</RuntimeLibrary>
@@ -116,8 +116,8 @@
       <GenerateDebugInformation>true</GenerateDebugInformation>
       <EnableCOMDATFolding>true</EnableCOMDATFolding>
       <OptimizeReferences>true</OptimizeReferences>
-      <AdditionalDependencies>kernel32.lib;user32.lib;dxgi.lib;d3d11.lib;AntTweakBar64.lib;xinput9_1_0.lib</AdditionalDependencies>
-      <AdditionalLibraryDirectories>AntTweakBar\lib</AdditionalLibraryDirectories>
+      <AdditionalDependencies>kernel32.lib;user32.lib;dxgi.lib;d3d11.lib;xinput9_1_0.lib;AntTweakBar64.lib;LibOVR.lib</AdditionalDependencies>
+      <AdditionalLibraryDirectories>AntTweakBar\lib;LibOVR\lib</AdditionalLibraryDirectories>
     </Link>
     <FxCompile>
       <DisableOptimizations>true</DisableOptimizations>
