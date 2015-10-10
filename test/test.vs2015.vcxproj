@@ -59,7 +59,7 @@
       <Optimization>Disabled</Optimization>
       <PreprocessorDefinitions>WIN32;_DEBUG;_WINDOWS;%(PreprocessorDefinitions)</PreprocessorDefinitions>
       <SDLCheck>true</SDLCheck>
-      <AdditionalIncludeDirectories>..;..\..\reed-util;AntTweakBar\include;LibOVR\Include;vs2015\$(Platform)\$(Configuration)\shaders</AdditionalIncludeDirectories>
+      <AdditionalIncludeDirectories>..;..\..\reed-util;AntTweakBar\include;LibOVR\Include;OpenVR\headers;vs2015\$(Platform)\$(Configuration)\shaders</AdditionalIncludeDirectories>
       <TreatWarningAsError>true</TreatWarningAsError>
       <AdditionalOptions>/d2Zi+</AdditionalOptions>
       <DebugInformationFormat>ProgramDatabase</DebugInformationFormat>
@@ -68,8 +68,8 @@
     <Link>
       <SubSystem>Windows</SubSystem>
       <GenerateDebugInformation>true</GenerateDebugInformation>
-      <AdditionalDependencies>kernel32.lib;user32.lib;dxgi.lib;d3d11.lib;xinput9_1_0.lib;AntTweakBar64.lib;LibOVR.lib</AdditionalDependencies>
-      <AdditionalLibraryDirectories>AntTweakBar\lib;LibOVR\lib</AdditionalLibraryDirectories>
+      <AdditionalDependencies>kernel32.lib;user32.lib;dxgi.lib;d3d11.lib;xinput9_1_0.lib;AntTweakBar64.lib;LibOVR.lib;openvr_api.lib</AdditionalDependencies>
+      <AdditionalLibraryDirectories>AntTweakBar\lib;LibOVR\lib;OpenVR\lib\win64</AdditionalLibraryDirectories>
     </Link>
     <FxCompile>
       <ShaderModel>5.0</ShaderModel>
@@ -81,16 +81,16 @@
     </FxCompile>
     <CustomBuildStep>
       <Command>copy /y "$(ProjectDir)AntTweakBar\lib\AntTweakBar64.dll" "$(OutDir)"
-</Command>
+copy /y "$(ProjectDir)OpenVR\bin\win64\openvr_api.dll" "$(OutDir)"</Command>
     </CustomBuildStep>
     <CustomBuildStep>
       <Message>Copying .dlls to output directory</Message>
     </CustomBuildStep>
     <CustomBuildStep>
-      <Outputs>$(OutDir)AntTweakBar64.dll</Outputs>
+      <Outputs>$(OutDir)AntTweakBar64.dll;$(OutDir)openvr_api.dll</Outputs>
     </CustomBuildStep>
     <CustomBuildStep>
-      <Inputs>$(ProjectDir)AntTweakBar\lib\AntTweakBar64.dll</Inputs>
+      <Inputs>$(ProjectDir)AntTweakBar\lib\AntTweakBar64.dll;$(ProjectDir)OpenVR\bin\win64\openvr_api.dll</Inputs>
     </CustomBuildStep>
     <Manifest>
       <EnableDpiAwareness>true</EnableDpiAwareness>
@@ -106,7 +106,7 @@
       <IntrinsicFunctions>true</IntrinsicFunctions>
       <PreprocessorDefinitions>WIN32;NDEBUG;_WINDOWS;%(PreprocessorDefinitions)</PreprocessorDefinitions>
       <SDLCheck>true</SDLCheck>
-      <AdditionalIncludeDirectories>..;..\..\reed-util;AntTweakBar\include;LibOVR\Include;vs2015\$(Platform)\$(Configuration)\shaders</AdditionalIncludeDirectories>
+      <AdditionalIncludeDirectories>..;..\..\reed-util;AntTweakBar\include;LibOVR\Include;OpenVR\headers;vs2015\$(Platform)\$(Configuration)\shaders</AdditionalIncludeDirectories>
       <TreatWarningAsError>true</TreatWarningAsError>
       <AdditionalOptions>/d2Zi+</AdditionalOptions>
       <RuntimeLibrary>MultiThreaded</RuntimeLibrary>
@@ -116,8 +116,8 @@
       <GenerateDebugInformation>true</GenerateDebugInformation>
       <EnableCOMDATFolding>true</EnableCOMDATFolding>
       <OptimizeReferences>true</OptimizeReferences>
-      <AdditionalDependencies>kernel32.lib;user32.lib;dxgi.lib;d3d11.lib;xinput9_1_0.lib;AntTweakBar64.lib;LibOVR.lib</AdditionalDependencies>
-      <AdditionalLibraryDirectories>AntTweakBar\lib;LibOVR\lib</AdditionalLibraryDirectories>
+      <AdditionalDependencies>kernel32.lib;user32.lib;dxgi.lib;d3d11.lib;xinput9_1_0.lib;AntTweakBar64.lib;LibOVR.lib;openvr_api.lib</AdditionalDependencies>
+      <AdditionalLibraryDirectories>AntTweakBar\lib;LibOVR\lib;OpenVR\lib\win64</AdditionalLibraryDirectories>
     </Link>
     <FxCompile>
       <DisableOptimizations>true</DisableOptimizations>
@@ -135,16 +135,16 @@
     </FxCompile>
     <CustomBuildStep>
       <Command>copy /y "$(ProjectDir)AntTweakBar\lib\AntTweakBar64.dll" "$(OutDir)"
-</Command>
+copy /y "$(ProjectDir)OpenVR\bin\win64\openvr_api.dll" "$(OutDir)"</Command>
     </CustomBuildStep>
     <CustomBuildStep>
       <Message>Copying .dlls to output directory</Message>
     </CustomBuildStep>
     <CustomBuildStep>
-      <Outputs>$(OutDir)AntTweakBar64.dll</Outputs>
+      <Outputs>$(OutDir)AntTweakBar64.dll;$(OutDir)openvr_api.dll</Outputs>
     </CustomBuildStep>
     <CustomBuildStep>
-      <Inputs>$(ProjectDir)AntTweakBar\lib\AntTweakBar64.dll</Inputs>
+      <Inputs>$(ProjectDir)AntTweakBar\lib\AntTweakBar64.dll;$(ProjectDir)OpenVR\bin\win64\openvr_api.dll</Inputs>
     </CustomBuildStep>
     <Manifest>
       <EnableDpiAwareness>true</EnableDpiAwareness>
