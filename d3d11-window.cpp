@@ -581,6 +581,25 @@ namespace Framework
 		pCtx->Draw(3, 0);
 	}
 
+	void D3D11Window::DrawRectPass(
+		ID3D11DeviceContext * pCtx,
+		box2_arg boxSrc,
+		box2_arg boxDst)
+	{
+		CBBlit cbBlit =
+		{
+			boxSrc,
+			boxDst,
+		};
+		m_cbBlit.Update(pCtx, &cbBlit);
+
+		pCtx->IASetInputLayout(nullptr);
+		pCtx->IASetPrimitiveTopology(D3D11_PRIMITIVE_TOPOLOGY_TRIANGLELIST);
+		pCtx->VSSetShader(m_pVsRect, nullptr, 0);
+		pCtx->VSSetConstantBuffers(0, 1, &m_cbBlit.m_pBuf);
+		pCtx->Draw(6, 0);
+	}
+
 	void D3D11Window::BlitFullscreen(
 		ID3D11DeviceContext * pCtx,
 		ID3D11ShaderResourceView * pSrvSrc,

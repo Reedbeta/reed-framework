@@ -43,6 +43,14 @@ namespace Framework
 		void				DrawFullscreenPass(
 								ID3D11DeviceContext * pCtx,
 								box2_arg boxSrc = makebox2(0, 0, 1, 1));
+		void				DrawRectPass(
+								ID3D11DeviceContext * pCtx,
+								box2_arg boxDst)
+								{ DrawRectPass(pCtx, makebox2(0, 0, 1, 1), boxDst); }
+		void				DrawRectPass(
+								ID3D11DeviceContext * pCtx,
+								box2_arg boxSrc,
+								box2_arg boxDst);
 
 		void				BlitFullscreen(
 								ID3D11DeviceContext * pCtx,
