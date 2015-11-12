@@ -69,7 +69,7 @@
       <SubSystem>Windows</SubSystem>
       <GenerateDebugInformation>true</GenerateDebugInformation>
       <AdditionalDependencies>kernel32.lib;user32.lib;dxgi.lib;d3d11.lib;xinput9_1_0.lib;AntTweakBar64.lib;LibOVR.lib;openvr_api.lib</AdditionalDependencies>
-      <AdditionalLibraryDirectories>AntTweakBar\lib;LibOVR\lib;OpenVR\lib\win64</AdditionalLibraryDirectories>
+      <AdditionalLibraryDirectories>AntTweakBar\lib;LibOVR\Lib\VS2015;OpenVR\lib\win64</AdditionalLibraryDirectories>
     </Link>
     <FxCompile>
       <ShaderModel>5.0</ShaderModel>
@@ -117,7 +117,7 @@ copy /y "$(ProjectDir)OpenVR\bin\win64\openvr_api.dll" "$(OutDir)"</Command>
       <EnableCOMDATFolding>true</EnableCOMDATFolding>
       <OptimizeReferences>true</OptimizeReferences>
       <AdditionalDependencies>kernel32.lib;user32.lib;dxgi.lib;d3d11.lib;xinput9_1_0.lib;AntTweakBar64.lib;LibOVR.lib;openvr_api.lib</AdditionalDependencies>
-      <AdditionalLibraryDirectories>AntTweakBar\lib;LibOVR\lib;OpenVR\lib\win64</AdditionalLibraryDirectories>
+      <AdditionalLibraryDirectories>AntTweakBar\lib;LibOVR\Lib\VS2015;OpenVR\lib\win64</AdditionalLibraryDirectories>
     </Link>
     <FxCompile>
       <DisableOptimizations>true</DisableOptimizations>

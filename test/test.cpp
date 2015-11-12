@@ -159,13 +159,13 @@ public:
 	// VR headset support
 	bool								TryActivateVR();
 	void								DeactivateVR();
-	bool								IsVRActive() const { return m_oculusHMD || m_pOpenVRSystem; }
+	bool								IsVRActive() const { return m_oculusSession || m_pOpenVRSystem; }
 	float4x4							m_matProjVR[2];
 
 	// Oculus headset support
 	bool								TryActivateOculusVR();
 	void								DeactivateOculusVR();
-	ovrHmd								m_oculusHMD;
+	ovrSession							m_oculusSession;
 	ovrSwapTextureSet *					m_pOculusSwapTextureSet;
 	ovrFovPort							m_eyeFovOculusHMD[2];
 	ovrVector3f							m_eyeOffsetsOculusHMD[2];
@@ -182,7 +182,7 @@ public:
 // TestWindow implementation
 
 TestWindow::TestWindow()
-:	m_oculusHMD(nullptr),
+:	m_oculusSession(nullptr),
 	m_pOculusSwapTextureSet(nullptr),
 	m_pOpenVRSystem(nullptr),
 	m_pOpenVRCompositor(nullptr)
@@ -465,8 +465,8 @@ LRESULT TestWindow::MsgProc(HWND hWnd, UINT message, WPARAM wParam, LPARAM lPara
 			break;
 
 		case 'R':
-			if (m_oculusHMD)
-				ovr_RecenterPose(m_oculusHMD);
+			if (m_oculusSession)
+				ovr_RecenterPose(m_oculusSession);
 			else if (m_pOpenVRSystem)
 				m_pOpenVRSystem->ResetSeatedZeroPose();
 			break;
@@ -524,9 +524,9 @@ void TestWindow::OnRender()
 		m_camera.UpdateOrientation();
 
 		// Retrieve head-tracking information from the VR API
-		if (m_oculusHMD)
+		if (m_oculusSession)
 		{
-			ovr_GetEyePoses(m_oculusHMD, m_timer.m_frameCount, m_eyeOffsetsOculusHMD, m_poseOculusHMD, nullptr);
+			ovr_GetEyePoses(m_oculusSession, m_timer.m_frameCount, true, m_eyeOffsetsOculusHMD, m_poseOculusHMD, nullptr);
 		}
 		else if (m_pOpenVRSystem)
 		{
@@ -565,7 +565,7 @@ void TestWindow::OnRender()
 	RenderScene();
 
 	bool vrDisplayLost = false;
-	if (m_oculusHMD)
+	if (m_oculusSession)
 	{
 		// Blit the frame to the Oculus swap texture set (would have rendered directly to it,
 		// but then it seems you can't blit from it to the back buffer - we just get black).
@@ -588,7 +588,7 @@ void TestWindow::OnRender()
 		layerMain.RenderPose[ovrEye_Left] = m_poseOculusHMD[ovrEye_Left];
 		layerMain.RenderPose[ovrEye_Right] = m_poseOculusHMD[ovrEye_Right];
 		ovrLayerHeader * layerList[] = { &layerMain.Header };
-		ovrResult result = ovr_SubmitFrame(m_oculusHMD, m_timer.m_frameCount, nullptr, layerList, dim(layerList));
+		ovrResult result = ovr_SubmitFrame(m_oculusSession, m_timer.m_frameCount, nullptr, layerList, dim(layerList));
 		if (result == ovrError_DisplayLost)
 		{
 			// Display was powered off, or something. Set flag to turn off VR mode next frame.
@@ -739,7 +739,7 @@ void TestWindow::RenderScene()
 		{
 			// Figure out the camera pose for this eye, from the VR tracking system
 			affine3 eyeToCamera = affine3::identity();
-			if (m_oculusHMD)
+			if (m_oculusSession)
 			{
 				ovrPosef hmdPose = m_poseOculusHMD[eye];
 				quat hmdOrientation =
@@ -879,7 +879,7 @@ bool TestWindow::TryActivateVR()
 
 void TestWindow::DeactivateVR()
 {
-	if (m_oculusHMD)
+	if (m_oculusSession)
 		DeactivateOculusVR();
 	else if (m_pOpenVRSystem)
 		DeactivateOpenVR();
@@ -892,10 +892,10 @@ bool TestWindow::TryActivateOculusVR()
 {
 	// Connect to HMD
 	ovrGraphicsLuid oculusLuid = {};
-	if (OVR_FAILURE(ovr_Create(&m_oculusHMD, &oculusLuid)))
+	if (OVR_FAILURE(ovr_Create(&m_oculusSession, &oculusLuid)))
 		return false;
-	ASSERT_ERR(m_oculusHMD);
-	if (!m_oculusHMD)
+	ASSERT_ERR(m_oculusSession);
+	if (!m_oculusSession)
 		return false;
 
 	// Check that the adapter LUID matches our DX11 device
@@ -905,7 +905,6 @@ bool TestWindow::TryActivateOculusVR()
 	CHECK_D3D(pDXGIDevice->GetAdapter(&pAdapter));
 	DXGI_ADAPTER_DESC adapterDesc;
 	CHECK_D3D(pAdapter->GetDesc(&adapterDesc));
-	adapterDesc.AdapterLuid;
 	cassert(sizeof(adapterDesc.AdapterLuid) == sizeof(oculusLuid));
 	if (memcmp(&adapterDesc.AdapterLuid, &oculusLuid, sizeof(oculusLuid)) != 0)
 	{
@@ -913,16 +912,10 @@ bool TestWindow::TryActivateOculusVR()
 		return false;
 	}
 
-	// Init OVR head-tracking
-	CHECK_OVR(ovr_ConfigureTracking(
-					m_oculusHMD,
-					ovrTrackingCap_Orientation | ovrTrackingCap_MagYawCorrection | ovrTrackingCap_Position,
-					0));
-
 	// Create swap texture set for both eyes side-by-side
-	ovrHmdDesc hmdDesc = ovr_GetHmdDesc(m_oculusHMD);
-	ovrSizei eyeSizeLeft = ovr_GetFovTextureSize(m_oculusHMD, ovrEye_Left, hmdDesc.DefaultEyeFov[0], 1.0f);
-	ovrSizei eyeSizeRight = ovr_GetFovTextureSize(m_oculusHMD, ovrEye_Right, hmdDesc.DefaultEyeFov[1], 1.0f);
+	ovrHmdDesc hmdDesc = ovr_GetHmdDesc(m_oculusSession);
+	ovrSizei eyeSizeLeft = ovr_GetFovTextureSize(m_oculusSession, ovrEye_Left, hmdDesc.DefaultEyeFov[0], 1.0f);
+	ovrSizei eyeSizeRight = ovr_GetFovTextureSize(m_oculusSession, ovrEye_Right, hmdDesc.DefaultEyeFov[1], 1.0f);
 	int2 dimsRenderTarget = { max(eyeSizeLeft.w, eyeSizeRight.w) * 2, max(eyeSizeLeft.h, eyeSizeRight.h) };
 	D3D11_TEXTURE2D_DESC texDesc =
 	{
@@ -933,7 +926,7 @@ bool TestWindow::TryActivateOculusVR()
 		D3D11_BIND_RENDER_TARGET | D3D11_BIND_SHADER_RESOURCE,
 	};
 	CHECK_OVR(ovr_CreateSwapTextureSetD3D11(
-					m_oculusHMD,
+					m_oculusSession,
 					m_pDevice,
 					&texDesc,
 					ovrSwapTextureSetD3D11_Typeless,
@@ -958,7 +951,7 @@ bool TestWindow::TryActivateOculusVR()
 
 		// Store the eye FOVs and offset vectors for later use
 		m_eyeFovOculusHMD[i] = hmdDesc.DefaultEyeFov[i];
-		ovrEyeRenderDesc eyeRenderDesc = ovr_GetRenderDesc(m_oculusHMD, ovrEyeType(i), hmdDesc.DefaultEyeFov[i]);
+		ovrEyeRenderDesc eyeRenderDesc = ovr_GetRenderDesc(m_oculusSession, ovrEyeType(i), hmdDesc.DefaultEyeFov[i]);
 		m_eyeOffsetsOculusHMD[i] = eyeRenderDesc.HmdToEyeViewOffset;
 	}
 
@@ -969,14 +962,14 @@ void TestWindow::DeactivateOculusVR()
 {
 	if (m_pOculusSwapTextureSet)
 	{
-		ovr_DestroySwapTextureSet(m_oculusHMD, m_pOculusSwapTextureSet);
+		ovr_DestroySwapTextureSet(m_oculusSession, m_pOculusSwapTextureSet);
 		m_pOculusSwapTextureSet = nullptr;
 	}
 
-	if (m_oculusHMD)
+	if (m_oculusSession)
 	{
-		ovr_Destroy(m_oculusHMD);
-		m_oculusHMD = nullptr;
+		ovr_Destroy(m_oculusSession);
+		m_oculusSession = nullptr;
 	}
 }
 
