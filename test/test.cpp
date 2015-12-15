@@ -41,13 +41,8 @@ using namespace Framework;
 // Define error checkers for OpenVR APIs
 #define CHECK_OPENVR_WARN(f) \
 		{ \
-			vr::VRCompositorError result = f; \
-			if (result != vr::VRCompositorError_None) \
-			{ \
-				char msg[1024]; \
-				m_pOpenVRCompositor->GetLastError(msg, dim(msg)); \
-				WARN("OpenVR call failed with error code: %d\nFailed call: %s\nError message: %s", result, #f, msg); \
-			} \
+			vr::EVRCompositorError result = f; \
+			ASSERT_WARN_MSG(result == vr::VRCompositorError_None, "OpenVR call failed with error code: %d\nFailed call: %s", result, #f); \
 		}
 
 
@@ -607,10 +602,11 @@ void TestWindow::OnRender()
 	else if (m_pOpenVRSystem)
 	{
 		// Submit the frame to the OpenVR runtime
+		vr::Texture_t tex = { m_rtScene.m_pTex, vr::API_DirectX, vr::ColorSpace_Gamma };
 		vr::VRTextureBounds_t bounds = { 0.0f, 0.0f, 0.5f, 1.0f };
-		CHECK_OPENVR_WARN(m_pOpenVRCompositor->Submit(vr::Hmd_Eye::Eye_Left, vr::API_DirectX, m_rtScene.m_pTex, &bounds));
+		CHECK_OPENVR_WARN(m_pOpenVRCompositor->Submit(vr::Eye_Left, &tex, &bounds));
 		bounds = { 0.5f, 0.0f, 1.0f, 1.0f };
-		CHECK_OPENVR_WARN(m_pOpenVRCompositor->Submit(vr::Hmd_Eye::Eye_Right, vr::API_DirectX, m_rtScene.m_pTex, &bounds));
+		CHECK_OPENVR_WARN(m_pOpenVRCompositor->Submit(vr::Eye_Right, &tex, &bounds));
 	}
 
 	// Blit the frame to the window - straight copy if same dims, bilinear resize otherwise
@@ -753,7 +749,7 @@ void TestWindow::RenderScene()
 			}
 			else if (m_pOpenVRSystem)
 			{
-				vr::HmdMatrix34_t eyeToHeadOpenVR = m_pOpenVRSystem->GetEyeToHeadTransform(vr::Hmd_Eye(eye));
+				vr::HmdMatrix34_t eyeToHeadOpenVR = m_pOpenVRSystem->GetEyeToHeadTransform(vr::EVREye(eye));
 				affine3 eyeToHMD =
 				{	// transposed from column-vector to row-vector convention
 					eyeToHeadOpenVR.m[0][0], eyeToHeadOpenVR.m[1][0], eyeToHeadOpenVR.m[2][0],
@@ -976,19 +972,19 @@ void TestWindow::DeactivateOculusVR()
 bool TestWindow::TryActivateOpenVR()
 {
 	// Loading the SteamVR Runtime
-	vr::HmdError hmdError;
-	m_pOpenVRSystem = vr::VR_Init(&hmdError);
-	if (hmdError != vr::HmdError_None)
+	vr::EVRInitError initError;
+	m_pOpenVRSystem = vr::VR_Init(&initError);
+	if (initError != vr::VRInitError_None)
 	{
-		ERR("VR_Init failed with error code: %d\nError message: %s", hmdError, vr::VR_GetStringForHmdError(hmdError));
+		ERR("VR_Init failed with error code: %d\nError message: %s", initError, vr::VR_GetVRInitErrorAsEnglishDescription(initError));
 		return false;
 	}
 
 	// Init compositor.
-	m_pOpenVRCompositor = (vr::IVRCompositor *)vr::VR_GetGenericInterface(vr::IVRCompositor_Version, &hmdError);
-	if (hmdError != vr::HmdError_None)
+	m_pOpenVRCompositor = (vr::IVRCompositor *)vr::VR_GetGenericInterface(vr::IVRCompositor_Version, &initError);
+	if (initError != vr::VRInitError_None)
 	{
-		ERR("VR_GetGenericInterface failed with error code: %d\nError message: %s", hmdError, vr::VR_GetStringForHmdError(hmdError));
+		ERR("VR_GetGenericInterface failed with error code: %d\nError message: %s", initError, vr::VR_GetVRInitErrorAsEnglishDescription(initError));
 		return false;
 	}
 
@@ -1000,7 +996,7 @@ bool TestWindow::TryActivateOpenVR()
 	// Set new projection matrices
 	for (int i = 0; i < 2; ++i)
 	{
-		vr::HmdMatrix44_t matProj = m_pOpenVRSystem->GetProjectionMatrix(vr::Hmd_Eye(i), g_zNear, g_zFar, vr::API_DirectX);
+		vr::HmdMatrix44_t matProj = m_pOpenVRSystem->GetProjectionMatrix(vr::EVREye(i), g_zNear, g_zFar, vr::API_DirectX);
 		m_matProjVR[i] = transpose(makefloat4x4(&matProj.m[0][0]));
 	}
 
