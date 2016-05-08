@@ -139,7 +139,7 @@ namespace Framework
 			if (!LoadFile(path, &data, LFK_Text))
 				return false;
 
-			std::vector<point3> positions;
+			std::vector<float3> positions;
 			std::vector<float3> normals;
 			std::vector<float2> uvs;
 
@@ -166,7 +166,7 @@ namespace Framework
 					tph.ExpectEOL();
 
 					// Add vertex
-					point3 pos;
+					float3 pos;
 					pos.x = float(atof(tokens[0]));
 					pos.y = float(atof(tokens[1]));
 					pos.z = float(atof(tokens[2]));
@@ -334,7 +334,7 @@ namespace Framework
 				pCtxOut->m_mtlRanges.push_back(range);
 			}
 
-			pCtxOut->m_bounds = makebox3(int(positions.size()), &positions[0]);
+			pCtxOut->m_bounds = boxAround(int(positions.size()), &positions[0]);
 			pCtxOut->m_hasNormals = !normals.empty();
 
 			return true;
@@ -352,7 +352,7 @@ namespace Framework
 				int indices[3] = { pCtx->m_indices[i], pCtx->m_indices[i+1], pCtx->m_indices[i+2] };
 
 				// Gather positions for this triangle
-				point3 facePositions[3] =
+				float3 facePositions[3] =
 				{
 					pCtx->m_verts[indices[0]].m_pos,
 					pCtx->m_verts[indices[1]].m_pos,
@@ -514,7 +514,7 @@ namespace Framework
 				int indices[3] = { pCtx->m_indices[i], pCtx->m_indices[i+1], pCtx->m_indices[i+2] };
 
 				// Gather positions for this triangle
-				point3 facePositions[3] =
+				float3 facePositions[3] =
 				{
 					pCtx->m_verts[indices[0]].m_pos,
 					pCtx->m_verts[indices[1]].m_pos,
@@ -559,7 +559,7 @@ namespace Framework
 				int indices[3] = { pCtx->m_indices[i], pCtx->m_indices[i+1], pCtx->m_indices[i+2] };
 
 				// Gather positions for this triangle
-				point3 facePositions[3] =
+				float3 facePositions[3] =
 				{
 					pCtx->m_verts[indices[0]].m_pos,
 					pCtx->m_verts[indices[1]].m_pos,
@@ -572,7 +572,7 @@ namespace Framework
 				float3 normal = cross(edge0, edge1);
 
 				// Calculate matrix from unit triangle to position space
-				float3x3 matUnitToPosition = makefloat3x3(edge0, edge1, normal);
+				float3x3 matUnitToPosition = matrixFromRows(edge0, edge1, normal);
 
 				// Gather UVs for this triangle
 				float2 faceUVs[3] =

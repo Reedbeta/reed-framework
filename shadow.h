@@ -9,7 +9,7 @@ namespace Framework
 				ShadowMap();
 		void	Init(
 					ID3D11Device * pDevice,
-					int2_arg dims,
+					int2 dims,
 					DXGI_FORMAT format = DXGI_FORMAT_D32_FLOAT);
 		void	Reset();
 

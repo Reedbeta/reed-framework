@@ -18,15 +18,15 @@ namespace Framework
 
 		void	Init(
 					ID3D11Device * pDevice,
-					int2_arg dims,
+					int2 dims,
 					DXGI_FORMAT format,
 					int sampleCount = 1,
 					int flags = RTFLAG_Default);
 		void	Reset();
 
 		void	Bind(ID3D11DeviceContext * pCtx);
-		void	Bind(ID3D11DeviceContext * pCtx, box2_arg viewport);
-		void	Bind(ID3D11DeviceContext * pCtx, box3_arg viewport);
+		void	Bind(ID3D11DeviceContext * pCtx, box2 viewport);
+		void	Bind(ID3D11DeviceContext * pCtx, box3 viewport);
 
 		int		SizeInBytes() const
 					{ return m_dims.x * m_dims.y * m_sampleCount * BitsPerPixel(m_format) / 8; }
@@ -59,15 +59,15 @@ namespace Framework
 
 		void	Init(
 					ID3D11Device * pDevice,
-					int2_arg dims,
+					int2 dims,
 					DXGI_FORMAT format,
 					int sampleCount = 1,
 					int flags = DSFLAG_Default);
 		void	Reset();
 
 		void	Bind(ID3D11DeviceContext * pCtx);
-		void	Bind(ID3D11DeviceContext * pCtx, box2_arg viewport);
-		void	Bind(ID3D11DeviceContext * pCtx, box3_arg viewport);
+		void	Bind(ID3D11DeviceContext * pCtx, box2 viewport);
+		void	Bind(ID3D11DeviceContext * pCtx, box3 viewport);
 
 		int		SizeInBytes() const
 					{ return m_dims.x * m_dims.y * m_sampleCount * BitsPerPixel(m_formatDsv) / 8; }
@@ -94,8 +94,8 @@ namespace Framework
 
 	// Utility functions for binding multiple render targets
 	void BindRenderTargets(ID3D11DeviceContext * pCtx, RenderTarget * pRt, DepthStencilTarget * pDst);
-	void BindRenderTargets(ID3D11DeviceContext * pCtx, RenderTarget * pRt, DepthStencilTarget * pDst, box2_arg viewport);
-	void BindRenderTargets(ID3D11DeviceContext * pCtx, RenderTarget * pRt, DepthStencilTarget * pDst, box3_arg viewport);
+	void BindRenderTargets(ID3D11DeviceContext * pCtx, RenderTarget * pRt, DepthStencilTarget * pDst, box2 viewport);
+	void BindRenderTargets(ID3D11DeviceContext * pCtx, RenderTarget * pRt, DepthStencilTarget * pDst, box3 viewport);
 
 	// Helper functions for saving out screenshots of render targets
 	bool WriteRenderTargetToBMP(

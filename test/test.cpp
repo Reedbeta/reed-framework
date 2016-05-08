@@ -49,9 +49,9 @@ using namespace Framework;
 
 // Globals
 
-float3 g_vecDirectionalLight = normalize(makefloat3(1.0f, 10.0f, 1.5f));
-rgb g_rgbDirectionalLight = makergb(1.1f, 1.0f, 0.7f);
-rgb g_rgbSky = makergb(0.37f, 0.52f, 1.0f);
+float3 g_vecDirectionalLight = normalize(float3(1.0f, 10.0f, 1.5f));
+rgb g_rgbDirectionalLight = { 1.1f, 1.0f, 0.7f };
+rgb g_rgbSky = { 0.37f, 0.52f, 1.0f };
 
 float g_normalOffsetShadow = 1e-5f;		// meters
 float g_shadowSharpening = 5.0f;
@@ -77,7 +77,7 @@ struct CBFrame								// matches cbuffer CBFrame in shader-common.hlsli
 	float4x4	m_matWorldToClip;
 	float4x4	m_matWorldToUvzwShadow;
 	float3x4	m_matWorldToUvzShadowNormal;	// actually float3x3, but constant buffer packing rules...
-	point3		m_posCamera;
+	float3		m_posCamera;
 	float		m_padding0;
 
 	float3		m_vecDirectionalLight;
@@ -116,10 +116,10 @@ public:
 	bool				Init(HINSTANCE hInstance);
 	virtual void		Shutdown() override;
 	virtual LRESULT		MsgProc(HWND hWnd, UINT message, WPARAM wParam, LPARAM lParam) override;
-	virtual void		OnResize(int2_arg dimsNew) override;
+	virtual void		OnResize(int2 dimsNew) override;
 	virtual void		OnRender() override;
 
-	void				SetRenderTargetDims(int2_arg dimsNew);
+	void				SetRenderTargetDims(int2 dimsNew);
 	void				ResetCamera();
 	void				DrawMaterials(ID3D11PixelShader * pPs, ID3D11PixelShader * pPsAlphaTest);
 	void				RenderScene();
@@ -292,7 +292,7 @@ bool TestWindow::Init(HINSTANCE hInstance)
 	m_texLibSponza.UploadAllToGPU(m_pDevice);
 
 	// Init shadow map
-	m_shmp.Init(m_pDevice, makeint2(4096));
+	m_shmp.Init(m_pDevice, int2(4096));
 
 	// Load shaders
 	CHECK_D3D(m_pDevice->CreateVertexShader(world_vs_bytecode, dim(world_vs_bytecode), nullptr, &m_pVsWorld));
@@ -319,7 +319,7 @@ bool TestWindow::Init(HINSTANCE hInstance)
 	m_cbDebug.Init(m_pDevice);
 
 	// Init default textures
-	CreateTexture1x1(m_pDevice, makergba(1.0f), &m_tex1x1White);
+	CreateTexture1x1(m_pDevice, rgba(1.0f), &m_tex1x1White);
 
 	// Init the camera
 	m_camera.m_moveSpeed = 3.0f;
@@ -387,9 +387,9 @@ bool TestWindow::Init(HINSTANCE hInstance)
 	TwAddVarRO(pTwBarCamera, "Yaw", TW_TYPE_FLOAT, &m_camera.m_yaw, "precision=3");
 	TwAddVarRO(pTwBarCamera, "Pitch", TW_TYPE_FLOAT, &m_camera.m_pitch, "precision=3");
 	auto lambdaNegate = [](void * outValue, void * inValue) { *(float *)outValue = -*(float *)inValue; };
-	TwAddVarCB(pTwBarCamera, "Look X", TW_TYPE_FLOAT, nullptr, lambdaNegate, &m_camera.m_viewToWorld.m_linear[2].x, "precision=3");
-	TwAddVarCB(pTwBarCamera, "Look Y", TW_TYPE_FLOAT, nullptr, lambdaNegate, &m_camera.m_viewToWorld.m_linear[2].y, "precision=3");
-	TwAddVarCB(pTwBarCamera, "Look Z", TW_TYPE_FLOAT, nullptr, lambdaNegate, &m_camera.m_viewToWorld.m_linear[2].z, "precision=3");
+	TwAddVarCB(pTwBarCamera, "Look X", TW_TYPE_FLOAT, nullptr, lambdaNegate, &m_camera.m_viewToWorld[2].x, "precision=3");
+	TwAddVarCB(pTwBarCamera, "Look Y", TW_TYPE_FLOAT, nullptr, lambdaNegate, &m_camera.m_viewToWorld[2].y, "precision=3");
+	TwAddVarCB(pTwBarCamera, "Look Z", TW_TYPE_FLOAT, nullptr, lambdaNegate, &m_camera.m_viewToWorld[2].z, "precision=3");
 
 	// Create bar for VR headset activation
 	TwBar * pTwBarVR = TwNewBar("VR Headset");
@@ -476,11 +476,11 @@ LRESULT TestWindow::MsgProc(HWND hWnd, UINT message, WPARAM wParam, LPARAM lPara
 void TestWindow::ResetCamera()
 {
 	m_camera.LookAt(
-				makepoint3(-8.7f, 6.8f, 0.0f),
-				makepoint3(0.0f, 5.0f, 0.0f));
+				float3(-8.7f, 6.8f, 0.0f),
+				float3(0.0f, 5.0f, 0.0f));
 }
 
-void TestWindow::OnResize(int2_arg dimsNew)
+void TestWindow::OnResize(int2 dimsNew)
 {
 	super::OnResize(dimsNew);
 
@@ -493,7 +493,7 @@ void TestWindow::OnResize(int2_arg dimsNew)
 	m_camera.SetProjection(1.0f, float(dimsNew.x) / float(dimsNew.y), g_zNear, g_zFar);
 }
 
-void TestWindow::SetRenderTargetDims(int2_arg dimsNew)
+void TestWindow::SetRenderTargetDims(int2 dimsNew)
 {
 	if (all(dimsNew == m_rtSceneMSAA.m_dims))
 		return;
@@ -565,7 +565,7 @@ void TestWindow::OnRender()
 		// Blit the frame to the Oculus swap texture set (would have rendered directly to it,
 		// but then it seems you can't blit from it to the back buffer - we just get black).
 		ovrD3D11Texture * pOVRTex = (ovrD3D11Texture *)&m_pOculusSwapTextureSet->Textures[m_pOculusSwapTextureSet->CurrentIndex];
-		ASSERT_WARN(all(makeint2(&pOVRTex->Texture.Header.TextureSize.w) == m_rtScene.m_dims));
+		ASSERT_WARN(all(int2(&pOVRTex->Texture.Header.TextureSize.w) == m_rtScene.m_dims));
 		m_pCtx->CopySubresourceRegion(pOVRTex->D3D11.pTexture, 0, 0, 0, 0, m_rtScene.m_pTex, 0, nullptr);
 
 		// Submit the frame to the Oculus runtime
@@ -687,28 +687,28 @@ void TestWindow::RenderScene()
 {
 	// Crytek Sponza is authored in centimeters; convert to meters
 	float sceneScale = 0.01f;
-	float4x4 matSceneScale = diagonal(makefloat4(sceneScale, sceneScale, sceneScale, 1.0f));
+	float4x4 matSceneScale = diagonalMatrix(sceneScale, sceneScale, sceneScale, 1.0f);
 
 	// Set up constant buffer for rendering to shadow map
 	CBFrame cbFrame =
 	{
 		{},	// m_matWorldToClip - filled in later
 		matSceneScale * m_shmp.m_matWorldToUvzw,
-		makefloat3x4(m_shmp.m_matWorldToUvzNormal),
+		float3x4(m_shmp.m_matWorldToUvzNormal),
 		{},	// m_posCamera - filled in later
 		0,	// padding
 		g_vecDirectionalLight,
 		0,	// padding
 		g_rgbDirectionalLight,
 		0,	// padding
-		makefloat2(m_shmp.m_dst.m_dims),
+		float2(m_shmp.m_dst.m_dims),
 		g_normalOffsetShadow,
 		g_shadowSharpening,
 		g_exposure,
 	};
 	m_cbFrame.Bind(m_pCtx, CB_FRAME);
 
-	m_pCtx->ClearRenderTargetView(m_rtSceneMSAA.m_pRtv, makergba(toLinear(g_rgbSky), 1.0f));
+	m_pCtx->ClearRenderTargetView(m_rtSceneMSAA.m_pRtv, rgba(SRGBtoLinear(g_rgbSky), 1.0f));
 	m_pCtx->ClearDepthStencilView(m_dstSceneMSAA.m_pDsv, D3D11_CLEAR_DEPTH, 1.0f, 0);
 	BindRenderTargets(m_pCtx, &m_rtSceneMSAA, &m_dstSceneMSAA);
 
@@ -734,7 +734,7 @@ void TestWindow::RenderScene()
 		for (int eye = 0; eye < 2; ++eye)
 		{
 			// Figure out the camera pose for this eye, from the VR tracking system
-			affine3 eyeToCamera = affine3::identity();
+			affine3 eyeToCamera(identity);
 			if (m_oculusSession)
 			{
 				ovrPosef hmdPose = m_poseOculusHMD[eye];
@@ -745,26 +745,26 @@ void TestWindow::RenderScene()
 					hmdPose.Orientation.y,
 					hmdPose.Orientation.z
 				};
-				eyeToCamera = makeaffine3(hmdOrientation, makefloat3(&hmdPose.Position.x));
+				eyeToCamera = affineMatrix(hmdOrientation, float3(&hmdPose.Position.x));
 			}
 			else if (m_pOpenVRSystem)
 			{
 				vr::HmdMatrix34_t eyeToHeadOpenVR = m_pOpenVRSystem->GetEyeToHeadTransform(vr::EVREye(eye));
 				affine3 eyeToHMD =
-				{	// transposed from column-vector to row-vector convention
-					eyeToHeadOpenVR.m[0][0], eyeToHeadOpenVR.m[1][0], eyeToHeadOpenVR.m[2][0],
-					eyeToHeadOpenVR.m[0][1], eyeToHeadOpenVR.m[1][1], eyeToHeadOpenVR.m[2][1],
-					eyeToHeadOpenVR.m[0][2], eyeToHeadOpenVR.m[1][2], eyeToHeadOpenVR.m[2][2],
-					eyeToHeadOpenVR.m[0][3], eyeToHeadOpenVR.m[1][3], eyeToHeadOpenVR.m[2][3],
+				{	// transposing from OpenVR column-vector to our row-vector convention
+					eyeToHeadOpenVR.m[0][0], eyeToHeadOpenVR.m[1][0], eyeToHeadOpenVR.m[2][0], 0.0f,
+					eyeToHeadOpenVR.m[0][1], eyeToHeadOpenVR.m[1][1], eyeToHeadOpenVR.m[2][1], 0.0f,
+					eyeToHeadOpenVR.m[0][2], eyeToHeadOpenVR.m[1][2], eyeToHeadOpenVR.m[2][2], 0.0f,
+					eyeToHeadOpenVR.m[0][3], eyeToHeadOpenVR.m[1][3], eyeToHeadOpenVR.m[2][3], 1.0f,
 				};
 
 				vr::HmdMatrix34_t hmdPose = m_poseOpenVR.mDeviceToAbsoluteTracking;
 				affine3 hmdToCamera =
-				{	// transposed from column-vector to row-vector convention
-					hmdPose.m[0][0], hmdPose.m[1][0], hmdPose.m[2][0],
-					hmdPose.m[0][1], hmdPose.m[1][1], hmdPose.m[2][1],
-					hmdPose.m[0][2], hmdPose.m[1][2], hmdPose.m[2][2],
-					hmdPose.m[0][3], hmdPose.m[1][3], hmdPose.m[2][3],
+				{	// transposing from OpenVR column-vector to our row-vector convention
+					hmdPose.m[0][0], hmdPose.m[1][0], hmdPose.m[2][0], 0.0f,
+					hmdPose.m[0][1], hmdPose.m[1][1], hmdPose.m[2][1], 0.0f,
+					hmdPose.m[0][2], hmdPose.m[1][2], hmdPose.m[2][2], 0.0f,
+					hmdPose.m[0][3], hmdPose.m[1][3], hmdPose.m[2][3], 1.0f,
 				};
 
 				eyeToCamera = eyeToHMD * hmdToCamera;
@@ -772,16 +772,16 @@ void TestWindow::RenderScene()
 
 			// Calculate world-to-clip matrix for this eye
 			affine3 eyeToWorld = eyeToCamera * m_camera.m_viewToWorld;
-			affine3 worldToEye = transpose(eyeToWorld);
-			float4x4 worldToClip = matSceneScale * affineToHomogeneous(worldToEye) * m_matProjVR[eye];
+			affine3 worldToEye = inverseRigid(eyeToWorld);
+			float4x4 worldToClip = matSceneScale * worldToEye * m_matProjVR[eye];
 
 			// Update constant buffer data for the new matrices
 			cbFrame.m_matWorldToClip = worldToClip;
-			cbFrame.m_posCamera = makepoint3(eyeToWorld.m_translation);
+			cbFrame.m_posCamera = translationPart(eyeToWorld);
 			m_cbFrame.Update(m_pCtx, &cbFrame);
 
 			// Set viewport to half of the render target
-			SetViewport(m_pCtx, makebox2(float(m_rtSceneMSAA.m_dims.x / 2 * eye), 0.0f, float(m_rtSceneMSAA.m_dims.x / 2 * (eye + 1)), float(m_rtSceneMSAA.m_dims.y)));
+			SetViewport(m_pCtx, box2{ float(m_rtSceneMSAA.m_dims.x / 2 * eye), 0.0f, float(m_rtSceneMSAA.m_dims.x / 2 * (eye + 1)), float(m_rtSceneMSAA.m_dims.y) });
 
 			DrawMaterials(m_pPsSimple, m_pPsSimpleAlphaTest);
 		}
@@ -808,11 +808,11 @@ void TestWindow::RenderShadowMap()
 {
 	// Crytek Sponza is authored in centimeters; convert to meters
 	float sceneScale = 0.01f;
-	float4x4 matSceneScale = diagonal(makefloat4(sceneScale, sceneScale, sceneScale, 1.0f));
+	float4x4 matSceneScale = diagonalMatrix(sceneScale, sceneScale, sceneScale, 1.0f);
 
 	// Calculate shadow map matrices
 	m_shmp.m_vecLight = g_vecDirectionalLight;
-	m_shmp.m_boundsScene = makebox3(m_meshSponza.m_bounds.m_mins * sceneScale, m_meshSponza.m_bounds.m_maxs * sceneScale);
+	m_shmp.m_boundsScene = { m_meshSponza.m_bounds.mins * sceneScale, m_meshSponza.m_bounds.maxs * sceneScale };
 	m_shmp.UpdateMatrix();
 
 	m_pCtx->IASetInputLayout(m_pInputLayout);
@@ -991,13 +991,13 @@ bool TestWindow::TryActivateOpenVR()
 	// Set new render target size for side-by-side stereo
 	uint32_t eyeWidth, eyeHeight;
 	m_pOpenVRSystem->GetRecommendedRenderTargetSize(&eyeWidth, &eyeHeight);
-	SetRenderTargetDims(makeint2(eyeWidth * 2, eyeHeight));
+	SetRenderTargetDims(int2(eyeWidth * 2, eyeHeight));
 
 	// Set new projection matrices
 	for (int i = 0; i < 2; ++i)
 	{
 		vr::HmdMatrix44_t matProj = m_pOpenVRSystem->GetProjectionMatrix(vr::EVREye(i), g_zNear, g_zFar, vr::API_DirectX);
-		m_matProjVR[i] = transpose(makefloat4x4(&matProj.m[0][0]));
+		m_matProjVR[i] = transpose(float4x4(&matProj.m[0][0]));
 	}
 
 	return true;

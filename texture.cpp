@@ -5,7 +5,7 @@ namespace Framework
 	// Texture2D implementation
 
 	Texture2D::Texture2D()
-	:	m_dims(makeint2(0)),
+	:	m_dims(0),
 		m_mipLevels(0),
 		m_format(DXGI_FORMAT_UNKNOWN)
 	{
@@ -15,7 +15,7 @@ namespace Framework
 	{
 		m_pPack.release();
 		m_apPixels.clear();
-		m_dims = makeint2(0);
+		m_dims = int2(0);
 		m_mipLevels = 0;
 		m_format = DXGI_FORMAT_UNKNOWN;
 		m_pTex.release();
@@ -25,7 +25,7 @@ namespace Framework
 
 	void Texture2D::Init(
 		ID3D11Device * pDevice,
-		int2_arg dims,
+		int2 dims,
 		DXGI_FORMAT format,
 		int flags /* = TEXFLAG_Default */)
 	{
@@ -161,8 +161,8 @@ namespace Framework
 		for (int y = 0; y < mipDims.y; ++y)
 		{
 			memcpy(
-				advanceBytes(pDataOut, y * rowSize),
-				advanceBytes(mapped.pData, y * mapped.RowPitch),
+				offsetPtr(pDataOut, y * rowSize),
+				offsetPtr(mapped.pData, y * mapped.RowPitch),
 				rowSize);
 		}
 
@@ -339,8 +339,8 @@ namespace Framework
 		for (int y = 0; y < mipDim; ++y)
 		{
 			memcpy(
-				advanceBytes(pDataOut, y * rowSize),
-				advanceBytes(mapped.pData, y * mapped.RowPitch),
+				offsetPtr(pDataOut, y * rowSize),
+				offsetPtr(mapped.pData, y * mapped.RowPitch),
 				rowSize);
 		}
 
@@ -352,7 +352,7 @@ namespace Framework
 	// Texture3D implementation
 
 	Texture3D::Texture3D()
-	:	m_dims(makeint3(0)),
+	:	m_dims(0),
 		m_mipLevels(0),
 		m_format(DXGI_FORMAT_UNKNOWN)
 	{
@@ -362,7 +362,7 @@ namespace Framework
 	{
 		m_pPack.release();
 		m_apPixels.clear();
-		m_dims = makeint3(0);
+		m_dims = int3(0);
 		m_mipLevels = 0;
 		m_format = DXGI_FORMAT_UNKNOWN;
 		m_pTex.release();
@@ -372,7 +372,7 @@ namespace Framework
 
 	void Texture3D::Init(
 		ID3D11Device * pDevice,
-		int3_arg dims,
+		int3 dims,
 		DXGI_FORMAT format,
 		int flags /* = TEXFLAG_Default */)
 	{
@@ -511,8 +511,8 @@ namespace Framework
 			for (int y = 0; y < mipDims.y; ++y)
 			{
 				memcpy(
-					advanceBytes(pDataOut, z * sliceSize + y * rowSize),
-					advanceBytes(mapped.pData, z * mapped.DepthPitch + y * mapped.RowPitch),
+					offsetPtr(pDataOut, z * sliceSize + y * rowSize),
+					offsetPtr(mapped.pData, z * mapped.DepthPitch + y * mapped.RowPitch),
 					rowSize);
 			}
 		}
@@ -526,7 +526,7 @@ namespace Framework
 
 	void CreateTexture1x1(
 		ID3D11Device * pDevice,
-		rgba_arg color,
+		rgba color,
 		Texture2D * pTexOut,
 		DXGI_FORMAT format /*= DXGI_FORMAT_R8G8B8A8_UNORM_SRGB*/)
 	{
@@ -534,7 +534,7 @@ namespace Framework
 		ASSERT_ERR(pTexOut);
 
 		// Convert floats to 8-bit format
-		byte4 colorBytes = makebyte4(round(255.0f * saturate(color)));
+		byte4 colorBytes = byte4(round(255.0f * saturate(color)));
 
 		// Always map the format to its typeless version, if possible;
 		// enables views of other formats to be created if desired
@@ -568,14 +568,14 @@ namespace Framework
 
 		pTexOut->m_pTex = pTex;
 		pTexOut->m_pSrv = pSrv;
-		pTexOut->m_dims = makeint2(1, 1);
+		pTexOut->m_dims = { 1, 1 };
 		pTexOut->m_mipLevels = 1;
 		pTexOut->m_format = format;
 	}
 
 	void CreateTextureCube1x1(
 		ID3D11Device * pDevice,
-		rgba_arg color,
+		rgba color,
 		TextureCube * pTexOut,
 		DXGI_FORMAT format /*= DXGI_FORMAT_R8G8B8A8_UNORM_SRGB*/)
 	{
@@ -583,7 +583,7 @@ namespace Framework
 		ASSERT_ERR(pTexOut);
 
 		// Convert floats to 8-bit format
-		byte4 colorBytes[6] = { makebyte4(round(255.0f * saturate(color))) };
+		byte4 colorBytes[6] = { byte4(round(255.0f * saturate(color))) };
 		for (int i = 1; i < dim(colorBytes); ++i)
 			colorBytes[i] = colorBytes[0];
 
@@ -627,7 +627,7 @@ namespace Framework
 
 	void CreateTexture2DFromMemory(
 		ID3D11Device * pDevice,
-		int2_arg dims,
+		int2 dims,
 		DXGI_FORMAT format,
 		const void * pPixels,
 		Texture2D * pTexOut)
@@ -1111,7 +1111,7 @@ namespace Framework
 
 	void WriteBMPToMemory(
 		const byte4 * pPixels,
-		int2_arg dims,
+		int2 dims,
 		std::vector<byte> * pDataOut)
 	{
 		ASSERT_ERR(pPixels);
@@ -1150,7 +1150,7 @@ namespace Framework
 
 	bool WriteBMPToFile(
 		const byte4 * pPixels,
-		int2_arg dims,
+		int2 dims,
 		const char * path)
 	{
 		ASSERT_ERR(pPixels);
@@ -1216,6 +1216,6 @@ namespace Framework
 		std::vector<byte4> pixels(mipDim * mipDim);
 		pTex->Readback(pCtx, face, level, &pixels[0]);
 
-		return WriteBMPToFile(&pixels[0], makeint2(mipDim, mipDim), path);
+		return WriteBMPToFile(&pixels[0], int2(mipDim), path);
 	}
 }

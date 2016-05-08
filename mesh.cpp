@@ -9,7 +9,7 @@ namespace Framework
 		m_indexCount(0),
 		m_vtxStrideBytes(0),
 		m_primtopo(D3D11_PRIMITIVE_TOPOLOGY_UNDEFINED),
-		m_bounds(makebox3Empty())
+		m_bounds(empty)
 	{
 	}
 
@@ -49,7 +49,7 @@ namespace Framework
 		m_pIdxBuffer.release();
 		m_vtxStrideBytes = 0;
 		m_primtopo = D3D11_PRIMITIVE_TOPOLOGY_UNDEFINED;
-		m_bounds = makebox3Empty();
+		m_bounds = box3(empty);
 	}
 
 	void Mesh::UploadToGPU(ID3D11Device * pDevice)

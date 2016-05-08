@@ -18,7 +18,7 @@ namespace Framework
 	D3D11Window::D3D11Window()
 	:	m_hInstance(nullptr),
 		m_hWnd(nullptr),
-		m_dims(makeint2(0)),
+		m_dims(0),
 		m_hasDepthBuffer(true)
 	{
 	}
@@ -448,7 +448,7 @@ namespace Framework
 		}
 	}
 
-	void D3D11Window::OnResize(int2_arg dimsNew)
+	void D3D11Window::OnResize(int2 dimsNew)
 	{
 		LOG("Resizing swap chain to %d x %d", dimsNew.x, dimsNew.y);
 
@@ -530,7 +530,7 @@ namespace Framework
 		pCtx->RSSetViewports(1, &viewport);
 	}
 
-	void D3D11Window::SetViewport(ID3D11DeviceContext * pCtx, int2_arg dims)
+	void D3D11Window::SetViewport(ID3D11DeviceContext * pCtx, int2 dims)
 	{
 		D3D11_VIEWPORT vp =
 		{
@@ -541,36 +541,36 @@ namespace Framework
 		pCtx->RSSetViewports(1, &vp);
 	}
 
-	void D3D11Window::SetViewport(ID3D11DeviceContext * pCtx, box2_arg viewport)
+	void D3D11Window::SetViewport(ID3D11DeviceContext * pCtx, box2 viewport)
 	{
 		D3D11_VIEWPORT vp =
 		{
-			viewport.m_mins.x, viewport.m_mins.y,
-			viewport.diagonal().x, viewport.diagonal().y,
+			viewport.mins.x, viewport.mins.y,
+			viewport.maxs.x - viewport.mins.x, viewport.maxs.y - viewport.mins.y,
 			0.0f, 1.0f,
 		};
 		pCtx->RSSetViewports(1, &vp);
 	}
 
-	void D3D11Window::SetViewport(ID3D11DeviceContext * pCtx, box3_arg viewport)
+	void D3D11Window::SetViewport(ID3D11DeviceContext * pCtx, box3 viewport)
 	{
 		D3D11_VIEWPORT vp =
 		{
-			viewport.m_mins.x, viewport.m_mins.y,
-			viewport.diagonal().x, viewport.diagonal().y,
-			viewport.m_mins.z, viewport.m_maxs.z,
+			viewport.mins.x, viewport.mins.y,
+			viewport.maxs.x - viewport.mins.x, viewport.maxs.y - viewport.mins.y,
+			viewport.mins.z, viewport.maxs.z,
 		};
 		pCtx->RSSetViewports(1, &vp);
 	}
 
 	void D3D11Window::DrawFullscreenPass(
 		ID3D11DeviceContext * pCtx,
-		box2_arg boxSrc /*= makebox2(0, 0, 1, 1)*/)
+		box2 boxSrc /*= { 0, 0, 1, 1 }*/)
 	{
 		CBBlit cbBlit =
 		{
 			boxSrc,
-			makebox2(0, 0, 1, 1),
+			{ 0, 0, 1, 1 },
 		};
 		m_cbBlit.Update(pCtx, &cbBlit);
 
@@ -583,8 +583,8 @@ namespace Framework
 
 	void D3D11Window::DrawRectPass(
 		ID3D11DeviceContext * pCtx,
-		box2_arg boxSrc,
-		box2_arg boxDst)
+		box2 boxSrc,
+		box2 boxDst)
 	{
 		CBBlit cbBlit =
 		{
@@ -604,12 +604,12 @@ namespace Framework
 		ID3D11DeviceContext * pCtx,
 		ID3D11ShaderResourceView * pSrvSrc,
 		ID3D11SamplerState * pSampSrc,
-		box2_arg boxSrc /*= makebox2(0, 0, 1, 1)*/)
+		box2 boxSrc /*= { 0, 0, 1, 1 }*/)
 	{
 		CBBlit cbBlit =
 		{
 			boxSrc,
-			makebox2(0, 0, 1, 1),
+			{ 0, 0, 1, 1 },
 		};
 		m_cbBlit.Update(pCtx, &cbBlit);
 
@@ -627,8 +627,8 @@ namespace Framework
 		ID3D11DeviceContext * pCtx,
 		ID3D11ShaderResourceView * pSrvSrc,
 		ID3D11SamplerState * pSampSrc,
-		box2_arg boxSrc,
-		box2_arg boxDst)
+		box2 boxSrc,
+		box2 boxDst)
 	{
 		CBBlit cbBlit =
 		{
@@ -650,7 +650,7 @@ namespace Framework
 
 
 	// Methods for debug lines
-	void D3D11Window::AddDebugLine(point2_arg p0, point2_arg p1, rgba_arg rgba)
+	void D3D11Window::AddDebugLine(float2 p0, float2 p1, rgba rgba)
 	{
 		LineVertex verts[2] =
 		{
@@ -660,17 +660,17 @@ namespace Framework
 		m_lineVertices.insert(m_lineVertices.end(), &verts[0], &verts[dim(verts)]);
 	}
 
-	void D3D11Window::AddDebugLine(point2_arg p0, point2_arg p1, rgba_arg rgba, affine2_arg xfm)
+	void D3D11Window::AddDebugLine(float2 p0, float2 p1, rgba rgba, affine2 const & xfm)
 	{
 		LineVertex verts[2] =
 		{
-			{ rgba, makefloat4(makefloat2(p0 * xfm), 0.0f, 1.0f), },
-			{ rgba, makefloat4(makefloat2(p1 * xfm), 0.0f, 1.0f), },
+			{ rgba, float4(xfmPoint(p0, xfm), 0.0f, 1.0f), },
+			{ rgba, float4(xfmPoint(p1, xfm), 0.0f, 1.0f), },
 		};
 		m_lineVertices.insert(m_lineVertices.end(), &verts[0], &verts[dim(verts)]);
 	}
 
-	void D3D11Window::AddDebugLine(float4_arg p0, float4_arg p1, rgba_arg rgba)
+	void D3D11Window::AddDebugLine(float4 p0, float4 p1, rgba rgba)
 	{
 		LineVertex verts[2] =
 		{
@@ -680,7 +680,7 @@ namespace Framework
 		m_lineVertices.insert(m_lineVertices.end(), &verts[0], &verts[dim(verts)]);
 	}
 
-	void D3D11Window::AddDebugLine(float4_arg p0, float4_arg p1, rgba_arg rgba, float4x4_arg xfm)
+	void D3D11Window::AddDebugLine(float4 p0, float4 p1, rgba rgba, float4x4 const & xfm)
 	{
 		LineVertex verts[2] =
 		{
@@ -690,7 +690,7 @@ namespace Framework
 		m_lineVertices.insert(m_lineVertices.end(), &verts[0], &verts[dim(verts)]);
 	}
 
-	void D3D11Window::AddDebugLineStrip(const point2 * pPoints, int numPoints, rgba_arg rgba)
+	void D3D11Window::AddDebugLineStrip(const float2 * pPoints, int numPoints, rgba rgba)
 	{
 		if (numPoints < 2)
 			return;
@@ -700,12 +700,12 @@ namespace Framework
 		int base = int(m_lineVertices.size());
 		m_lineVertices.resize(base + 2 * numPoints - 2);
 
-		const point2 * pPoint = pPoints;
+		const float2 * pPoint = pPoints;
 		LineVertex * pVtx = &m_lineVertices[base];
 		
 		// Store the first vertex
 		pVtx->m_rgba = rgba;
-		pVtx->m_posClip = makefloat4(pPoint->x, pPoint->y, 0.0f, 1.0f);
+		pVtx->m_posClip = { pPoint->x, pPoint->y, 0.0f, 1.0f };
 		++pPoint;
 		++pVtx;
 
@@ -713,7 +713,7 @@ namespace Framework
 		for (int i = 1; i < numPoints - 1; ++i)
 		{
 			pVtx->m_rgba = rgba;
-			pVtx->m_posClip = makefloat4(pPoint->x, pPoint->y, 0.0f, 1.0f);
+			pVtx->m_posClip = { pPoint->x, pPoint->y, 0.0f, 1.0f };
 			pVtx[1] = pVtx[0];
 			++pPoint;
 			pVtx += 2;
@@ -721,7 +721,7 @@ namespace Framework
 
 		// Store the last vertex
 		pVtx->m_rgba = rgba;
-		pVtx->m_posClip = makefloat4(pPoint->x, pPoint->y, 0.0f, 1.0f);
+		pVtx->m_posClip = { pPoint->x, pPoint->y, 0.0f, 1.0f };
 		++pPoint;
 		++pVtx;
 
@@ -729,7 +729,7 @@ namespace Framework
 		ASSERT_ERR(pVtx == &m_lineVertices[0] + m_lineVertices.size());
 	}
 
-	void D3D11Window::AddDebugLineStrip(const point2 * pPoints, int numPoints, rgba_arg rgba, affine2_arg xfm)
+	void D3D11Window::AddDebugLineStrip(const float2 * pPoints, int numPoints, rgba rgba, affine2 const & xfm)
 	{
 		if (numPoints < 2)
 			return;
@@ -739,12 +739,12 @@ namespace Framework
 		int base = int(m_lineVertices.size());
 		m_lineVertices.resize(base + 2 * numPoints - 2);
 
-		const point2 * pPoint = pPoints;
+		const float2 * pPoint = pPoints;
 		LineVertex * pVtx = &m_lineVertices[base];
 		
 		// Store the first vertex
 		pVtx->m_rgba = rgba;
-		pVtx->m_posClip = makefloat4(makefloat2(*pPoint * xfm), 0.0f, 1.0f);
+		pVtx->m_posClip = float4(xfmPoint(*pPoint, xfm), 0.0f, 1.0f);
 		++pPoint;
 		++pVtx;
 
@@ -752,7 +752,7 @@ namespace Framework
 		for (int i = 1; i < numPoints - 1; ++i)
 		{
 			pVtx->m_rgba = rgba;
-			pVtx->m_posClip = makefloat4(makefloat2(*pPoint * xfm), 0.0f, 1.0f);
+			pVtx->m_posClip = float4(xfmPoint(*pPoint, xfm), 0.0f, 1.0f);
 			pVtx[1] = pVtx[0];
 			++pPoint;
 			pVtx += 2;
@@ -760,7 +760,7 @@ namespace Framework
 
 		// Store the last vertex
 		pVtx->m_rgba = rgba;
-		pVtx->m_posClip = makefloat4(makefloat2(*pPoint * xfm), 0.0f, 1.0f);
+		pVtx->m_posClip = float4(xfmPoint(*pPoint, xfm), 0.0f, 1.0f);
 		++pPoint;
 		++pVtx;
 
@@ -768,7 +768,7 @@ namespace Framework
 		ASSERT_ERR(pVtx == &m_lineVertices[0] + m_lineVertices.size());
 	}
 
-	void D3D11Window::AddDebugLineStrip(const float4 * pPoints, int numPoints, rgba_arg rgba)
+	void D3D11Window::AddDebugLineStrip(const float4 * pPoints, int numPoints, rgba rgba)
 	{
 		if (numPoints < 2)
 			return;
@@ -807,7 +807,7 @@ namespace Framework
 		ASSERT_ERR(pVtx == &m_lineVertices[0] + m_lineVertices.size());
 	}
 
-	void D3D11Window::AddDebugLineStrip(const float4 * pPoints, int numPoints, rgba_arg rgba, float4x4_arg xfm)
+	void D3D11Window::AddDebugLineStrip(const float4 * pPoints, int numPoints, rgba rgba, float4x4 const & xfm)
 	{
 		if (numPoints < 2)
 			return;

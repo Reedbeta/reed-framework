@@ -171,13 +171,13 @@ namespace Framework
 					tph.ExpectTokens(tokens, dim(tokens), "RGB color");
 					tph.ExpectEOL();
 
-					srgb color = makesrgb(float(atof(tokens[0])), float(atof(tokens[1])), float(atof(tokens[2])));
+					srgb color = { float(atof(tokens[0])), float(atof(tokens[1])), float(atof(tokens[2])) };
 					if (any(color < 0.0f) || any(color > 1.0f))
 					{
 						WARN("%s: RGB color at line %d is outside [0, 1]; clamping", path, tph.m_iLine);
 						color = saturate(color);
 					}
-					pMtlCur->m_rgbDiffuseColor = toLinear(color);
+					pMtlCur->m_rgbDiffuseColor = SRGBtoLinear(color);
 				}
 				else if (_stricmp(pToken, "Ks") == 0)
 				{
@@ -185,13 +185,13 @@ namespace Framework
 					tph.ExpectTokens(tokens, dim(tokens), "RGB color");
 					tph.ExpectEOL();
 
-					srgb color = makesrgb(float(atof(tokens[0])), float(atof(tokens[1])), float(atof(tokens[2])));
+					srgb color = { float(atof(tokens[0])), float(atof(tokens[1])), float(atof(tokens[2])) };
 					if (any(color < 0.0f) || any(color > 1.0f))
 					{
 						WARN("%s: RGB color at line %d is outside [0, 1]; clamping", path, tph.m_iLine);
 						color = saturate(color);
 					}
-					pMtlCur->m_rgbSpecColor = toLinear(color);
+					pMtlCur->m_rgbSpecColor = SRGBtoLinear(color);
 				}
 				else if (_stricmp(pToken, "Ns") == 0)
 				{

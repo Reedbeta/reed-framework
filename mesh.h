@@ -11,7 +11,7 @@ namespace Framework
 	// Hard-coded vertex struct for now
 	struct Vertex
 	{
-		point3	m_pos;
+		float3	m_pos;
 		float3	m_normal;
 		float2	m_uv;
 #if VERTEX_TANGENT

@@ -64,13 +64,13 @@ namespace Framework
 
 		virtual void		Update(float timestep);
 
-		void				LookAt(point3_arg posCamera, point3_arg posTarget);
-		void				SetPose(point3_arg posCamera, float yaw, float pitch);
+		void				LookAt(float3 posCamera, float3 posTarget);
+		void				SetPose(float3 posCamera, float yaw, float pitch);
 
 		float				m_moveSpeed;		// Movement speed in units/second
 		float				m_rotateSpeed;		// Mouse sensitivity in radians/pixel
 		MBUTTON				m_mbuttonActivate;	// Which mouse button enables rotation?
-		ipoint2				m_mousePosPrev;
+		int2				m_mousePosPrev;
 
 		bool				m_controllerPresent;
 		float				m_controllerMoveSpeed;
@@ -78,7 +78,7 @@ namespace Framework
 
 		float				m_yaw;				// Yaw from +X toward +Z axis, in radians
 		float				m_pitch;			// Pitch from XZ-plane toward +Y, in radians
-		point3				m_pos;
+		float3				m_pos;
 
 		void				UpdateOrientation();
 	};
@@ -93,13 +93,13 @@ namespace Framework
 
 		virtual void		Update(float timestep);
 
-		void				LookAt(point3_arg posCamera, point3_arg posTarget);
-		void				SetPose(point3_arg posTarget, float yaw, float pitch, float radius);
+		void				LookAt(float3 posCamera, float3 posTarget);
+		void				SetPose(float3 posTarget, float yaw, float pitch, float radius);
 
 		float				m_rotateSpeed;		// Mouse sensitivity in radians/pixel
 		float				m_zoomSpeed;		// Mouse zoom speed in nepers/pixel
 		float				m_zoomWheelSpeed;	// Mouse zoom speed in nepers/wheel-tick
-		ipoint2				m_mousePosPrev;
+		int2				m_mousePosPrev;
 
 		bool				m_controllerPresent;
 		float				m_controllerMoveSpeed;
@@ -108,9 +108,9 @@ namespace Framework
 
 		float				m_yaw;				// Yaw from +X toward -Z axis, in radians
 		float				m_pitch;			// Pitch from XZ-plane toward +Y, in radians
-		point3				m_posTarget;		// Position around which we're orbiting
+		float3				m_posTarget;		// Position around which we're orbiting
 		float				m_radius;			// Orbital radius
-		point3				m_pos;				// Position of camera itself
+		float3				m_pos;				// Position of camera itself
 
 		void				UpdateOrientation();
 	};
@@ -125,10 +125,10 @@ namespace Framework
 
 		virtual void		Update(float timestep);
 
-		void				FrameBox(box2_arg box)
+		void				FrameBox(box2 box)
 							{
-								m_pos = box.center();
-								float2 diagonal = box.diagonal();
+								m_pos = 0.5f * (box.mins + box.maxs);
+								float2 diagonal = box.maxs - box.mins;
 								diagonal.x *= float(m_dimsWindow.y) / float(m_dimsWindow.x);
 								m_scale = maxComponent(diagonal);
 								UpdateTransforms();
@@ -137,9 +137,9 @@ namespace Framework
 		int2				m_dimsWindow;		// Pixel dims of window
 		float				m_zoomWheelSpeed;	// Mouse zoom speed in nepers/wheel-tick
 		MBUTTON				m_mbuttonActivate;	// Which mouse button enables motion?
-		ipoint2				m_mousePosPrev;
+		int2				m_mousePosPrev;
 
-		point2				m_pos;				// World position of center of screen
+		float2				m_pos;				// World position of center of screen
 		float				m_scale;			// Scale from screen V [0, 1] to world space
 		affine2				m_viewToWorld;		// Transform from screen UV [0, 1] to world space
 		affine2				m_worldToView;		// Transform from world space to screen UV [0, 1]

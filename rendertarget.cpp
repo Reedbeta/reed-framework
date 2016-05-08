@@ -5,7 +5,7 @@ namespace Framework
 	// RenderTarget implementation
 
 	RenderTarget::RenderTarget()
-	:	m_dims(makeint2(0)),
+	:	m_dims(0),
 		m_sampleCount(0),
 		m_format(DXGI_FORMAT_UNKNOWN)
 	{
@@ -13,7 +13,7 @@ namespace Framework
 
 	void RenderTarget::Init(
 		ID3D11Device * pDevice,
-		int2_arg dims,
+		int2 dims,
 		DXGI_FORMAT format,
 		int sampleCount, /* = 1 */
 		int flags /* = RTFLAG_Default */)
@@ -74,7 +74,7 @@ namespace Framework
 		m_pRtv.release();
 		m_pSrv.release();
 		m_pUav.release();
-		m_dims = makeint2(0);
+		m_dims = int2(0);
 		m_sampleCount = 0;
 		m_format = DXGI_FORMAT_UNKNOWN;
 	}
@@ -88,30 +88,30 @@ namespace Framework
 		pCtx->RSSetViewports(1, &d3dViewport);
 	}
 
-	void RenderTarget::Bind(ID3D11DeviceContext * pCtx, box2_arg viewport)
+	void RenderTarget::Bind(ID3D11DeviceContext * pCtx, box2 viewport)
 	{
 		ASSERT_ERR(pCtx);
 
 		pCtx->OMSetRenderTargets(1, &m_pRtv, nullptr);
 		D3D11_VIEWPORT d3dViewport =
 		{
-			viewport.m_mins.x, viewport.m_mins.y,
-			viewport.diagonal().x, viewport.diagonal().y,
+			viewport.mins.x, viewport.mins.y,
+			viewport.maxs.x - viewport.mins.x, viewport.maxs.y - viewport.mins.y,
 			0.0f, 1.0f,
 		};
 		pCtx->RSSetViewports(1, &d3dViewport);
 	}
 
-	void RenderTarget::Bind(ID3D11DeviceContext * pCtx, box3_arg viewport)
+	void RenderTarget::Bind(ID3D11DeviceContext * pCtx, box3 viewport)
 	{
 		ASSERT_ERR(pCtx);
 
 		pCtx->OMSetRenderTargets(1, &m_pRtv, nullptr);
 		D3D11_VIEWPORT d3dViewport =
 		{
-			viewport.m_mins.x, viewport.m_mins.y,
-			viewport.diagonal().x, viewport.diagonal().y,
-			viewport.m_mins.z, viewport.m_maxs.z,
+			viewport.mins.x, viewport.mins.y,
+			viewport.maxs.x - viewport.mins.x, viewport.maxs.y - viewport.mins.y,
+			viewport.mins.z, viewport.maxs.z,
 		};
 		pCtx->RSSetViewports(1, &d3dViewport);
 	}
@@ -155,8 +155,8 @@ namespace Framework
 		for (int y = 0; y < m_dims.y; ++y)
 		{
 			memcpy(
-				advanceBytes(pDataOut, y * rowSize),
-				advanceBytes(mapped.pData, y * mapped.RowPitch),
+				offsetPtr(pDataOut, y * rowSize),
+				offsetPtr(mapped.pData, y * mapped.RowPitch),
 				rowSize);
 		}
 
@@ -208,7 +208,7 @@ namespace Framework
 	};
 
 	DepthStencilTarget::DepthStencilTarget()
-	:	m_dims(makeint2(0)),
+	:	m_dims(0),
 		m_sampleCount(0),
 		m_formatDsv(DXGI_FORMAT_UNKNOWN),
 		m_formatSrvDepth(DXGI_FORMAT_UNKNOWN),
@@ -218,7 +218,7 @@ namespace Framework
 
 	void DepthStencilTarget::Init(
 		ID3D11Device * pDevice,
-		int2_arg dims,
+		int2 dims,
 		DXGI_FORMAT format,
 		int sampleCount, /* = 1 */
 		int flags /* = DSFLAG_Default */)
@@ -301,7 +301,7 @@ namespace Framework
 		m_pSrvStencil.release();
 		m_pUavDepth.release();
 		m_pUavStencil.release();
-		m_dims = makeint2(0);
+		m_dims = int2(0);
 		m_sampleCount = 0;
 		m_formatDsv = DXGI_FORMAT_UNKNOWN;
 		m_formatSrvDepth = DXGI_FORMAT_UNKNOWN;
@@ -317,30 +317,30 @@ namespace Framework
 		pCtx->RSSetViewports(1, &d3dViewport);
 	}
 
-	void DepthStencilTarget::Bind(ID3D11DeviceContext * pCtx, box2_arg viewport)
+	void DepthStencilTarget::Bind(ID3D11DeviceContext * pCtx, box2 viewport)
 	{
 		ASSERT_ERR(pCtx);
 
 		pCtx->OMSetRenderTargets(0, nullptr, m_pDsv);
 		D3D11_VIEWPORT d3dViewport =
 		{
-			viewport.m_mins.x, viewport.m_mins.y,
-			viewport.diagonal().x, viewport.diagonal().y,
+			viewport.mins.x, viewport.mins.y,
+			viewport.maxs.x - viewport.mins.x, viewport.maxs.y - viewport.mins.y,
 			0.0f, 1.0f,
 		};
 		pCtx->RSSetViewports(1, &d3dViewport);
 	}
 
-	void DepthStencilTarget::Bind(ID3D11DeviceContext * pCtx, box3_arg viewport)
+	void DepthStencilTarget::Bind(ID3D11DeviceContext * pCtx, box3 viewport)
 	{
 		ASSERT_ERR(pCtx);
 
 		pCtx->OMSetRenderTargets(0, nullptr, m_pDsv);
 		D3D11_VIEWPORT d3dViewport =
 		{
-			viewport.m_mins.x, viewport.m_mins.y,
-			viewport.diagonal().x, viewport.diagonal().y,
-			viewport.m_mins.z, viewport.m_maxs.z,
+			viewport.mins.x, viewport.mins.y,
+			viewport.maxs.x - viewport.mins.x, viewport.maxs.y - viewport.mins.y,
+			viewport.mins.z, viewport.maxs.z,
 		};
 		pCtx->RSSetViewports(1, &d3dViewport);
 	}
@@ -384,8 +384,8 @@ namespace Framework
 		for (int y = 0; y < m_dims.y; ++y)
 		{
 			memcpy(
-				advanceBytes(pDataOut, y * rowSize),
-				advanceBytes(mapped.pData, y * mapped.RowPitch),
+				offsetPtr(pDataOut, y * rowSize),
+				offsetPtr(mapped.pData, y * mapped.RowPitch),
 				rowSize);
 		}
 
@@ -409,7 +409,7 @@ namespace Framework
 		pCtx->RSSetViewports(1, &d3dViewport);
 	}
 
-	void BindRenderTargets(ID3D11DeviceContext * pCtx, RenderTarget * pRt, DepthStencilTarget * pDst, box2_arg viewport)
+	void BindRenderTargets(ID3D11DeviceContext * pCtx, RenderTarget * pRt, DepthStencilTarget * pDst, box2 viewport)
 	{
 		ASSERT_ERR(pCtx);
 		ASSERT_ERR(pRt);
@@ -420,14 +420,14 @@ namespace Framework
 		pCtx->OMSetRenderTargets(1, &pRt->m_pRtv, pDst ? pDst->m_pDsv : nullptr);
 		D3D11_VIEWPORT d3dViewport =
 		{
-			viewport.m_mins.x, viewport.m_mins.y,
-			viewport.diagonal().x, viewport.diagonal().y,
+			viewport.mins.x, viewport.mins.y,
+			viewport.maxs.x - viewport.mins.x, viewport.maxs.y - viewport.mins.y,
 			0.0f, 1.0f,
 		};
 		pCtx->RSSetViewports(1, &d3dViewport);
 	}
 
-	void BindRenderTargets(ID3D11DeviceContext * pCtx, RenderTarget * pRt, DepthStencilTarget * pDst, box3_arg viewport)
+	void BindRenderTargets(ID3D11DeviceContext * pCtx, RenderTarget * pRt, DepthStencilTarget * pDst, box3 viewport)
 	{
 		ASSERT_ERR(pCtx);
 		ASSERT_ERR(pRt);
@@ -438,9 +438,9 @@ namespace Framework
 		pCtx->OMSetRenderTargets(1, &pRt->m_pRtv, pDst ? pDst->m_pDsv : nullptr);
 		D3D11_VIEWPORT d3dViewport =
 		{
-			viewport.m_mins.x, viewport.m_mins.y,
-			viewport.diagonal().x, viewport.diagonal().y,
-			viewport.m_mins.z, viewport.m_maxs.z,
+			viewport.mins.x, viewport.mins.y,
+			viewport.maxs.x - viewport.mins.x, viewport.maxs.y - viewport.mins.y,
+			viewport.mins.z, viewport.maxs.z,
 		};
 		pCtx->RSSetViewports(1, &d3dViewport);
 	}

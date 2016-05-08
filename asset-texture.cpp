@@ -41,7 +41,7 @@ namespace Framework
 			const char * assetPath,
 			int mipLevel,
 			const byte4 * pPixels,
-			int2_arg dims,
+			int2 dims,
 			mz_zip_archive * pZipOut);
 
 #if WRITE_BMP
@@ -49,7 +49,7 @@ namespace Framework
 			const char * assetPath,
 			int mipLevel,
 			const byte4 * pPixels,
-			int2_arg dims,
+			int2 dims,
 			mz_zip_archive * pZipOut);
 #endif
 	}
@@ -128,7 +128,7 @@ namespace Framework
 		byte4 * pPixelsBase;
 		if (!ispow2(dims.x) || !ispow2(dims.y))
 		{
-			dimsBase = makeint2(pow2_ceil(dims.x), pow2_ceil(dims.y));
+			dimsBase = { pow2_ceil(dims.x), pow2_ceil(dims.y) };
 			pixelsBase.resize(dimsBase.x * dimsBase.y);
 			pPixelsBase = &pixelsBase[0];
 
@@ -192,7 +192,7 @@ namespace Framework
 			const char * assetPath,
 			int mipLevel,
 			const byte4 * pPixels,
-			int2_arg dims,
+			int2 dims,
 			mz_zip_archive * pZipOut)
 		{
 			ASSERT_ERR(assetPath);
@@ -221,7 +221,7 @@ namespace Framework
 			const char * assetPath,
 			int mipLevel,
 			const byte4 * pPixels,
-			int2_arg dims,
+			int2 dims,
 			mz_zip_archive * pZipOut)
 		{
 			ASSERT_ERR(assetPath);

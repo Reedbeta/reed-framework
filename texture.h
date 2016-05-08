@@ -12,23 +12,23 @@ namespace Framework
 
 	inline int CalculateMipCount(int size)
 		{ return log2_floor(size) + 1; }
-	inline int CalculateMipCount(int2_arg dims)
+	inline int CalculateMipCount(int2 dims)
 		{ return CalculateMipCount(maxComponent(dims)); }
-	inline int CalculateMipCount(int3_arg dims)
+	inline int CalculateMipCount(int3 dims)
 		{ return CalculateMipCount(maxComponent(dims)); }
 
 	inline int CalculateMipDims(int baseDim, int level)
 		{ return max(baseDim >> level, 1); }
-	inline int2 CalculateMipDims(int2_arg baseDims, int level)
-		{ return max(makeint2(baseDims.x >> level, baseDims.y >> level), makeint2(1)); }
-	inline int3 CalculateMipDims(int3_arg baseDims, int level)
-		{ return max(makeint3(baseDims.x >> level, baseDims.y >> level, baseDims.z >> level), makeint3(1)); }
+	inline int2 CalculateMipDims(int2 baseDims, int level)
+		{ return max(int2(baseDims.x >> level, baseDims.y >> level), int2(1)); }
+	inline int3 CalculateMipDims(int3 baseDims, int level)
+		{ return max(int3(baseDims.x >> level, baseDims.y >> level, baseDims.z >> level), int3(1)); }
 
 	inline int CalculateMipSizeInBytes(int baseDim, int level, DXGI_FORMAT format)
 		{ return square(CalculateMipDims(baseDim, level)) * BitsPerPixel(format); }
-	inline int CalculateMipSizeInBytes(int2_arg baseDims, int level, DXGI_FORMAT format)
+	inline int CalculateMipSizeInBytes(int2 baseDims, int level, DXGI_FORMAT format)
 		{ int2 mipDims = CalculateMipDims(baseDims, level); return mipDims.x * mipDims.y * BitsPerPixel(format); }
-	inline int CalculateMipSizeInBytes(int3_arg baseDims, int level, DXGI_FORMAT format)
+	inline int CalculateMipSizeInBytes(int3 baseDims, int level, DXGI_FORMAT format)
 		{ int3 mipDims = CalculateMipDims(baseDims, level); return mipDims.x * mipDims.y * mipDims.z * BitsPerPixel(format); }
 
 	inline int CalculateMipPyramidSizeInBytes(int baseDim, DXGI_FORMAT format, int mipLevels = -1)
@@ -40,7 +40,7 @@ namespace Framework
 			total += CalculateMipSizeInBytes(baseDim, i, format);
 		return total;
 	}
-	inline int CalculateMipPyramidSizeInBytes(int2_arg baseDims, DXGI_FORMAT format, int mipLevels = -1)
+	inline int CalculateMipPyramidSizeInBytes(int2 baseDims, DXGI_FORMAT format, int mipLevels = -1)
 	{
 		if (mipLevels < 0)
 			mipLevels = CalculateMipCount(baseDims);
@@ -49,7 +49,7 @@ namespace Framework
 			total += CalculateMipSizeInBytes(baseDims, i, format);
 		return total;
 	}
-	inline int CalculateMipPyramidSizeInBytes(int3_arg baseDims, DXGI_FORMAT format, int mipLevels = -1)
+	inline int CalculateMipPyramidSizeInBytes(int3 baseDims, DXGI_FORMAT format, int mipLevels = -1)
 	{
 		if (mipLevels < 0)
 			mipLevels = CalculateMipCount(baseDims);
@@ -95,7 +95,7 @@ namespace Framework
 		// Creates a texture that exists only on the GPU, not backed by asset data
 		void	Init(
 					ID3D11Device * pDevice,
-					int2_arg dims,
+					int2 dims,
 					DXGI_FORMAT format,
 					int flags = TEXFLAG_Default);
 
@@ -172,7 +172,7 @@ namespace Framework
 				Texture3D();
 		void	Init(
 					ID3D11Device * pDevice,
-					int3_arg dims,
+					int3 dims,
 					DXGI_FORMAT format,
 					int flags = TEXFLAG_Default);
 		void	Reset();
@@ -213,19 +213,19 @@ namespace Framework
 
 	void CreateTexture1x1(
 		ID3D11Device * pDevice,
-		rgba_arg color,
+		rgba color,
 		Texture2D * pTexOut,
 		DXGI_FORMAT format = DXGI_FORMAT_R8G8B8A8_UNORM_SRGB);
 
 	void CreateTextureCube1x1(
 		ID3D11Device * pDevice,
-		rgba_arg color,
+		rgba color,
 		TextureCube * pTexOut,
 		DXGI_FORMAT format = DXGI_FORMAT_R8G8B8A8_UNORM_SRGB);
 
 	void CreateTexture2DFromMemory(
 		ID3D11Device * pDevice,
-		int2_arg dims,
+		int2 dims,
 		DXGI_FORMAT format,
 		const void * pPixels,
 		Texture2D * pTexOut);
@@ -263,11 +263,11 @@ namespace Framework
 	// Helper functions for saving out screenshots of textures
 	void WriteBMPToMemory(
 		const byte4 * pPixels,
-		int2_arg dims,
+		int2 dims,
 		std::vector<byte> * pDataOut);
 	bool WriteBMPToFile(
 		const byte4 * pPixels,
-		int2_arg dims,
+		int2 dims,
 		const char * path);
 	bool WriteTexToBMP(
 		ID3D11DeviceContext * pCtx,

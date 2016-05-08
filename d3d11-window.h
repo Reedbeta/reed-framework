@@ -28,7 +28,7 @@ namespace Framework
 		void				MainLoop(int nShowCmd);
 
 		virtual LRESULT		MsgProc(HWND hWnd, UINT message, WPARAM wParam, LPARAM lParam);
-		virtual void		OnResize(int2_arg dimsNew);
+		virtual void		OnResize(int2 dimsNew);
 		virtual void		OnRender() = 0;
 
 		// Utility methods
@@ -36,54 +36,54 @@ namespace Framework
 		void				BindSRGBBackBuffer(ID3D11DeviceContext * pCtx);
 		void				BindRawBackBuffer(ID3D11DeviceContext * pCtx);
 
-		void				SetViewport(ID3D11DeviceContext * pCtx, int2_arg dims);
-		void				SetViewport(ID3D11DeviceContext * pCtx, box2_arg viewport);
-		void				SetViewport(ID3D11DeviceContext * pCtx, box3_arg viewport);
+		void				SetViewport(ID3D11DeviceContext * pCtx, int2 dims);
+		void				SetViewport(ID3D11DeviceContext * pCtx, box2 viewport);
+		void				SetViewport(ID3D11DeviceContext * pCtx, box3 viewport);
 
 		void				DrawFullscreenPass(
 								ID3D11DeviceContext * pCtx,
-								box2_arg boxSrc = makebox2(0, 0, 1, 1));
+								box2 boxSrc = { 0, 0, 1, 1 });
 		void				DrawRectPass(
 								ID3D11DeviceContext * pCtx,
-								box2_arg boxDst)
-								{ DrawRectPass(pCtx, makebox2(0, 0, 1, 1), boxDst); }
+								box2 boxDst)
+								{ DrawRectPass(pCtx, box2{ 0, 0, 1, 1 }, boxDst); }
 		void				DrawRectPass(
 								ID3D11DeviceContext * pCtx,
-								box2_arg boxSrc,
-								box2_arg boxDst);
+								box2 boxSrc,
+								box2 boxDst);
 
 		void				BlitFullscreen(
 								ID3D11DeviceContext * pCtx,
 								ID3D11ShaderResourceView * pSrvSrc,
-								box2_arg boxSrc = makebox2(0, 0, 1, 1))
+								box2 boxSrc = { 0, 0, 1, 1 })
 								{ BlitFullscreen(pCtx, pSrvSrc, m_pSsBilinearClamp, boxSrc); }
 		void				BlitFullscreen(
 								ID3D11DeviceContext * pCtx,
 								ID3D11ShaderResourceView * pSrvSrc,
 								ID3D11SamplerState * pSampSrc,
-								box2_arg boxSrc = makebox2(0, 0, 1, 1));
+								box2 boxSrc = { 0, 0, 1, 1 });
 
 		void				Blit(
 								ID3D11DeviceContext * pCtx,
 								ID3D11ShaderResourceView * pSrvSrc,
-								box2_arg boxDst)
-								{ Blit(pCtx, pSrvSrc, m_pSsBilinearClamp, makebox2(0, 0, 1, 1), boxDst); }
+								box2 boxDst)
+								{ Blit(pCtx, pSrvSrc, m_pSsBilinearClamp, box2{ 0, 0, 1, 1 }, boxDst); }
 		void				Blit(
 								ID3D11DeviceContext * pCtx,
 								ID3D11ShaderResourceView * pSrvSrc,
 								ID3D11SamplerState * pSampSrc,
-								box2_arg boxSrc,
-								box2_arg boxDst);
+								box2 boxSrc,
+								box2 boxDst);
 
 		// Methods for debug lines
-		void				AddDebugLine(point2_arg p0, point2_arg p1, rgba_arg rgba);
-		void				AddDebugLine(point2_arg p0, point2_arg p1, rgba_arg rgba, affine2_arg xfm);
-		void				AddDebugLine(float4_arg p0, float4_arg p1, rgba_arg rgba);
-		void				AddDebugLine(float4_arg p0, float4_arg p1, rgba_arg rgba, float4x4_arg xfm);
-		void				AddDebugLineStrip(const point2 * pPoints, int numPoints, rgba_arg rgba);
-		void				AddDebugLineStrip(const point2 * pPoints, int numPoints, rgba_arg rgba, affine2_arg xfm);
-		void				AddDebugLineStrip(const float4 * pPoints, int numPoints, rgba_arg rgba);
-		void				AddDebugLineStrip(const float4 * pPoints, int numPoints, rgba_arg rgba, float4x4_arg xfm);
+		void				AddDebugLine(float2 p0, float2 p1, rgba rgba);
+		void				AddDebugLine(float2 p0, float2 p1, rgba rgba, float3x3 const & xfm);
+		void				AddDebugLine(float4 p0, float4 p1, rgba rgba);
+		void				AddDebugLine(float4 p0, float4 p1, rgba rgba, float4x4 const & xfm);
+		void				AddDebugLineStrip(const float2 * pPoints, int numPoints, rgba rgba);
+		void				AddDebugLineStrip(const float2 * pPoints, int numPoints, rgba rgba, float3x3 const & xfm);
+		void				AddDebugLineStrip(const float4 * pPoints, int numPoints, rgba rgba);
+		void				AddDebugLineStrip(const float4 * pPoints, int numPoints, rgba rgba, float4x4 const & xfm);
 		void				DrawDebugLines(ID3D11DeviceContext * pCtx);
 
 		// Basic resources
