@@ -161,7 +161,8 @@ public:
 	bool								TryActivateOculusVR();
 	void								DeactivateOculusVR();
 	ovrSession							m_oculusSession;
-	ovrSwapTextureSet *					m_pOculusSwapTextureSet;
+	ovrTextureSwapChain					m_oculusTextureSwapChain;
+	std::vector<comptr<ID3D11Texture2D>>m_oculusTextures;
 	ovrFovPort							m_eyeFovOculusHMD[2];
 	ovrVector3f							m_eyeOffsetsOculusHMD[2];
 	ovrPosef							m_poseOculusHMD[2];
@@ -178,7 +179,7 @@ public:
 
 TestWindow::TestWindow()
 :	m_oculusSession(nullptr),
-	m_pOculusSwapTextureSet(nullptr),
+	m_oculusTextureSwapChain(nullptr),
 	m_pOpenVRSystem(nullptr),
 	m_pOpenVRCompositor(nullptr)
 {
@@ -461,9 +462,13 @@ LRESULT TestWindow::MsgProc(HWND hWnd, UINT message, WPARAM wParam, LPARAM lPara
 
 		case 'R':
 			if (m_oculusSession)
-				ovr_RecenterPose(m_oculusSession);
+			{
+				CHECK_OVR_WARN(ovr_RecenterTrackingOrigin(m_oculusSession));
+			}
 			else if (m_pOpenVRSystem)
+			{
 				m_pOpenVRSystem->ResetSeatedZeroPose();
+			}
 			break;
 		}
 		return 0;
@@ -564,15 +569,17 @@ void TestWindow::OnRender()
 	{
 		// Blit the frame to the Oculus swap texture set (would have rendered directly to it,
 		// but then it seems you can't blit from it to the back buffer - we just get black).
-		ovrD3D11Texture * pOVRTex = (ovrD3D11Texture *)&m_pOculusSwapTextureSet->Textures[m_pOculusSwapTextureSet->CurrentIndex];
-		ASSERT_WARN(all(int2(&pOVRTex->Texture.Header.TextureSize.w) == m_rtScene.m_dims));
-		m_pCtx->CopySubresourceRegion(pOVRTex->D3D11.pTexture, 0, 0, 0, 0, m_rtScene.m_pTex, 0, nullptr);
+		int textureIndex = 0;
+		CHECK_OVR_WARN(ovr_GetTextureSwapChainCurrentIndex(m_oculusSession, m_oculusTextureSwapChain, &textureIndex));
+		ASSERT_WARN(textureIndex >= 0 && textureIndex < int(m_oculusTextures.size()));
+		m_pCtx->CopySubresourceRegion(m_oculusTextures[textureIndex], 0, 0, 0, 0, m_rtScene.m_pTex, 0, nullptr);
+		CHECK_OVR_WARN(ovr_CommitTextureSwapChain(m_oculusSession, m_oculusTextureSwapChain));
 
 		// Submit the frame to the Oculus runtime
 		ovrLayerEyeFov layerMain = {};
 		layerMain.Header.Type = ovrLayerType_EyeFov;
 		layerMain.Header.Flags = ovrLayerFlag_HighQuality;
-		layerMain.ColorTexture[0] = m_pOculusSwapTextureSet;
+		layerMain.ColorTexture[0] = m_oculusTextureSwapChain;
 		layerMain.Viewport[ovrEye_Left].Size.w = m_rtSceneMSAA.m_dims.x / 2;
 		layerMain.Viewport[ovrEye_Left].Size.h = m_rtSceneMSAA.m_dims.y;
 		layerMain.Viewport[ovrEye_Right].Pos.x = m_rtSceneMSAA.m_dims.x / 2;
@@ -586,7 +593,7 @@ void TestWindow::OnRender()
 		ovrResult result = ovr_SubmitFrame(m_oculusSession, m_timer.m_frameCount, nullptr, layerList, dim(layerList));
 		if (result == ovrError_DisplayLost)
 		{
-			// Display was powered off, or something. Set flag to turn off VR mode next frame.
+			// Display was powered off, or something. Set flag to turn off VR mode at the end of the frame.
 			vrDisplayLost = true;
 		}
 		else if (OVR_FAILURE(result))
@@ -595,9 +602,6 @@ void TestWindow::OnRender()
 			ovr_GetLastErrorInfo(&errorInfo);
 			WARN("ovr_SubmitFrame failed with error code: %d\nError message: %s", result, errorInfo.ErrorString);
 		}
-
-		// Cycle through textures in the set
-		m_pOculusSwapTextureSet->CurrentIndex = (m_pOculusSwapTextureSet->CurrentIndex + 1) % m_pOculusSwapTextureSet->TextureCount;
 	}
 	else if (m_pOpenVRSystem)
 	{
@@ -869,7 +873,7 @@ bool TestWindow::TryActivateVR()
 		}
 	}
 
-	ERR("No VR headset detected");
+	MessageBox(m_hWnd, "No VR headset detected", "Warning", MB_OK);
 	return false;
 }
 
@@ -908,28 +912,46 @@ bool TestWindow::TryActivateOculusVR()
 		return false;
 	}
 
-	// Create swap texture set for both eyes side-by-side
+	// Create texture swap chain for both eyes side-by-side
 	ovrHmdDesc hmdDesc = ovr_GetHmdDesc(m_oculusSession);
 	ovrSizei eyeSizeLeft = ovr_GetFovTextureSize(m_oculusSession, ovrEye_Left, hmdDesc.DefaultEyeFov[0], 1.0f);
 	ovrSizei eyeSizeRight = ovr_GetFovTextureSize(m_oculusSession, ovrEye_Right, hmdDesc.DefaultEyeFov[1], 1.0f);
 	int2 dimsRenderTarget = { max(eyeSizeLeft.w, eyeSizeRight.w) * 2, max(eyeSizeLeft.h, eyeSizeRight.h) };
-	D3D11_TEXTURE2D_DESC texDesc =
+	ovrTextureSwapChainDesc texDesc =
 	{
-		UINT(dimsRenderTarget.x), UINT(dimsRenderTarget.y), 1, 1,
-		DXGI_FORMAT_R8G8B8A8_UNORM_SRGB,
-		{ 1, 0 },
-		D3D11_USAGE_DEFAULT,
-		D3D11_BIND_RENDER_TARGET | D3D11_BIND_SHADER_RESOURCE,
+		ovrTexture_2D,
+		OVR_FORMAT_R8G8B8A8_UNORM_SRGB,
+		1,		// ArraySize
+		dimsRenderTarget.x, dimsRenderTarget.y,
+		1,		// MipLevels
+		1,		// SampleCount
+		false,	// StaticImage
+		ovrTextureMisc_DX_Typeless,		// MiscFlags
+		ovrTextureBind_DX_RenderTarget,	// BindFlags
 	};
-	CHECK_OVR(ovr_CreateSwapTextureSetD3D11(
+	CHECK_OVR(ovr_CreateTextureSwapChainDX(
 					m_oculusSession,
 					m_pDevice,
 					&texDesc,
-					ovrSwapTextureSetD3D11_Typeless,
-					&m_pOculusSwapTextureSet));
-	ASSERT_ERR(m_pOculusSwapTextureSet);
-	if (!m_pOculusSwapTextureSet)
+					&m_oculusTextureSwapChain));
+	ASSERT_ERR(m_oculusTextureSwapChain);
+	if (!m_oculusTextureSwapChain)
 		return false;
+
+	// Retrieve DX interfaces for each element of the swap chain
+	int numTextures = 0;
+	CHECK_OVR(ovr_GetTextureSwapChainLength(m_oculusSession, m_oculusTextureSwapChain, &numTextures));
+	ASSERT_ERR(numTextures >= 1 && numTextures <= 10);	// Sanity check that it's not a wild number
+	m_oculusTextures.resize(numTextures);
+	for (int i = 0; i < numTextures; ++i)
+	{
+		CHECK_OVR(ovr_GetTextureSwapChainBufferDX(
+						m_oculusSession,
+						m_oculusTextureSwapChain,
+						i,
+						__uuidof(ID3D11Texture2D),
+						(void **)&m_oculusTextures[i]));
+	}
 
 	// Set new render target size for side-by-side stereo
 	SetRenderTargetDims(dimsRenderTarget);
@@ -948,7 +970,7 @@ bool TestWindow::TryActivateOculusVR()
 		// Store the eye FOVs and offset vectors for later use
 		m_eyeFovOculusHMD[i] = hmdDesc.DefaultEyeFov[i];
 		ovrEyeRenderDesc eyeRenderDesc = ovr_GetRenderDesc(m_oculusSession, ovrEyeType(i), hmdDesc.DefaultEyeFov[i]);
-		m_eyeOffsetsOculusHMD[i] = eyeRenderDesc.HmdToEyeViewOffset;
+		m_eyeOffsetsOculusHMD[i] = eyeRenderDesc.HmdToEyeOffset;
 	}
 
 	return true;
@@ -956,10 +978,12 @@ bool TestWindow::TryActivateOculusVR()
 
 void TestWindow::DeactivateOculusVR()
 {
-	if (m_pOculusSwapTextureSet)
+	m_oculusTextures.clear();
+
+	if (m_oculusTextureSwapChain)
 	{
-		ovr_DestroySwapTextureSet(m_oculusSession, m_pOculusSwapTextureSet);
-		m_pOculusSwapTextureSet = nullptr;
+		ovr_DestroyTextureSwapChain(m_oculusSession, m_oculusTextureSwapChain);
+		m_oculusTextureSwapChain = nullptr;
 	}
 
 	if (m_oculusSession)
