@@ -519,11 +519,31 @@ void TestWindow::OnRender()
 	m_timer.OnFrameStart();
 	m_camera.Update(m_timer.m_timestep);
 
+	XINPUT_STATE controllerState = {};
+	{
+		static bool controllerPresent = true;
+		if (controllerPresent && XInputGetState(0, &controllerState) != ERROR_SUCCESS)
+			controllerPresent = false;
+	}
+
 	if (IsVRActive())
 	{
 		// Force camera pitch to zero, so pitch is only from HMD orientation
 		m_camera.m_pitch = 0.0f;
 		m_camera.UpdateOrientation();
+
+		// Click right stick on controller to recenter tracking pose
+		if (controllerState.Gamepad.wButtons & XINPUT_GAMEPAD_RIGHT_THUMB)
+		{
+			if (m_oculusSession)
+			{
+				CHECK_OVR_WARN(ovr_RecenterTrackingOrigin(m_oculusSession));
+			}
+			else if (m_pOpenVRSystem)
+			{
+				m_pOpenVRSystem->ResetSeatedZeroPose();
+			}
+		}
 
 		// Retrieve head-tracking information from the VR API
 		if (m_oculusSession)
@@ -542,12 +562,6 @@ void TestWindow::OnRender()
 
 	// Set up debug parameters constant buffer
 
-	XINPUT_STATE controllerState = {};
-	{
-		static bool controllerPresent = true;
-		if (controllerPresent && XInputGetState(0, &controllerState) != ERROR_SUCCESS)
-			controllerPresent = false;
-	}
 	// !!!UNDONE: move keyboard tracking into an input system that respects focus, etc.
 	g_debugKey = (GetAsyncKeyState(' ') || (controllerState.Gamepad.wButtons & XINPUT_GAMEPAD_A));
 
