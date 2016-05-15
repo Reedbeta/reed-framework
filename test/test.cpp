@@ -503,6 +503,8 @@ void TestWindow::SetRenderTargetDims(int2 dimsNew)
 	if (all(dimsNew == m_rtSceneMSAA.m_dims))
 		return;
 
+	LOG("Resizing render targets to %d x %d", dimsNew.x, dimsNew.y);
+
 	// Recreate render targets for the new size
 	m_rtSceneMSAA.Reset();
 	m_rtScene.Reset();
@@ -904,6 +906,8 @@ void TestWindow::DeactivateVR()
 
 bool TestWindow::TryActivateOculusVR()
 {
+	LOG("Activating Oculus VR");
+
 	// Connect to HMD
 	ovrGraphicsLuid oculusLuid = {};
 	if (OVR_FAILURE(ovr_Create(&m_oculusSession, &oculusLuid)))
@@ -992,6 +996,8 @@ bool TestWindow::TryActivateOculusVR()
 
 void TestWindow::DeactivateOculusVR()
 {
+	LOG("Deactivating Oculus VR");
+
 	m_oculusTextures.clear();
 
 	if (m_oculusTextureSwapChain)
@@ -1009,6 +1015,8 @@ void TestWindow::DeactivateOculusVR()
 
 bool TestWindow::TryActivateOpenVR()
 {
+	LOG("Activating OpenVR");
+
 	// Loading the SteamVR Runtime
 	vr::EVRInitError initError;
 	m_pOpenVRSystem = vr::VR_Init(&initError, vr::VRApplication_Scene);
@@ -1043,6 +1051,8 @@ bool TestWindow::TryActivateOpenVR()
 
 void TestWindow::DeactivateOpenVR()
 {
+	LOG("Deactivating OpenVR");
+
 	if (m_pOpenVRSystem)
 	{
 		vr::VR_Shutdown();
