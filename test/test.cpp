@@ -611,6 +611,20 @@ void TestWindow::OnRender()
 		CHECK_OPENVR_WARN(m_pOpenVRCompositor->Submit(vr::Eye_Left, &tex, &bounds));
 		bounds = { 0.5f, 0.0f, 1.0f, 1.0f };
 		CHECK_OPENVR_WARN(m_pOpenVRCompositor->Submit(vr::Eye_Right, &tex, &bounds));
+
+		// Process OpenVR events
+		vr::VREvent_t vrEvent;
+		while (m_pOpenVRSystem->PollNextEvent(&vrEvent, sizeof(vrEvent)))
+		{
+			// Log all events to the console just for fun
+			LOG("OpenVR event: %s", m_pOpenVRSystem->GetEventTypeNameFromEnum(vr::EVREventType(vrEvent.eventType)));
+
+			if (vrEvent.eventType == vr::VREvent_DriverRequestedQuit)
+			{
+				// Display was powered off, or something. Set flag to turn off VR mode at the end of the frame.
+				vrDisplayLost = true;
+			}
+		}
 	}
 
 	// Blit the frame to the window - straight copy if same dims, bilinear resize otherwise
@@ -997,7 +1011,7 @@ bool TestWindow::TryActivateOpenVR()
 {
 	// Loading the SteamVR Runtime
 	vr::EVRInitError initError;
-	m_pOpenVRSystem = vr::VR_Init(&initError);
+	m_pOpenVRSystem = vr::VR_Init(&initError, vr::VRApplication_Scene);
 	if (initError != vr::VRInitError_None)
 	{
 		ERR("VR_Init failed with error code: %d\nError message: %s", initError, vr::VR_GetVRInitErrorAsEnglishDescription(initError));
