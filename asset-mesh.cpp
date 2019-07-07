@@ -288,7 +288,7 @@ namespace Framework
 			for (int iVert = 0, cVert = int(OBJverts.size()); iVert < cVert; ++iVert)
 			{
 				OBJVertex objv = OBJverts[iVert];
-				Vertex v = {};
+				Vertex v = { float3(0), float3(0), float2(0) };
 
 				// OBJ indices are 1-based; fix that (missing components are zeros)
 				if (objv.iPos > 0)
@@ -365,7 +365,7 @@ namespace Framework
 				float3 normal = cross(edge0, edge1);
 
 				// Triangle is degenerate if normal is near-zero
-				bool degenerate = all(isnear(normal, 0.0f));
+				bool degenerate = all(isnear(normal, 0.0f, 1e-9f));
 				if (degenerate)
 				{
 					// Fix up material ranges.  This could be done more efficiently, but on the
