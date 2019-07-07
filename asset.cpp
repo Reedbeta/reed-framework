@@ -20,7 +20,7 @@ namespace Framework
 		std::string fullPath = path;
 		if (suffix)
 			fullPath += suffix;
-		CHECK_WARN(AssetCompiler::CheckPathChars(fullPath.c_str()));
+		CHECK_WARN(AssetCompiler::NormalizePath(const_cast<char *>(fullPath.data())));
 		auto iter = m_directory.find(fullPath);
 		if (iter == m_directory.end())
 			return false;
@@ -288,16 +288,24 @@ namespace Framework
 
 		// Check that filenames are printable-ASCII-only, lowercase, and there are no backslashes
 		// (this should really be generalized to allow UTF-8 printable chars)
-		bool CheckPathChars(const char * path)
+		bool NormalizePath(char * path)
 		{
 			ASSERT_ERR(path);
 
-			for (const char * pCh = path; *pCh; ++pCh)
+			for (char * pCh = path; *pCh; ++pCh)
 			{
-				if (*pCh < 32 || (*pCh >= 'A' && *pCh <= 'Z') || *pCh > 126 || *pCh == '\\')
+				if (*pCh < 32 || *pCh > 126)
 				{
 					WARN("Invalid character %c in path %s", *pCh, path);
 					return false;
+				}
+				else if (*pCh >= 'A' && *pCh <= 'Z')
+				{
+					*pCh += 32;		// Convert to lowercase
+				}
+				else if (*pCh == '\\')
+				{
+					*pCh = '/';		// Normalize paths to forward slashes
 				}
 			}
 
@@ -317,39 +325,23 @@ namespace Framework
 			ASSERT_ERR(pData || sizeBytes == 0);
 			ASSERT_ERR(pZipOut);
 
+			if (!assetSuffix)
+				assetSuffix = "";
+
 			// Compose the path, but detect if it's too long
-			if (assetSuffix)
+			char zipPath[MZ_ZIP_MAX_ARCHIVE_FILENAME_SIZE + 1] = {};
+			if (_snprintf_s(zipPath, _TRUNCATE, "%s%s", assetPath, assetSuffix) < 0)
 			{
-				char zipPath[MZ_ZIP_MAX_ARCHIVE_FILENAME_SIZE + 1] = {};
-				if (_snprintf_s(zipPath, _TRUNCATE, "%s%s", assetPath, assetSuffix) < 0)
-				{
-					WARN("File path %s%s is too long for .zip format", assetPath, assetSuffix);
-					return false;
-				}
-
-				CHECK_WARN(CheckPathChars(zipPath));
-
-				if (!mz_zip_writer_add_mem(pZipOut, zipPath, pData, sizeBytes, MZ_NO_COMPRESSION))
-				{
-					WARN("Couldn't add file %s to archive", zipPath);
-					return false;
-				}
+				WARN("File path %s%s is too long for .zip format", assetPath, assetSuffix);
+				return false;
 			}
-			else
+
+			CHECK_WARN(NormalizePath(zipPath));
+
+			if (!mz_zip_writer_add_mem(pZipOut, zipPath, pData, sizeBytes, MZ_NO_COMPRESSION))
 			{
-				if (strlen(assetPath) > MZ_ZIP_MAX_ARCHIVE_FILENAME_SIZE)
-				{
-					WARN("File path %s is too long for .zip format", assetPath);
-					return false;
-				}
-
-				CHECK_WARN(CheckPathChars(assetPath));
-
-				if (!mz_zip_writer_add_mem(pZipOut, assetPath, pData, sizeBytes, MZ_NO_COMPRESSION))
-				{
-					WARN("Couldn't add file %s to archive", assetPath);
-					return false;
-				}
+				WARN("Couldn't add file %s to archive", zipPath);
+				return false;
 			}
 
 			return true;
@@ -622,9 +614,8 @@ namespace Framework
 			int numSrcFiles = int(mz_zip_reader_get_num_files(&zipSrc));
 
 			// Generate a temporary filename for the new archive
-			CHECK_WARN(CheckPathChars(packPath));
 			char outDir[MAX_PATH] = {};
-			if (const char * pLastSlash = strrchr(packPath, '/'))
+			if (const char * pLastSlash = max(strrchr(packPath, '/'), strrchr(packPath, '\\')))
 			{
 				ASSERT_ERR(pLastSlash - packPath < MAX_PATH);
 				memcpy(outDir, packPath, pLastSlash - packPath);

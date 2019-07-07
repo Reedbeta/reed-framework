@@ -58,9 +58,9 @@ namespace Framework
 			mz_zip_archive * pZip,
 			AssetPack * pPackOut);
 
-		// Check that filenames are printable-ASCII-only, lowercase, and there are no backslashes
+		// Ensure that filenames are printable-ASCII-only, lowercase, and there are no backslashes
 		// (this should really be generalized to allow UTF-8 printable chars)
-		bool CheckPathChars(const char * path);
+		bool NormalizePath(char * path);
 
 		// Write a memory buffer out to an asset pack .zip file.
 		bool WriteAssetDataToZip(
