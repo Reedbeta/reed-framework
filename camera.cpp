@@ -173,8 +173,12 @@ namespace Framework
 		float moveStep = timestep * m_moveSpeed;
 
 		// !!!UNDONE: move keyboard tracking into an input system that respects focus, etc.
+
 		if (GetAsyncKeyState(VK_SHIFT) || (controllerState.Gamepad.wButtons & XINPUT_GAMEPAD_RIGHT_SHOULDER))
 			moveStep *= 3.0f;
+
+		if (GetAsyncKeyState(VK_CONTROL) || (controllerState.Gamepad.wButtons & XINPUT_GAMEPAD_LEFT_SHOULDER))
+			moveStep *= 0.1f;
 
 		if (GetAsyncKeyState('W'))
 			m_pos -= m_viewToWorld[2].xyz * moveStep;
