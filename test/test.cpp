@@ -334,7 +334,7 @@ bool TestWindow::Init(HINSTANCE hInstance)
 	ovrInitParams ovrParams = {};
 	if (OVR_FAILURE(ovr_Initialize(&ovrParams)))
 	{
-		MessageBox(m_hWnd, "Couldn't init Oculus SDK; HMD support will not be available", "Warning", MB_OK);
+		LOG("Couldn't init Oculus SDK; HMD support will not be available");
 	}
 
 	// Automatically use the biggest font size
